@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "status": "phase2e1_acquisition_grid_v2_active",
+  "status": "phase2f1_icon_deterministic_registry_v1_active",
   "owner": "public_collector_acquisition_private_normalization",
   "parameters": [
     {
@@ -19,7 +19,7 @@
       "required_for_core_wind": false
     },
     {
-      "parameter_id": "dewpoint_2m",
+      "parameter_id": "dewpoint_temperature_2m",
       "target_unit": "degC",
       "dwd_fields": [
         "td_2m"
@@ -80,7 +80,7 @@
       "required_for_core_wind": false
     },
     {
-      "parameter_id": "precipitation_amount",
+      "parameter_id": "total_precipitation",
       "target_unit": "mm",
       "dwd_fields": [
         "tot_prec"
@@ -95,7 +95,7 @@
       "required_for_core_wind": false
     },
     {
-      "parameter_id": "total_cloud_fraction",
+      "parameter_id": "total_cloud_cover",
       "target_unit": "1",
       "dwd_fields": [
         "clct"
@@ -126,7 +126,7 @@
       "required_for_core_wind": false
     },
     {
-      "parameter_id": "cape_variant",
+      "parameter_id": "cape",
       "target_unit": "J/kg",
       "dwd_fields": [
         "cape_ml"
@@ -141,7 +141,7 @@
       "required_for_core_wind": false
     },
     {
-      "parameter_id": "cin_variant",
+      "parameter_id": "cin",
       "target_unit": "J/kg",
       "dwd_fields": [
         "cin_ml"
@@ -190,7 +190,7 @@
   "analysis_changes": false,
   "provider_activation": {
     "DWD_ICON": {
-      "status": "live_probe_validated_not_routine",
+      "status": "routine_registry_v1_active",
       "models": [
         "ICON-D2",
         "ICON-EU"
@@ -238,27 +238,121 @@
           "aswdifd_s": "0-12"
         }
       },
-      "routine_collection_enabled": false,
+      "routine_collection_enabled": true,
       "analysis_changes": false,
-      "note": "Bounded provider proof only. Broad routine activation waits for runtime/download-budget design and Archive-v2 integration.",
+      "note": "Phase 2F-1 routine activation after 2E-3 acceptance. All validated Registry-v1 ICON fields use the existing Acquisition Grid v2; no denser weather-only grid is introduced.",
       "tier_a_routine": {
-        "status": "candidate_pending_live_validation",
-        "method_version": "phase2-icon-tier-a-routine-v1",
+        "status": "active_phase2f1",
+        "method_version": "phase2f1-icon-registry-v1-routine-v2",
         "parameters": [
+          "t_2m",
+          "td_2m",
+          "relhum_2m",
+          "pmsl",
+          "ps",
           "tot_prec",
+          "clct",
+          "aswdir_s",
+          "aswdifd_s",
           "cape_ml",
-          "cin_ml",
-          "clct"
+          "cin_ml"
         ],
         "models": [
           "ICON-D2",
           "ICON-EU"
         ],
-        "cadence": "all collected <=48h leads; ICON-EU >48h follows existing cycle-specific 6h lead plan",
+        "cadence": "exactly the ICON-D2/ICON-EU forecast rows already selected by Acquisition Grid v2",
         "raw_grib_retention": "ephemeral_runner_only",
         "normalization_performed": false,
         "analysis_changed": false,
-        "missing_policy": "explicit missing/fetch_error; never zero-fill; never invalidate wind-critical records"
+        "missing_policy": "explicit missing/fetch_error; never zero-fill; never invalidate wind-critical records",
+        "registry_version": "relevant-meteorology-v1"
+      },
+      "registry_v1_coverage": {
+        "ICON-D2": {
+          "wind_u_10m": [
+            "u_10m"
+          ],
+          "wind_v_10m": [
+            "v_10m"
+          ],
+          "wind_gust_10m": [
+            "vmax_10m"
+          ],
+          "air_temperature_2m": [
+            "t_2m"
+          ],
+          "dewpoint_temperature_2m": [
+            "td_2m"
+          ],
+          "relative_humidity_2m": [
+            "relhum_2m"
+          ],
+          "mean_sea_level_pressure": [
+            "pmsl"
+          ],
+          "surface_pressure": [
+            "ps"
+          ],
+          "total_precipitation": [
+            "tot_prec"
+          ],
+          "total_cloud_cover": [
+            "clct"
+          ],
+          "surface_downward_shortwave": [
+            "aswdir_s",
+            "aswdifd_s"
+          ],
+          "cape": [
+            "cape_ml"
+          ],
+          "cin": [
+            "cin_ml"
+          ]
+        },
+        "ICON-EU": {
+          "wind_u_10m": [
+            "u_10m"
+          ],
+          "wind_v_10m": [
+            "v_10m"
+          ],
+          "wind_gust_10m": [
+            "vmax_10m"
+          ],
+          "air_temperature_2m": [
+            "t_2m"
+          ],
+          "dewpoint_temperature_2m": [
+            "td_2m"
+          ],
+          "relative_humidity_2m": [
+            "relhum_2m"
+          ],
+          "mean_sea_level_pressure": [
+            "pmsl"
+          ],
+          "surface_pressure": [
+            "ps"
+          ],
+          "total_precipitation": [
+            "tot_prec"
+          ],
+          "total_cloud_cover": [
+            "clct"
+          ],
+          "surface_downward_shortwave": [
+            "aswdir_s",
+            "aswdifd_s"
+          ],
+          "cape": [
+            "cape_ml"
+          ],
+          "cin": [
+            "cin_ml"
+          ]
+        }
       }
     }
   },
@@ -326,5 +420,6 @@
     "no_download_then_discard_goal": true,
     "weather_context_rule": "NOAA weather context is requested only on leads actually selected by Acquisition Grid v2.",
     "phase_boundary": "Provider due-cycle/no-op suppression is 2E-2; full GEFS 31-member production acquisition remains gated until after 2E-3."
-  }
+  },
+  "relevant_meteorology_registry_version": "relevant-meteorology-v1"
 }

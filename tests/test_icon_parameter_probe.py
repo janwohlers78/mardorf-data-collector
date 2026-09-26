@@ -51,6 +51,19 @@ class IconParameterProbeTests(unittest.TestCase):
             "aswdir_s","aswdifd_s","cape_ml","cin_ml"})
         self.assertEqual(len(p.PARAMETERS),11)
         self.assertTrue(all(x in p.CANONICAL for x in p.PARAMETERS))
+        self.assertEqual(p.CANONICAL,{
+            "t_2m":"air_temperature_2m",
+            "td_2m":"dewpoint_temperature_2m",
+            "relhum_2m":"relative_humidity_2m",
+            "pmsl":"mean_sea_level_pressure",
+            "ps":"surface_pressure",
+            "tot_prec":"total_precipitation",
+            "clct":"total_cloud_cover",
+            "aswdir_s":"surface_downward_shortwave",
+            "aswdifd_s":"surface_downward_shortwave",
+            "cape_ml":"cape",
+            "cin_ml":"cin",
+        })
 
 
 if __name__=="__main__":

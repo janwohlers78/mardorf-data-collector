@@ -256,7 +256,14 @@
       "sp",
       "tcc",
       "cin",
-      "dswrf"
+      "dswrf",
+      "t_2m",
+      "td_2m",
+      "relhum_2m",
+      "pmsl",
+      "ps",
+      "aswdir_s",
+      "aswdifd_s"
     ],
     "ensemble_identity": {
       "ICON-D2-EPS": {
@@ -300,16 +307,23 @@
       }
     },
     "icon_tier_a": {
-      "method_version": "phase2-icon-tier-a-routine-v1",
+      "method_version": "phase2f1-icon-registry-v1-routine-v2",
       "models": [
         "ICON-D2",
         "ICON-EU"
       ],
       "parameters": [
+        "t_2m",
+        "td_2m",
+        "relhum_2m",
+        "pmsl",
+        "ps",
         "tot_prec",
+        "clct",
+        "aswdir_s",
+        "aswdifd_s",
         "cape_ml",
-        "cin_ml",
-        "clct"
+        "cin_ml"
       ],
       "required_for_core_wind": false,
       "missing_policy": "explicit_missing_or_fetch_error_never_zero_fill",
@@ -325,8 +339,10 @@
         "stepUnits",
         "stepRange",
         "source_sha256",
-        "availability_status"
-      ]
+        "availability_status",
+        "semantic_id"
+      ],
+      "registry_version": "relevant-meteorology-v1"
     },
     "noaa_weather_context": {
       "method_version": "phase2c-noaa-full-weather-context-v1",

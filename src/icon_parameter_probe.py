@@ -37,16 +37,16 @@ PARAMETERS = (
 )
 CANONICAL = {
     "t_2m": "air_temperature_2m",
-    "td_2m": "dewpoint_2m",
+    "td_2m": "dewpoint_temperature_2m",
     "relhum_2m": "relative_humidity_2m",
     "pmsl": "mean_sea_level_pressure",
     "ps": "surface_pressure",
-    "tot_prec": "precipitation_amount",
-    "clct": "total_cloud_fraction",
-    "aswdir_s": "surface_downward_shortwave_direct",
-    "aswdifd_s": "surface_downward_shortwave_diffuse",
-    "cape_ml": "cape_mixed_layer",
-    "cin_ml": "cin_mixed_layer",
+    "tot_prec": "total_precipitation",
+    "clct": "total_cloud_cover",
+    "aswdir_s": "surface_downward_shortwave",
+    "aswdifd_s": "surface_downward_shortwave",
+    "cape_ml": "cape",
+    "cin_ml": "cin",
 }
 META_KEYS = (
     "shortName", "paramId", "units", "typeOfLevel", "level", "stepType",
