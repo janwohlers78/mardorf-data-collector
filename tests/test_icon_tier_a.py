@@ -139,6 +139,17 @@ class IconTierARoutineTests(unittest.TestCase):
             self.assertEqual(values["vmax_10m"][0]["semantic_id"],"wind_gust_10m")
             self.assertEqual(records[0]["derived"]["wind_speed_ms"],5.0)
 
+    def test_icon_d2_dict_shaped_wind_fields_receive_registry_semantics(self):
+        row={"values":{
+            "u_10m":{"value":3.0},
+            "v_10m":{"value":4.0},
+            "vmax_10m":{"value":7.0},
+        }}
+        t.annotate_registry_semantics(row)
+        self.assertEqual(row["values"]["u_10m"]["semantic_id"],"wind_u_10m")
+        self.assertEqual(row["values"]["v_10m"]["semantic_id"],"wind_v_10m")
+        self.assertEqual(row["values"]["vmax_10m"]["semantic_id"],"wind_gust_10m")
+
     def test_tier_a_contract_matches_phase2f1_registry_weather_fields(self):
         self.assertEqual(t.TIER_A,("t_2m","td_2m","relhum_2m","pmsl","ps","tot_prec","clct","aswdir_s","aswdifd_s","cape_ml","cin_ml"))
         self.assertEqual(t.REGISTRY_VERSION,"relevant-meteorology-v1")
