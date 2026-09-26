@@ -1,0 +1,31 @@
+name: Force model run once
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/force-model-run-once.yml'
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Dispatch full model validation
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh workflow run collect-models.yml \
+            --repo "$GH_REPO" \
+            --ref main \
+            -f test_mode=false \
+            -f full_validation=true \
+            -f watchdog=false
+          echo "Dispatched collect-models.yml with full_validation=true and watchdog=false."
