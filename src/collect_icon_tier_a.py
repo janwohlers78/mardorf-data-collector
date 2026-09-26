@@ -22,12 +22,14 @@ from pathlib import Path
 import fetch_dwd_additional_models as dwd
 import fetch_model_data as base
 import availability_contract as availability
-from icon_parameter_probe import message_metadata, select_exact_message
+from icon_parameter_probe import CANONICAL, message_metadata, select_exact_message
 
 SNAP=Path(os.getenv("COLLECTOR_MODEL_FILE","work/model_snapshot.json"))
-TIER_A=("tot_prec","cape_ml","cin_ml","clct")
+TIER_A=("t_2m","td_2m","relhum_2m","pmsl","ps","tot_prec","clct","aswdir_s","aswdifd_s","cape_ml","cin_ml")
 MODEL_MAP={"ICON-D2":"icon-d2","ICON-EU":"icon-eu"}
-METHOD_VERSION="phase2-icon-tier-a-routine-v1"
+METHOD_VERSION="phase2f1-icon-registry-v1-routine-v2"
+REGISTRY_VERSION="relevant-meteorology-v1"
+WIND_SEMANTICS={"u_10m":"wind_u_10m","v_10m":"wind_v_10m","vmax_10m":"wind_gust_10m"}
 
 
 def utc(value):
@@ -50,7 +52,7 @@ def url_inventory(provider_model,cycle,param):
 def fetch_field(provider_model,cycle,lead,param,url,run,valid):
     started=time.monotonic()
     checked=datetime.now(timezone.utc).isoformat()
-    stable={"parameter_native":param,"value":None,"availability_status":"fetch_error","error_type":"OptionalFieldUnavailable","availability_observed_at_utc":checked}
+    stable={"parameter_native":param,"semantic_id":CANONICAL[param],"value":None,"availability_status":"fetch_error","error_type":"OptionalFieldUnavailable","availability_observed_at_utc":checked}
     diagnostic={"parameter":param,"lead_hours":lead,"status":"fetch_error"}
     if not url:
         stable["availability_status"]="not_yet_published"
@@ -77,6 +79,7 @@ def fetch_field(provider_model,cycle,lead,param,url,run,valid):
         for m,p in zip(meta,nearest):
             values.append({
                 **m,
+                "semantic_id":CANONICAL[param],
                 "value":p["value"],
                 "latitude":p["lat"],
                 "longitude":p["lon"],
@@ -98,6 +101,18 @@ def fetch_field(provider_model,cycle,lead,param,url,run,valid):
         return stable,diagnostic,url
 
 
+
+def annotate_registry_semantics(row):
+    """Attach frozen Registry-v1 semantics without altering native field identity."""
+    values=row.get("values") or {}
+    for parameter,semantic_id in WIND_SEMANTICS.items():
+        native=values.get(parameter)
+        if isinstance(native,list):
+            for item in native:
+                if isinstance(item,dict):
+                    item.setdefault("semantic_id",semantic_id)
+
+
 def attach(snapshot,workers=4,models=None):
     started=datetime.now(timezone.utc)
     selected=set(models or MODEL_MAP)
@@ -114,6 +129,8 @@ def attach(snapshot,workers=4,models=None):
         if len(cycles)!=1:
             raise RuntimeError(f"{model} Tier-A requires exactly one bound cycle, got {cycles}")
         cycle=cycles[0]
+        for row in rows:
+            annotate_registry_semantics(row)
         for param in TIER_A:
             _directory,lead_urls=url_inventory(provider_model,cycle,param)
             inventories[(model,param)]=lead_urls
@@ -182,7 +199,9 @@ def attach(snapshot,workers=4,models=None):
     summary={
         "schema_version":1,
         "method_version":METHOD_VERSION,
+        "registry_version":REGISTRY_VERSION,
         "parameters":list(TIER_A),
+        "semantic_mapping":{**WIND_SEMANTICS,**{p:CANONICAL[p] for p in TIER_A}},
         "started_at_utc":started.isoformat(),
         "completed_at_utc":completed.isoformat(),
         "wall_duration_seconds":round((completed-started).total_seconds(),3),
