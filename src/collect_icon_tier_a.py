@@ -107,10 +107,15 @@ def annotate_registry_semantics(row):
     values=row.get("values") or {}
     for parameter,semantic_id in WIND_SEMANTICS.items():
         native=values.get(parameter)
-        if isinstance(native,list):
-            for item in native:
-                if isinstance(item,dict):
-                    item.setdefault("semantic_id",semantic_id)
+        if isinstance(native,dict):
+            items=[native]
+        elif isinstance(native,list):
+            items=native
+        else:
+            items=[]
+        for item in items:
+            if isinstance(item,dict):
+                item.setdefault("semantic_id",semantic_id)
 
 
 def attach(snapshot,workers=4,models=None):
