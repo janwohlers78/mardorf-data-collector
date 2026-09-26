@@ -385,5 +385,49 @@ class HorizonTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             c.validate_archive(d)
 
+
+    def test_phase2e3_daily_acquisition_opportunity_budget(self):
+        cycle_hours = {
+            "ICON-D2": (0, 3, 6, 9, 12, 15, 18, 21),
+            "ICON-D2-EPS": (0, 3, 6, 9, 12, 15, 18, 21),
+            "ICON-EU": (0, 3, 6, 9, 12, 15, 18, 21),
+            "ECMWF-IFS": (0, 6, 12, 18),
+            "GFS": (0, 6, 12, 18),
+            "GEFS-control": (0, 6, 12, 18),
+        }
+        baseline = {
+            "ICON-D2": 136,
+            "ICON-D2-EPS": 136,
+            "ICON-EU": 204,
+            "ECMWF-IFS": 220,
+            "GFS": 308,
+            "GEFS-control": 384,
+        }
+        expected = {
+            "ICON-D2": 136,
+            "ICON-D2-EPS": 136,
+            "ICON-EU": 200,
+            "ECMWF-IFS": 162,
+            "GFS": 164,
+            "GEFS-control": 183,
+        }
+        actual = {}
+        for model, hours in cycle_hours.items():
+            actual[model] = sum(
+                len(c.acquisition_leads(
+                    model, datetime(2026, 9, 25, hour, tzinfo=timezone.utc)
+                ))
+                for hour in hours
+            )
+        self.assertEqual(actual, expected)
+        self.assertEqual(sum(baseline.values()), 1388)
+        self.assertEqual(sum(actual.values()), 981)
+        self.assertAlmostEqual(100 * (1 - sum(actual.values()) / sum(baseline.values())), 29.3228, places=3)
+        self.assertAlmostEqual(100 * (1 - actual["ICON-EU"] / baseline["ICON-EU"]), 1.9608, places=3)
+        self.assertAlmostEqual(100 * (1 - actual["ECMWF-IFS"] / baseline["ECMWF-IFS"]), 26.3636, places=3)
+        self.assertAlmostEqual(100 * (1 - actual["GFS"] / baseline["GFS"]), 46.7532, places=3)
+        self.assertAlmostEqual(100 * (1 - actual["GEFS-control"] / baseline["GEFS-control"]), 52.3438, places=3)
+
+
 if __name__ == "__main__":
     unittest.main()
