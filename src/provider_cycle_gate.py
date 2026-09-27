@@ -372,13 +372,27 @@ def build_plan(repo,token,full_validation=True,discover_fn=discover,discover_gef
                 seed_payload_source_matches=bool(source_ok),
                 publication_probe_attempts=probe_attempts,
             )
-            if archived and source_ok:
-                full_entry.update(action="carry_forward",reason="selected_00z_full_member_cycle_already_archived")
+            # Archive-v4 ensemble-cycle evidence is the authoritative proof that
+            # an exact sparse 31-member cycle was already persisted. A later
+            # deterministic/manual full-validation payload may intentionally omit
+            # the archive-only gefs_full_member_source block; that omission must
+            # not force a redundant NOAA re-download of an already archived cycle.
+            # A genuinely newer cycle still has no exact private evidence and
+            # therefore remains fail-open fetch.
+            if archived:
+                full_entry.update(
+                    action="carry_forward",
+                    reason=(
+                        "selected_00z_full_member_cycle_already_archived"
+                        if source_ok
+                        else "selected_00z_full_member_cycle_archived_seed_source_optional"
+                    ),
+                )
             else:
-                missing=[]
-                if not archived: missing.append("private_ensemble_cycle_evidence")
-                if not source_ok: missing.append("seed_full_member_source")
-                full_entry.update(action="fetch",reason="fetch_fail_open_missing_"+"_".join(missing))
+                full_entry.update(
+                    action="fetch",
+                    reason="fetch_fail_open_missing_private_ensemble_cycle_evidence",
+                )
         except Exception as exc:
             full_entry.update(
                 action="fetch",
