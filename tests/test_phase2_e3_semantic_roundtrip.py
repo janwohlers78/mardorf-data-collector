@@ -122,6 +122,49 @@ class Phase2E3CollectorSemanticMatrixTests(unittest.TestCase):
                     self.assertIn(semantic,exceptions)
                     self.assertTrue(str(exceptions[semantic]).strip())
 
+    def test_final_normalizer_materializes_every_static_registry_v2_gap(self):
+        products={
+            "ICON-D2":"icon-d2_regular-lat-lon",
+            "ICON-EU":"icon-eu_regular-lat-lon",
+            "ICON-D2-EPS":"open_meteo:dwd_icon_d2_eps",
+            "ECMWF-IFS":"ifs_oper_fc_0p25",
+            "GFS":"gfs_0p25",
+            "GEFS-control":"gefs_0p25s",
+        }
+        for model in sorted(PROVIDERS):
+            with self.subTest(model=model):
+                row={
+                    "model":model,
+                    "provider_product":products[model],
+                    "forecast_lead_hours":12,
+                    "retrieved_at_utc":"2026-09-27T12:00:00+00:00",
+                    "values":{},
+                }
+                # Keep producer-specific declarations where they exist; E3 fills
+                # only active Registry-v2 gaps not already represented.
+                if model=="ECMWF-IFS":
+                    row["field_availability_states"]=ecmwf.unsupported_declarations()
+                availability.stamp_rows([row],observed_at=row["retrieved_at_utc"])
+                by_semantic={
+                    x.get("semantic_id"):x for x in row["field_availability_states"]
+                    if x.get("semantic_id") in SEMANTICS
+                }
+                expected={
+                    semantic:status
+                    for semantic,status in REGISTRY["providers"][model]["coverage"].items()
+                    if status!="native_received"
+                }
+                self.assertEqual(
+                    {semantic:item["availability_status"] for semantic,item in by_semantic.items()},
+                    expected,
+                )
+                for semantic,item in by_semantic.items():
+                    self.assertNotIn("field_available_at_utc",item)
+                    self.assertNotIn("value",item)
+                    if item["availability_evidence_type"]=="relevant_meteorology_registry_v2_provider_coverage":
+                        self.assertEqual(item["parameter_native"],"*")
+                        self.assertEqual(item["registry_version"],"relevant-meteorology-v2")
+
     def test_runtime_metadata_contract_preserves_unit_level_and_interval_evidence(self):
         required={"units","typeOfLevel","level","stepType","stepRange","startStep","endStep","stepUnits"}
         self.assertTrue(required<=set(icon_probe.META_KEYS))
