@@ -150,16 +150,5 @@
     "v2_shared_core_mutation_rule": "Any change to shared_core requires a new shared_core_sha256, matching byte-identical contract update in both repositories, and an explicit audit-plan reason.",
     "implementation_rule": "Implementation steps C1 onward may satisfy this contract but may not weaken these invariants without a new contract version.",
     "refreeze_rule": "Status may become complete_frozen only after H1 and H2 acceptance gates and H3 explicit refreeze."
-  },
-  "semantic_extensions": {
-    "cape_native_identity": {
-      "path": "config/cape_native_identity_contract_v1.json",
-      "method_version": "cape-native-identity-contract-v1",
-      "status": "active_phase2_audit_b2",
-      "safety_rule": "CAPE list order is non-semantic; native model/parameter/level/product identity must be resolved before hazard use.",
-      "ambiguity_rule": "unresolved or conflicting CAPE identity is unknown/warn and MUST NOT be represented as false/clear",
-      "positive_rule": "any identified native CAPE candidate at or above the configured threshold is conservative positive hazard evidence",
-      "provenance_rule": "selected hazard candidate carries its native CAPE identity into the operational C3 slot"
-    }
   }
 }
