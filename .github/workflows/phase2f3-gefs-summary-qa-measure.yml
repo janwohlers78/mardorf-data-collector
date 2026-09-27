@@ -1,0 +1,28 @@
+name: Phase 2F-3 GEFS provider summary QA measurement
+on:
+  push:
+    branches: [phase2f3-sparse-full-gefs]
+    paths:
+      - 'src/measure_gefs_summary_qa.py'
+      - '.github/workflows/phase2f3-gefs-summary-qa-measure.yml'
+permissions:
+  contents: read
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install ecCodes
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libeccodes-tools
+      - name: Install requests
+        run: python -m pip install --disable-pip-version-check requests==2.32.5
+      - name: Measure provider-summary parity
+        env:
+          PYTHONPATH: src
+        run: python src/measure_gefs_summary_qa.py
