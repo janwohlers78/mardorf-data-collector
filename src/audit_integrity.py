@@ -165,6 +165,50 @@ def audit_eps_hourly_source(source,run,expected_members=20):
                                  "field":field,"member":member,
                                  "values":len(values) if isinstance(values,list) else None,
                                  "times":len(times)})
+    registry_mode=source.get("registry_version")=="relevant-meteorology-v1"
+    weather_completeness={}
+    if registry_mode:
+        expected_semantics={
+            "wind_speed_10m":"wind_speed_10m",
+            "wind_direction_10m":"wind_direction_10m",
+            "wind_gusts_10m":"wind_gust_10m",
+            "precipitation":"total_precipitation",
+            "cape":"cape",
+            "temperature_2m":"air_temperature_2m",
+            "relative_humidity_2m":"relative_humidity_2m",
+            "dew_point_2m":"dewpoint_temperature_2m",
+            "pressure_msl":"mean_sea_level_pressure",
+            "surface_pressure":"surface_pressure",
+            "cloud_cover":"total_cloud_cover",
+            "shortwave_radiation":"surface_downward_shortwave",
+        }
+        specs=source.get("field_specs") if isinstance(source.get("field_specs"),dict) else {}
+        declared=source.get("field_completeness_0_48") if isinstance(source.get("field_completeness_0_48"),dict) else {}
+        for field,semantic in expected_semantics.items():
+            vals=members(field)
+            if sorted(vals)!=expected_ids:
+                failures.append({"reason":"hourly_source_weather_member_identity_mismatch",
+                                 "field":field,"expected_member_ids":expected_ids,
+                                 "received_member_ids":sorted(vals)})
+            spec=specs.get(field) if isinstance(specs.get(field),dict) else {}
+            if spec.get("semantic_id")!=semantic:
+                failures.append({"reason":"hourly_source_registry_semantic_mismatch",
+                                 "field":field,"expected_semantic_id":semantic,
+                                 "value":spec.get("semantic_id")})
+            if spec.get("field_provider_product")!="open_meteo:dwd_icon_d2_eps":
+                failures.append({"reason":"hourly_source_field_product_mismatch",
+                                 "field":field,"value":spec.get("field_provider_product")})
+            for member,values in vals.items():
+                if not isinstance(values,list) or (times and len(values)!=len(times)):
+                    failures.append({"reason":"hourly_source_weather_column_length_mismatch",
+                                     "field":field,"member":member,
+                                     "values":len(values) if isinstance(values,list) else None,
+                                     "times":len(times)})
+        unsupported=source.get("unsupported_registry_semantics")
+        cin=[x for x in unsupported if isinstance(x,dict) and x.get("semantic_id")=="cin"] if isinstance(unsupported,list) else []
+        if len(cin)!=1 or cin[0].get("availability_status")!="unsupported_by_provider_or_product":
+            failures.append({"reason":"hourly_source_cin_unsupported_declaration_missing",
+                             "value":unsupported})
     missing_hours=[];invalid_values=[]
     if run and times:
         index={x:i for i,x in enumerate(times)}
@@ -225,6 +269,10 @@ def audit_eps_hourly_source(source,run,expected_members=20):
         "native_grid_parity_verified":source.get("native_grid_parity_verified"),
         "response_bound_run_identity_verified":source.get("response_bound_run_identity_verified"),
         "response_run_binding_status":binding.get("status"),
+        "registry_version":source.get("registry_version"),
+        "member_weather_field_count":len(source.get("field_specs") or {}) if registry_mode else len(columns),
+        "field_completeness_0_48":source.get("field_completeness_0_48") if registry_mode else None,
+        "unsupported_registry_semantics":source.get("unsupported_registry_semantics") if registry_mode else None,
         "failure_count":len(failures),
     }
     return failures,summary
