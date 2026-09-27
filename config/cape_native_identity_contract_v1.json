@@ -1,0 +1,352 @@
+{
+  "schema_version": 1,
+  "method_version": "cape-native-identity-contract-v1",
+  "status": "active_phase2_audit_b2",
+  "semantic_id": "cape",
+  "value_unit": "J/kg",
+  "threshold_jkg": 300,
+  "purpose": "Preserve provider-native CAPE identity through safety selection; never use list order as CAPE semantics.",
+  "identity_fields": [
+    "model",
+    "parameter_native",
+    "shortName",
+    "paramId",
+    "typeOfLevel",
+    "level",
+    "provider_product"
+  ],
+  "value_requirements": {
+    "finite_numeric": true,
+    "non_negative": true,
+    "accepted_unit_tokens": [
+      "J/kg",
+      "J kg-1",
+      "J kg**-1",
+      "J kg^-1"
+    ]
+  },
+  "providers": {
+    "ICON-D2": {
+      "source": "values",
+      "identities": [
+        {
+          "identity_id": "dwd-icon-d2:cape_ml",
+          "parameters": [
+            "cape_ml"
+          ],
+          "short_names": [
+            "cape_ml"
+          ],
+          "type_of_levels": [
+            "unknown"
+          ],
+          "levels": [
+            "0"
+          ]
+        }
+      ]
+    },
+    "ICON-EU": {
+      "source": "values",
+      "identities": [
+        {
+          "identity_id": "dwd-icon-eu:cape_ml",
+          "parameters": [
+            "cape_ml"
+          ],
+          "short_names": [
+            "cape_ml"
+          ],
+          "type_of_levels": [
+            "unknown"
+          ],
+          "levels": [
+            "0"
+          ]
+        }
+      ]
+    },
+    "ECMWF-IFS": {
+      "source": "values",
+      "identities": [
+        {
+          "identity_id": "ecmwf-ifs:mucape:mostUnstableParcel:0",
+          "parameters": [
+            "mucape"
+          ],
+          "short_names": [
+            "mucape"
+          ],
+          "param_ids": [
+            "228235"
+          ],
+          "type_of_levels": [
+            "mostUnstableParcel"
+          ],
+          "levels": [
+            "0"
+          ]
+        }
+      ]
+    },
+    "GFS": {
+      "source": "values",
+      "identities": [
+        {
+          "identity_id": "noaa-gfs:gfs_0p25:cape:surface:0",
+          "parameters": [
+            "cape"
+          ],
+          "short_names": [
+            "cape"
+          ],
+          "param_ids": [
+            "59"
+          ],
+          "type_of_levels": [
+            "surface"
+          ],
+          "levels": [
+            "0"
+          ],
+          "provider_products": [
+            "gfs_0p25"
+          ]
+        },
+        {
+          "identity_id": "noaa-gfs:gfs_0p25:cape:pressureFromGroundLayer:18000",
+          "parameters": [
+            "cape"
+          ],
+          "short_names": [
+            "cape"
+          ],
+          "param_ids": [
+            "59"
+          ],
+          "type_of_levels": [
+            "pressureFromGroundLayer"
+          ],
+          "levels": [
+            "18000"
+          ],
+          "provider_products": [
+            "gfs_0p25"
+          ]
+        },
+        {
+          "identity_id": "noaa-gfs:gfs_0p25:cape:pressureFromGroundLayer:9000",
+          "parameters": [
+            "cape"
+          ],
+          "short_names": [
+            "cape"
+          ],
+          "param_ids": [
+            "59"
+          ],
+          "type_of_levels": [
+            "pressureFromGroundLayer"
+          ],
+          "levels": [
+            "9000"
+          ],
+          "provider_products": [
+            "gfs_0p25"
+          ]
+        },
+        {
+          "identity_id": "noaa-gfs:gfs_0p25:cape:pressureFromGroundLayer:25500",
+          "parameters": [
+            "cape"
+          ],
+          "short_names": [
+            "cape"
+          ],
+          "param_ids": [
+            "59"
+          ],
+          "type_of_levels": [
+            "pressureFromGroundLayer"
+          ],
+          "levels": [
+            "25500"
+          ],
+          "provider_products": [
+            "gfs_0p25"
+          ]
+        }
+      ]
+    },
+    "GEFS-control": {
+      "source": "values",
+      "identities": [
+        {
+          "identity_id": "noaa-gefs:gefs_0p25s:cape:surface:0",
+          "parameters": [
+            "cape"
+          ],
+          "short_names": [
+            "cape"
+          ],
+          "param_ids": [
+            "59"
+          ],
+          "type_of_levels": [
+            "surface"
+          ],
+          "levels": [
+            "0"
+          ],
+          "provider_products": [
+            "gefs_0p25s"
+          ]
+        },
+        {
+          "identity_id": "noaa-gefs:gefs_0p25s:cape:pressureFromGroundLayer:18000",
+          "parameters": [
+            "cape"
+          ],
+          "short_names": [
+            "cape"
+          ],
+          "param_ids": [
+            "59"
+          ],
+          "type_of_levels": [
+            "pressureFromGroundLayer"
+          ],
+          "levels": [
+            "18000"
+          ],
+          "provider_products": [
+            "gefs_0p25s"
+          ]
+        },
+        {
+          "identity_id": "noaa-gefs:gefs_0p50a:cape:surface:0",
+          "parameters": [
+            "cape"
+          ],
+          "short_names": [
+            "cape"
+          ],
+          "param_ids": [
+            "59"
+          ],
+          "type_of_levels": [
+            "surface"
+          ],
+          "levels": [
+            "0"
+          ],
+          "provider_products": [
+            "gefs_0p50a"
+          ]
+        },
+        {
+          "identity_id": "noaa-gefs:gefs_0p50a:cape:pressureFromGroundLayer:18000",
+          "parameters": [
+            "cape"
+          ],
+          "short_names": [
+            "cape"
+          ],
+          "param_ids": [
+            "59"
+          ],
+          "type_of_levels": [
+            "pressureFromGroundLayer"
+          ],
+          "levels": [
+            "18000"
+          ],
+          "provider_products": [
+            "gefs_0p50a"
+          ]
+        },
+        {
+          "identity_id": "noaa-gefs:gefs_0p50b:cape:surface:0",
+          "parameters": [
+            "cape"
+          ],
+          "short_names": [
+            "cape"
+          ],
+          "param_ids": [
+            "59"
+          ],
+          "type_of_levels": [
+            "surface"
+          ],
+          "levels": [
+            "0"
+          ],
+          "provider_products": [
+            "gefs_0p50b"
+          ]
+        },
+        {
+          "identity_id": "noaa-gefs:gefs_0p50b:cape:pressureFromGroundLayer:25500",
+          "parameters": [
+            "cape"
+          ],
+          "short_names": [
+            "cape"
+          ],
+          "param_ids": [
+            "59"
+          ],
+          "type_of_levels": [
+            "pressureFromGroundLayer"
+          ],
+          "levels": [
+            "25500"
+          ],
+          "provider_products": [
+            "gefs_0p50b"
+          ]
+        }
+      ]
+    },
+    "ICON-D2-EPS": {
+      "source": "members",
+      "identities": [
+        {
+          "identity_id": "open-meteo:dwd_icon_d2_eps:cape:member",
+          "parameters": [
+            "cape"
+          ],
+          "provider_products": [
+            "open_meteo:dwd_icon_d2_eps"
+          ],
+          "representation": "named_model_ensemble_member_field"
+        }
+      ],
+      "expected_member_count": 20
+    }
+  },
+  "hazard_policy": {
+    "threshold_rule": "positive_if_any_identified_native_candidate_gte_threshold_jkg",
+    "selected_candidate_rule": "highest value_jkg; deterministic identity_id/member_id tie-break; never list order",
+    "negative_rule": "false only when at least one identified CAPE candidate exists and no participating CAPE-capable record is missing/ambiguous",
+    "ambiguous_rule": "unknown; never false/clear",
+    "missing_rule": "unknown; never zero-fill or false/clear",
+    "positive_with_other_ambiguity": "positive remains positive as conservative noncompensatory hazard evidence",
+    "duplicate_identity_conflict": "ambiguous unless duplicate values are numerically identical",
+    "permutation_invariant": true
+  },
+  "provenance_required_in_hazard": [
+    "contract_version",
+    "identity_id",
+    "model",
+    "parameter_native",
+    "value_jkg",
+    "shortName",
+    "paramId",
+    "typeOfLevel",
+    "level",
+    "provider_product",
+    "member_id"
+  ]
+}
