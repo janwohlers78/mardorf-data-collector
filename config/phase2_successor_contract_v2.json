@@ -191,6 +191,35 @@
       "private_visibility_rule": "A provider recovery is not visible in historical as_of reads before its private first_seen_at_utc.",
       "history_rule": "field_availability_history preserves the complete event-bound failure/recovery sequence; field_availability is the causal latest/as_of projection.",
       "zero_fill": "forbidden"
+    },
+    "semantic_provider_roundtrip_e3": {
+      "method_version": "phase2-semantic-provider-roundtrip-matrix-v1",
+      "status": "active_phase2_audit_e3",
+      "matrix_path": "config/phase2_semantic_roundtrip_matrix_v1.json",
+      "historical_plan_semantic_count": 13,
+      "active_registry_version": "relevant-meteorology-v2",
+      "active_semantic_count": 15,
+      "provider_path_count": 6,
+      "provider_semantic_cell_count": 90,
+      "dimensions": [
+        "semantic_id",
+        "provider_native_parameter_identity",
+        "provider_product",
+        "unit",
+        "vertical_level_identity",
+        "step_type_and_native_interval_metadata",
+        "normalized_interval_when_complete",
+        "availability_missingness_status",
+        "source_provenance",
+        "no_zero_fill"
+      ],
+      "deterministic_roundtrip": "Collector runtime mapping -> Registry v2 semantic -> Archive-v5 weather_values/field_availability -> Registry-v2 query views must preserve provider-native identity and explicit non-native availability states.",
+      "static_capability_rule": "Every Registry-v2 provider/semantic cell that is not native_received is materialized as an explicit availability state; no unavailable semantic may disappear merely because no native field exists.",
+      "no_invented_native_identity_rule": "Registry-level capability gaps use parameter_native='*' unless a more specific producer-native declaration exists; a missing field must never be given an invented provider parameter identity.",
+      "icon_eps_rule": "ICON-D2-EPS ensemble_field_status must expose active Registry-v2 non-native states including Cartesian U/V intentionally_not_applicable, CIN unsupported, and direct/diffuse shortwave unsupported while retaining polar speed/direction as auxiliary native member fields.",
+      "gefs_rule": "NOAA_GEFS full-member overlay preserves product, native parameter, level, unit and exact interval identity across member/availability/aggregate relations; typed request/capability/policy missingness remains explicit.",
+      "collision_rule": "Multiple provider-native fields may share a semantic_id only if their native field_identity_id remains distinct; ECMWF 10fg/10fg3/10fg6 and CAPE/CIN level variants must not collapse.",
+      "acceptance_gate": "No silent omission, semantic collision, unit/level/interval loss, zero-fill, or meteorologically invalid substitution across Collector -> semantic registry -> Archive -> query view."
     }
   }
 }
