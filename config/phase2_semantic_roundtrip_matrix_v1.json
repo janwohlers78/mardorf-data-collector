@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "method_version": "phase2-semantic-provider-roundtrip-matrix-v1",
+  "audit_step": "E3",
+  "historical_plan_name": "13-Semantic/Provider Round-trip Matrix",
+  "active_registry_version": "relevant-meteorology-v2",
+  "scope_note": "The original plan name referred to the 13-semantic predecessor. B1 split deterministic DWD shortwave into direct and diffuse successor semantics; E3 therefore validates all 15 active Registry-v2 semantics without mutating the frozen 13-semantic v1 registry.",
+  "expected_provider_paths": [
+    "ICON-D2",
+    "ICON-EU",
+    "ICON-D2-EPS",
+    "ECMWF-IFS",
+    "GFS",
+    "GEFS-control"
+  ],
+  "expected_active_semantic_count": 15,
+  "expected_provider_semantic_cells": 90,
+  "required_roundtrip_dimensions": [
+    "semantic_id",
+    "provider_native_parameter_identity",
+    "provider_product",
+    "unit",
+    "vertical_level_identity",
+    "step_type_and_native_interval_metadata",
+    "normalized_interval_when_evidence_is_complete",
+    "availability_missingness_status",
+    "source_provenance",
+    "no_zero_fill"
+  ],
+  "deterministic_archive_path": {
+    "collector": "provider runtime mapping and availability declarations",
+    "semantic": "relevant-meteorology-v2",
+    "archive": "mardorf-weather-archive-v5 weather_values/field_availability",
+    "view": "weather_values_registry_v2/field_availability_registry_v2"
+  },
+  "ensemble_overlays": {
+    "ICON-D2-EPS": {
+      "archive_contract": "ensemble-member-storage-contract-v2",
+      "required_checks": [
+        "all Registry-v2 native-received member semantics preserve unit and interval semantics",
+        "polar wind speed/direction never fabricate Registry Cartesian U/V",
+        "unsupported CIN and static component gaps remain explicit",
+        "member/source identity remains intact"
+      ]
+    },
+    "NOAA_GEFS": {
+      "archive_contract": "ensemble-member-storage-contract-v2",
+      "required_checks": [
+        "native field identity includes product/level/unit",
+        "instant/accum/avg/max exact interval evidence survives Member/Availability/Aggregate views",
+        "typed missingness remains in ensemble_field_status",
+        "no field variant is collapsed by semantic_id alone"
+      ]
+    }
+  },
+  "exit_gate": "No silent omission, semantic collision, unit/level/interval loss, missingness zero-fill, or meteorologically invalid substitution across Collector -> semantic registry -> Archive -> query view."
+}
