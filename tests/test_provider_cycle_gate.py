@@ -80,6 +80,28 @@ class ProviderCycleGateTests(unittest.TestCase):
         self.assertEqual(plan["full_ensembles"]["NOAA_GEFS"]["action"],"carry_forward")
         self.assertIs(seed,payload)
 
+
+    def test_archived_full_gefs_cycle_does_not_require_seed_source_block(self):
+        latest,payload=self.seed()
+        payload.pop("gefs_full_member_source")
+        with patch.object(gate,"load_seed",return_value=(latest,payload,"seed.json.gz","a"*64)), \
+             patch.object(gate,"exact_archived_cycle",return_value={"model":"ok"}), \
+             patch.object(gate,"exact_archived_gefs_full_cycle",return_value={"ensemble_system_id":"NOAA_GEFS"}):
+            plan,_=gate.build_plan(
+                "owner/private","token",True,
+                discover_fn=lambda model,full: RUN,
+                discover_gefs_full_fn=self.full_discover,
+            )
+        full=plan["full_ensembles"]["NOAA_GEFS"]
+        self.assertEqual(full["action"],"carry_forward")
+        self.assertEqual(
+            full["reason"],
+            "selected_00z_full_member_cycle_archived_seed_source_optional",
+        )
+        self.assertFalse(plan["any_work"])
+        self.assertEqual(plan["delta_prediction"],"zero")
+        self.assertTrue(plan["no_op_transfer_suppressed"])
+
     def test_one_new_provider_keeps_only_that_provider_fetchable(self):
         latest,payload=self.seed()
         newer=RUN.replace(hour=18)
