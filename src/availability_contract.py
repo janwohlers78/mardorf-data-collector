@@ -17,6 +17,8 @@ from pathlib import Path
 
 import noaa_weather_context as noaa
 
+METHOD_VERSION = "model-field-availability-v2"
+
 STATES = {
     "received",
     "unsupported_by_provider_or_product",
@@ -234,7 +236,7 @@ def normalize_snapshot(snapshot, observed_at=None):
         stamp_rows(source.get("records") or [], observed_at=observed_at, replace_row_time=False)
     snapshot["availability_contract"] = {
         "schema_version": 1,
-        "method_version": "model-field-availability-v1",
+        "method_version": METHOD_VERSION,
         "normalized_at_utc": observed_at,
         "states": sorted(STATES),
         "missing_value_policy": "explicit_status_never_zero_fill",
