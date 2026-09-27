@@ -1,0 +1,154 @@
+{
+  "schema_version": 2,
+  "contract_version": "phase2-acquisition-storage-successor-v2",
+  "status": "active_repair_contract_not_refrozen",
+  "created_utc_date": "2026-09-27",
+  "supersedes_for_repairs": "phase2-acquisition-storage-freeze-v1",
+  "audit_basis": {
+    "primary_audit_section": "phase2_full_consistency_audit_2026_09_27",
+    "revised_audit_section": "phase2_full_consistency_audit_2026_09_27_revision_1_astra_merge",
+    "blocking_findings": [
+      "P0-AUDIT-012",
+      "P0-AUDIT-015"
+    ],
+    "additional_revision_findings": [
+      "P1-AUDIT-013",
+      "P2-AUDIT-014",
+      "P1-AUDIT-016",
+      "P1-AUDIT-004"
+    ]
+  },
+  "shared_core_sha256": "284a29013089c7d835d5c8a0866403442ec6991222d2177c1b7b5f41e77874f7",
+  "shared_core_hash_algorithm": "sha256(canonical-json(sort_keys=true,separators=(',',':'),utf8))",
+  "shared_core": {
+    "shared_core_version": "phase2-revision-event-shared-core-v2",
+    "purpose": "Correct Phase-2 revision, causality, ensemble-atomicity and evidence-publication defects without mutating frozen v1 semantics in place.",
+    "immutable_predecessor": {
+      "contract_version": "phase2-acquisition-storage-freeze-v1",
+      "rule": "The v1 contract and historical v1 evidence remain immutable audit history. Repairs are implemented only under explicit successor versions."
+    },
+    "repository_roles": {
+      "janwohlers78/mardorf-data-collector": "provider acquisition, provider-native metadata preservation, availability declarations, integrity and verified transfer",
+      "janwohlers78/mardorf-kitevorhersage": "private revalidation, revision/event archive, causal views, analysis adapters and decision handoff"
+    },
+    "identity_and_revision_model": {
+      "logical_forecast_identity": "Stable meteorological forecast identity: model/stream, member identity where applicable, run time, valid time and grid point. Retrieval product enrichment does not create another logical forecast.",
+      "content_revision_id": "Deterministic hash of meteorological/status content with acquisition/private visibility clocks excluded.",
+      "revision_event_id": "Identity of one observed source/provider occurrence of a content revision. It is distinct from content_revision_id and MUST preserve a later return to previously seen content.",
+      "exact_replay_identity": "An exact replay of the same source occurrence MUST be idempotent and MUST NOT create a new revision event.",
+      "aba_rule": "A -> B -> A with a genuinely later provider/source occurrence MUST remain three ordered revision events even though the first and third content_revision_id values are equal.",
+      "ordering_rule": "Latest/as_of selection MUST order revision events by causal source/provider occurrence semantics subject to private visibility. private first_seen is a visibility gate, not the meteorological revision ordering key."
+    },
+    "causality_and_as_of": {
+      "private_visibility_rule": "No record, field metadata, availability event, ensemble source revision or evidence object may be visible before its private first_seen/verified visibility time.",
+      "as_of_rule": "connect_archive(..., as_of=T) and every successor causal reader MUST expose only revision events and metadata privately known by T.",
+      "revision_binding_rule": "Field values and field availability metadata exposed for a selected forecast revision MUST belong to that revision event or to an explicitly versioned event relation causally valid for that revision.",
+      "metadata_leak_rule": "A later privately-known metadata/source revision MUST NOT inherit an earlier first_seen merely because logical field identity and availability status are unchanged.",
+      "current_latest_rule": "Current latest views MUST represent the latest causal revision event, not the last unique content hash ever stored."
+    },
+    "field_availability_contract": {
+      "successor_requirement": "A new availability contract version is required.",
+      "availability_event_identity": "Availability observations MUST have an event identity bound to the applicable record/revision event and source evidence.",
+      "first_seen_semantics": "first_seen_at_utc is the earliest private visibility time of that specific availability event/metadata revision. It MUST NOT be reused across different metadata/source revisions.",
+      "closed_states": [
+        "received",
+        "unsupported_by_provider_or_product",
+        "intentionally_not_applicable",
+        "not_requested_by_policy",
+        "not_yet_published",
+        "fetch_error"
+      ],
+      "zero_fill": "forbidden",
+      "unknown_behavior": "Missing or ambiguous availability remains explicit and cannot be converted to received/clear/zero."
+    },
+    "ensemble_revision_contract": {
+      "successor_requirement": "A new ensemble storage/view contract version is required.",
+      "source_revision_set_id": "Each ensemble system/run/valid-time/field exposure MUST identify one coherent source revision set.",
+      "atomic_member_selection": "Member values, member availability and member-derived aggregates exposed together MUST come from the same selected source revision set.",
+      "partial_revision_rule": "A partial later source revision MUST NOT be silently completed with members from an older source revision.",
+      "old_source_replay_rule": "Later private replay of an older provider/source occurrence MUST NOT displace a newer provider/source occurrence.",
+      "exact_replay_rule": "Exact replay of the same ensemble source event is idempotent and MUST NOT advance meteorological revision chronology or earliest private visibility.",
+      "aggregate_provenance_rule": "Member-derived aggregates MUST retain the exact member revision set from which they were computed.",
+      "independence_rule": "Control, full ensemble, provider summaries and compatibility projections remain representations within their meteorological model_family unless an explicit future contract states otherwise."
+    },
+    "native_time_interval_contract": {
+      "preserve_native_step_metadata": [
+        "stepRange",
+        "startStep",
+        "endStep",
+        "stepUnits",
+        "stepType"
+      ],
+      "normalized_interval_fields": [
+        "interval_start_utc",
+        "interval_end_utc",
+        "interval_hours"
+      ],
+      "rule": "Accumulation, average and maximum fields MUST preserve enough native metadata to reconstruct the exact provider interval. Missing interval boundaries MUST NOT be guessed."
+    },
+    "evidence_publication_contract": {
+      "general_rule": "Immutable evidence events and mutable/high-water indexes MUST be separate concepts with explicit publication semantics.",
+      "gefs_cycle_evidence": {
+        "required_model": "immutable_event_stream_plus_monotonic_index",
+        "immutable_event_rule": "Each distinct GEFS cycle/source evidence event is written to a content/event-addressed immutable path.",
+        "index_rule": "A separate latest/high-water index may advance monotonically and MUST use deterministic merge/CAS semantics.",
+        "forbidden": "Rewriting a path classified as immutable with changed bytes, or treating a mutable high-water file as immutable without a merge contract."
+      },
+      "bundle_atomicity_rule": "A publication conflict in evidence/index handling MUST fail the whole dependent bundle rather than publishing mismatched pointers/manifests."
+    },
+    "transfer_contract": {
+      "verified_payload_rule": "Existing SHA-256 and byte-length verification of the decompressed public payload remains mandatory.",
+      "receipt_rule": "Private promotion remains receipt-bound and readback-verified.",
+      "scope_note": "A verified transfer does not prove archive revision or evidence-publication correctness; those are separate successor gates."
+    },
+    "provider_native_semantics": {
+      "rule": "Provider-native parameter identity, units, level, product, run/valid identity and native interval metadata remain authoritative evidence and MUST survive transfer/persistence.",
+      "semantic_mapping_rule": "Any registry semantic successor MUST not merge meteorologically non-equivalent native fields without an explicit derived-field definition and provenance."
+    },
+    "family_independence": {
+      "key": "model_family",
+      "primary_contribution_rule": "Family-weighted analysis may accept at most one primary contribution per model_family after within-family selection/aggregation.",
+      "non_independent_examples": [
+        "GFS and GEFS-control/full NOAA_GEFS do not create extra independent GFS-family evidence merely by representation count.",
+        "Deterministic ICON, ICON-D2-EPS and compatibility projections do not create extra independent DWD-ICON-family evidence merely by representation count."
+      ]
+    },
+    "phase3_gate": {
+      "feature_broker_blocked_until": [
+        "C1 deterministic revision-event ledger green",
+        "C2 revision-bound field availability green",
+        "C3 adversarial causality matrix green"
+      ],
+      "rule": "Meteorology Feature Broker implementation MUST NOT become the operational Archive consumer before all three causality gates pass."
+    },
+    "migration_and_backfill": {
+      "no_history_rewrite": "Existing v1-v4 Parquet and historical frozen contracts are not rewritten in place.",
+      "replay_rule": "Where exact successor fields/events are missing, backfill/replay MUST use retained provider/source evidence; values, interval boundaries, revision chronology or first_seen times MUST NOT be invented.",
+      "legacy_read_rule": "Legacy compatibility reads may remain available but MUST NOT claim stronger causality/revision guarantees than the stored evidence supports."
+    },
+    "required_acceptance_invariants": [
+      "A -> B -> A is preserved as three revision events while exact same-source replay is idempotent.",
+      "Historical as_of cannot expose metadata or source evidence first known privately after the cutoff.",
+      "An old ensemble source replay cannot replace a newer provider/source revision.",
+      "A visible ensemble member set is revision-atomic and never mixes old/new source revisions silently.",
+      "GEFS native accumulation/average/maximum interval boundaries survive member-table persistence.",
+      "GEFS cycle evidence can be carried/re-published without immutable-path byte conflict.",
+      "No missing or ambiguous field is zero-filled or treated as false-clear.",
+      "Provider-native field identity and source provenance remain queryable through successor views."
+    ]
+  },
+  "implementation_versions": {
+    "archive_successor": "pending_C1_C2_design",
+    "availability_successor": "pending_C2_design",
+    "ensemble_successor": "pending_D1_D2_design",
+    "registry_successor": "pending_B1_B2_design",
+    "canonical_record_successor": "pending_B3_design",
+    "gefs_cycle_evidence_successor": "pending_E1_design"
+  },
+  "change_control": {
+    "v1_immutable": true,
+    "v2_shared_core_mutation_rule": "Any change to shared_core requires a new shared_core_sha256, matching byte-identical contract update in both repositories, and an explicit audit-plan reason.",
+    "implementation_rule": "Implementation steps C1 onward may satisfy this contract but may not weaken these invariants without a new contract version.",
+    "refreeze_rule": "Status may become complete_frozen only after H1 and H2 acceptance gates and H3 explicit refreeze."
+  }
+}
