@@ -22,6 +22,7 @@ jobs:
       COLLECTOR_MODEL_FILE: work/model_snapshot.json
       FULL_VALIDATION: 'true'
       PRIVATE_REPO: janwohlers78/mardorf-kitevorhersage
+      PYTHONPATH: src
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
