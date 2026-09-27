@@ -550,10 +550,10 @@
     "gust_optional": true
   },
   "relevant_meteorology_registry_contract": {
-    "path": "config/relevant_meteorology_registry_v1.json",
-    "semantic_contract_sha256": "3f502094a90ac8901b103cda730209bb15d6bd20e3f2c59826f502d2c5f400d3",
-    "provider_matrix_sha256": "b3c1643c7cdf0fafff98511f3e38c5c57de04f90b07a68e69a1c87605edaf104",
-    "registry_sha256": "4a9c458bbd8595cb0e5ca4a823aa14992ce087bc2e91813c0c96c8d835153cc1"
+    "path": "config/relevant_meteorology_registry_v2.json",
+    "semantic_contract_sha256": "169de0495c8b4b24f8d541ed7d9a829c494d4710bf5383e356c044bff2c7a141",
+    "provider_matrix_sha256": "221529e2533616dd2e6fcf597c4765d6532323899da5a366bf482dd7ae23ffc1",
+    "registry_sha256": "6ffbad0550201b075e1b5f6d527e7e340d95611d23cc193aca5855aec9d3c9a7"
   },
   "phase2_freeze_contract": {
     "path": "config/phase2_frozen_contract_v1.json",
