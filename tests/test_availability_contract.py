@@ -78,6 +78,45 @@ class AvailabilityContractTests(unittest.TestCase):
                          "unsupported_by_provider_or_product")
         self.assertTrue(all("value" not in x for x in row["field_availability_states"]))
 
+    def test_gefs_far_gust_is_intentionally_not_applicable(self):
+        row={
+            "model":"GEFS-control",
+            "forecast_lead_hours":264,
+            "provider_product":"gefs_0p50a",
+            "retrieved_at_utc":"2026-09-26T05:00:00+00:00",
+            "field_availability":{"wind_uv":True,"gust":False},
+            "values":{},
+        }
+        a.stamp_rows([row],observed_at=row["retrieved_at_utc"])
+        got={x["parameter_native"]:x for x in row["field_availability_states"]}
+        self.assertEqual(got["gust"]["availability_status"],"intentionally_not_applicable")
+        self.assertEqual(got["gust"]["availability_evidence_type"],"gefs_far_gust_contract_v2")
+
+    def test_optional_product_error_materializes_fetch_error_and_not_yet_published(self):
+        base={
+            "model":"GEFS-control",
+            "forecast_lead_hours":264,
+            "provider_product":"gefs_0p50a",
+            "retrieved_at_utc":"2026-09-26T05:00:00+00:00",
+            "field_availability":{"wind_uv":True,"gust":False},
+            "values":{},
+        }
+        for error_type,expected in (("RuntimeError","fetch_error"),("PublicationUnavailable","not_yet_published")):
+            row=dict(base)
+            row["optional_product_errors"]=[{
+                "product":"gefs_0p50b",
+                "type":error_type,
+                "reason":"test",
+            }]
+            a.stamp_rows([row],observed_at=row["retrieved_at_utc"])
+            failed=[
+                x for x in row["field_availability_states"]
+                if x.get("field_provider_product")=="gefs_0p50b"
+            ]
+            self.assertTrue(failed)
+            self.assertEqual({x["availability_status"] for x in failed},{expected})
+            self.assertTrue(all(x["availability_evidence_type"]=="optional_product_error_v2" for x in failed))
+
     def test_snapshot_validator_requires_declaration_contract(self):
         payload={"models":{"GEFS-control":[{
             "retrieved_at_utc":"2026-09-26T05:00:00+00:00",
