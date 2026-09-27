@@ -345,7 +345,7 @@
       "registry_version": "relevant-meteorology-v1"
     },
     "noaa_weather_context": {
-      "method_version": "phase2c-noaa-full-weather-context-v1",
+      "method_version": "phase2f3-noaa-registry-v1-foundation-v1",
       "models": [
         "GFS",
         "GEFS-control"
@@ -378,7 +378,8 @@
         "validityDate",
         "validityTime",
         "source_sha256",
-        "provider_product"
+        "provider_product",
+        "semantic_id"
       ],
       "products": {
         "gfs_0p25": {
@@ -395,7 +396,10 @@
           "min_lead_hours": 246,
           "role": "optional gust plus DPT/CAPE/CIN context"
         }
-      }
+      },
+      "registry_version": "relevant-meteorology-v1",
+      "full_member_activation": "blocked_pending_2f3_storage_traffic_acceptance",
+      "member_contract": "c00+p01-p30_at_provider_native_times_no_interpolation"
     }
   },
   "svg_policy": {
