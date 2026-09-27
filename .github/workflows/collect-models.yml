@@ -279,6 +279,22 @@ jobs:
         continue-on-error: true
         run: timeout --signal=TERM --kill-after=15s 12m python src/collect_full_horizon.py
 
+      - name: Fetch sparse GEFS full members for new 00Z cycle
+        if: (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.watchdog == true)) && steps.due.outputs.due == 'true' && steps.cycle_gate.outputs.any_work == 'true' && steps.cycle_gate.outputs.gefs_full == 'fetch' && inputs.test_mode != true
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          timeout --signal=TERM --kill-after=15s 10m python src/gefs_full_members.py --workers 4
+          rc=$?
+          set -e
+          if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
+            echo "Sparse full-GEFS optional archive timed out; deterministic/current models remain valid and the last complete GEFS member source is retained."
+          elif [ "$rc" -ne 0 ]; then
+            echo "Sparse full-GEFS optional archive was incomplete; failure diagnostics are retained and the last complete source remains authoritative."
+          fi
+          exit "$rc"
+
       - name: Finalize row and field availability contract
         if: always() && ((github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || (steps.due.outputs.due == 'true' && steps.cycle_gate.outputs.any_work == 'true'))
         run: python src/availability_contract.py --input work/model_snapshot.json
