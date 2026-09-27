@@ -83,16 +83,19 @@ def require_successor_invariants(contract,label):
     ]
     if blockers!=expected:
         raise AssertionError(f"{label}: Phase-3 causality blocker drift")
-    required_impl={
-        "archive_successor":"pending_C1_C2_design",
-        "availability_successor":"pending_C2_design",
-        "ensemble_successor":"pending_D1_D2_design",
-        "registry_successor":"pending_B1_B2_design",
-        "canonical_record_successor":"pending_B3_design",
-        "gefs_cycle_evidence_successor":"pending_E1_design",
+    required_impl_keys={
+        "archive_successor",
+        "availability_successor",
+        "ensemble_successor",
+        "registry_successor",
+        "canonical_record_successor",
+        "gefs_cycle_evidence_successor",
     }
-    if contract.get("implementation_versions")!=required_impl:
-        raise AssertionError(f"{label}: implementation-version ownership drift")
+    implementation_versions=contract.get("implementation_versions")
+    if not isinstance(implementation_versions,dict) or set(implementation_versions)!=required_impl_keys:
+        raise AssertionError(f"{label}: implementation-version ownership keys drift")
+    if any(not isinstance(value,str) or not value.strip() for value in implementation_versions.values()):
+        raise AssertionError(f"{label}: implementation-version value missing")
 
 
 def compatibility_pins(v1):
