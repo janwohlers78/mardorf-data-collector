@@ -76,8 +76,8 @@
     "maximum_retries": 1,
     "request_product": "gefs_0p50b",
     "request_rule": "exactly one pgrb2b request per missing far lead",
-    "max_missing_far_leads_current_contract": 6,
-    "max_requests_per_cycle_current_contract": 6,
+    "max_missing_far_leads_current_contract": 25,
+    "max_requests_per_cycle_current_contract": 25,
     "forbidden_redundant_fetches": [
       "gefs_0p50a",
       "GEFS-control base horizon",
