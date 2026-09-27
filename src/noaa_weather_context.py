@@ -11,6 +11,8 @@ import json
 import re
 import subprocess
 
+import cape_native_identity as cape_identity
+
 META_KEYS=(
     "shortName","name","paramId","typeOfLevel","level","stepType","stepRange",
     "startStep","endStep","stepUnits",
@@ -152,6 +154,17 @@ def extract_native_values(path,lat,lon,source_sha256=None,product=None):
         semantic=registry_semantic(m)
         if semantic is not None:
             item["semantic_id"]=semantic
+        if semantic=="cape":
+            model="GFS" if product=="gfs_0p25" else "GEFS-control" if str(product or "").startswith("gefs_") else None
+            identity=cape_identity.identify_item(model,str(m.get("shortName") or "cape"),item) if model else {
+                "status":"ambiguous","reason":"no_model_for_noaa_cape_product"
+            }
+            item["cape_identity_contract_version"]=cape_identity.CONTRACT_VERSION
+            item["cape_native_identity_status"]=identity.get("status")
+            if identity.get("status")=="identified":
+                item["cape_native_identity_id"]=identity["identity_id"]
+            else:
+                item["cape_native_identity_reason"]=identity.get("reason")
         if source_sha256 is not None:
             item["source_sha256"]=source_sha256
         if product is not None:
