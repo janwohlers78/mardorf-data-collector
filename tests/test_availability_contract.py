@@ -121,6 +121,63 @@ class AvailabilityContractTests(unittest.TestCase):
             self.assertEqual({x["availability_status"] for x in failed},{expected})
             self.assertTrue(all(x["availability_evidence_type"]=="optional_product_error_v2" for x in failed))
 
+    def test_optional_failure_and_recovery_share_stable_availability_subject(self):
+        observed_failure="2026-09-26T05:00:00+00:00"
+        observed_recovery="2026-09-26T08:00:00+00:00"
+        failed={
+            "model":"GEFS-control",
+            "forecast_lead_hours":264,
+            "provider_product":"gefs_0p50a",
+            "retrieved_at_utc":observed_failure,
+            "field_availability":{"wind_uv":True,"gust":False},
+            "values":{},
+            "optional_product_errors":[{
+                "product":"gefs_0p50b",
+                "type":"RuntimeError",
+                "reason":"synthetic fetch failure",
+            }],
+        }
+        recovered={
+            "model":"GEFS-control",
+            "forecast_lead_hours":264,
+            "provider_product":"gefs_0p50a+gefs_0p50b",
+            "retrieved_at_utc":observed_recovery,
+            "field_availability":{"wind_uv":True,"gust":False},
+            "weather_context_availability":{
+                "gefs_0p50b":{"DPT":True,"CAPE":True,"CIN":True},
+            },
+            "values":{},
+        }
+        a.stamp_rows([failed],observed_at=observed_failure)
+        a.stamp_rows([recovered],observed_at=observed_recovery)
+
+        def subject(row,parameter):
+            matches=[
+                x for x in row["field_availability_states"]
+                if x.get("field_provider_product")=="gefs_0p50b"
+                and x.get("parameter_native")==parameter
+            ]
+            self.assertEqual(len(matches),1)
+            item=matches[0]
+            return (
+                item["semantic_id"],
+                item["parameter_native"],
+                item["namespace"],
+                item["field_provider_product"],
+            ),item
+
+        failure_key,failure=subject(failed,"CAPE")
+        recovery_key,recovery=subject(recovered,"CAPE")
+        self.assertEqual(failure_key,recovery_key)
+        self.assertEqual(failure["availability_status"],"fetch_error")
+        self.assertEqual(failure["availability_evidence_type"],"optional_product_error_v2")
+        self.assertNotIn("field_available_at_utc",failure)
+        self.assertEqual(recovery["availability_status"],"received")
+        self.assertEqual(recovery["availability_evidence_type"],"product_weather_context_boolean_v1")
+        self.assertEqual(recovery["field_available_at_utc"],observed_recovery)
+        self.assertEqual(failure["availability_observed_at_utc"],observed_failure)
+        self.assertEqual(recovery["availability_observed_at_utc"],observed_recovery)
+
     def test_snapshot_validator_requires_declaration_contract(self):
         payload={"models":{"GEFS-control":[{
             "retrieved_at_utc":"2026-09-26T05:00:00+00:00",
