@@ -4,6 +4,10 @@ import availability_contract as a
 
 
 class AvailabilityContractTests(unittest.TestCase):
+    def test_successor_method_and_closed_states(self):
+        self.assertEqual(a.METHOD_VERSION,"model-field-availability-v2")
+        self.assertIn("intentionally_not_applicable",a.STATES)
+
     def test_all_explicit_states_are_accepted_and_missing_never_becomes_zero(self):
         observed="2026-09-26T12:00:00+00:00"
         for state in sorted(a.STATES):
