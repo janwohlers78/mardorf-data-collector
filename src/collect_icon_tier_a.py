@@ -22,6 +22,7 @@ from pathlib import Path
 import fetch_dwd_additional_models as dwd
 import fetch_model_data as base
 import availability_contract as availability
+import cape_native_identity as cape_identity
 from icon_parameter_probe import CANONICAL, message_metadata, select_exact_message
 
 SNAP=Path(os.getenv("COLLECTOR_MODEL_FILE","work/model_snapshot.json"))
@@ -167,6 +168,14 @@ def attach(snapshot,workers=4,models=None):
         for item in items:
             if isinstance(item,dict):
                 item.setdefault("registry_version",REGISTRY_VERSION)
+                if param=="cape_ml":
+                    identity=cape_identity.identify_item(model,param,item)
+                    item["cape_identity_contract_version"]=cape_identity.CONTRACT_VERSION
+                    item["cape_native_identity_status"]=identity.get("status")
+                    if identity.get("status")=="identified":
+                        item["cape_native_identity_id"]=identity["identity_id"]
+                    else:
+                        item["cape_native_identity_reason"]=identity.get("reason")
         row.setdefault("values",{})[param]=value
         if url:
             urls=row.setdefault("source_urls",[])
