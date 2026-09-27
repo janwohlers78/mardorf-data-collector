@@ -5,6 +5,7 @@ on:
     paths:
       - 'src/measure_gefs_summary_qa.py'
       - '.github/workflows/phase2f3-gefs-summary-qa-measure.yml'
+# rerun-after-grid-fix
 permissions:
   contents: read
 jobs:
