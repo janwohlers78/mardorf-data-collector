@@ -78,9 +78,9 @@ PRODUCTS={
 }
 
 MAX_REQUESTS_PER_DAY=800
-MAX_CONCURRENCY=4
-MIN_REQUEST_INTERVAL_SECONDS=0.05
-MAX_ATTEMPTS=3
+MAX_CONCURRENCY=2
+MIN_REQUEST_INTERVAL_SECONDS=0.40
+MAX_ATTEMPTS=4
 QA_LEADS=(120,240)
 QA_TOLERANCE_MEAN_MS=0.01
 QA_TOLERANCE_SPREAD_MS=0.01
@@ -173,6 +173,9 @@ def policy_summary():
         "provider_summary_qa_request_count":len(QA_LEADS)*2,
         "request_count_per_full_cycle":len(MEMBERS)*len(LEADS)+len(QA_LEADS)*2,
         "max_requests_per_day":MAX_REQUESTS_PER_DAY,
+        "max_concurrency":MAX_CONCURRENCY,
+        "minimum_request_interval_seconds":MIN_REQUEST_INTERVAL_SECONDS,
+        "max_attempts_per_request":MAX_ATTEMPTS,
         "pgrb2b_perturbed_members":"not_requested_by_policy",
         "pgrb2b_c00":"retained by existing GEFS-control compatibility/full-horizon path; not duplicated here",
         "native_time_policy":"provider-native selected forecast times only; no interpolation",
@@ -253,12 +256,15 @@ def _download(url,attempts=MAX_ATTEMPTS):
     for attempt in range(1,attempts+1):
         _rate_wait()
         started=time.monotonic()
+        retry_after=None
         try:
             r=_session().get(url,timeout=(10,90))
             elapsed=time.monotonic()-started
             if r.status_code==200 and r.content[:4]==b"GRIB":
                 return r.content,elapsed,attempt
-            last=RuntimeError(f"HTTP {r.status_code}, bytes={len(r.content)}")
+            retry_after=r.headers.get("Retry-After")
+            last=RuntimeError(
+                f"HTTP {r.status_code}, bytes={len(r.content)}, retry_after={retry_after!r}")
             retryable=r.status_code in (408,425,429,500,502,503,504)
             if not retryable:
                 break
@@ -266,7 +272,13 @@ def _download(url,attempts=MAX_ATTEMPTS):
             elapsed=time.monotonic()-started
             last=exc
         if attempt<attempts:
-            time.sleep(min(8.0,0.7*(2**(attempt-1)))+random.uniform(0.0,0.25))
+            delay=min(15.0,1.5*(2**(attempt-1)))+random.uniform(0.0,0.35)
+            if retry_after is not None:
+                try:
+                    delay=max(delay,min(30.0,float(retry_after)))
+                except (TypeError,ValueError):
+                    pass
+            time.sleep(delay)
     raise RuntimeError(f"GEFS request failed after {attempts} attempts: {last}")
 
 def _field_key(item,product):
@@ -561,6 +573,13 @@ def attach_to_snapshot(path,source):
              "exception_type":r.get("exception_type"),"exception_message":r.get("exception_message")}
             for r in source.get("records") or [] if r.get("request_status")!="received"
         ]
+        by_reason={}
+        by_product={}
+        for item in failed:
+            reason=str(item.get("exception_message") or item.get("exception_type") or "unknown")
+            by_reason[reason]=by_reason.get(reason,0)+1
+            product=str(item.get("provider_product") or "unknown")
+            by_product[product]=by_product.get(product,0)+1
         data["gefs_full_member_attempt"]={
             "method_version":METHOD_VERSION,
             "policy_version":POLICY_VERSION,
@@ -572,6 +591,8 @@ def attach_to_snapshot(path,source):
             "failed_request_count":source.get("failed_request_count"),
             "request_metrics":source.get("request_metrics"),
             "collection_wall_seconds":source.get("collection_wall_seconds"),
+            "failure_counts_by_product":by_product,
+            "failure_counts_by_reason":by_reason,
             "failed_units":failed,
         }
     data["retrieved_at_utc"]=datetime.now(timezone.utc).isoformat()
