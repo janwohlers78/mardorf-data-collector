@@ -804,5 +804,13 @@
     "frozen_on_utc_date": "2026-09-27",
     "state": "complete_frozen",
     "change_control": "Do not mutate frozen v1/v2 semantics in place. Any post-Phase-2 acquisition, cadence, provider, registry, or identity change requires an explicitly versioned successor contract and fresh acceptance evidence."
+  },
+  "horizon_contract_semantics": {
+    "method_version": "phase2-g2-horizon-semantics-v1",
+    "compatibility_payload_policy": "config/integrity_policy.json:model_policy.compatibility_payload_horizon_by_cycle",
+    "provider_native_horizon_owner": "src/full_horizon_contract.py::maximum_hours",
+    "acquisition_horizon_owner": "src/full_horizon_contract.py::acquisition_policy/acquisition_leads",
+    "compatibility_payload_role": "legacy/current analysis payload coverage only; not a provider-native horizon",
+    "long_horizon_rule": "full_horizon_archive validation is independent of the compatibility payload horizon"
   }
 }
