@@ -101,7 +101,23 @@ class IntegrityAuditTests(unittest.TestCase):
             "expected_request_count":744,
             "received_request_count":744,
             "records":records,
-            "request_metrics":{"response_bytes":1054891},
+            "request_metrics":{"requests":744,"response_bytes":1054891},
+            "traffic_metrics":{"member_requests":744,"provider_summary_qa_requests":4,
+                               "total_requests":748,"member_response_bytes":1054891,
+                               "provider_summary_qa_response_bytes":1486,
+                               "total_response_bytes":1056377},
+            "provider_summary_qa":{
+                "method_version":"gefs-provider-summary-qa-v1",
+                "member_semantics":"NOAA geavg/gespr empirically reproduce p01-p30 only; c00 excluded",
+                "spread_semantics":"sample standard deviation over p01-p30 (N-1 denominator)",
+                "status":"pass",
+                "comparisons":[
+                    {"lead_hours":lead,"semantic_id":semantic,"member_set":"p01-p30","member_count":30,
+                     "mean_abs_delta":0.003,"spread_abs_delta":0.004,
+                     "mean_tolerance_ms":0.01,"spread_tolerance_ms":0.01,"status":"pass"}
+                    for lead in (120,240) for semantic in ("wind_u_10m","wind_v_10m")
+                ],
+            },
             "policy_omissions":[{
                 "provider_product":"gefs_0p50b",
                 "availability_status":"not_requested_by_policy",
