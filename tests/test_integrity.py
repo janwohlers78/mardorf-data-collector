@@ -6,7 +6,7 @@ from pathlib import Path
 import tempfile
 from unittest.mock import patch
 
-from audit_integrity import audit_models,audit_svg,audit_skm,audit_eps_hourly_source,full_horizon_coverage_issue
+from audit_integrity import audit_models,audit_svg,audit_skm,audit_eps_hourly_source,full_horizon_coverage_issue,audit_gefs_full_member_source
 from check_collection_due import evaluate_latest_success
 
 POLICY=json.loads(Path("config/integrity_policy.json").read_text(encoding="utf-8"))
@@ -57,6 +57,106 @@ class IntegrityAuditTests(unittest.TestCase):
             "models":models,"quality":{"errors":[]}
         }
 
+
+    def full_gefs_source(self):
+        run=datetime(2026,9,26,0,tzinfo=timezone.utc)
+        members=["c00"]+[f"p{x:02d}" for x in range(1,31)]
+        near=(60,72,84,96,108,120,144,168,192,216,240)
+        far=(288,336,384,432,480,528,576,624,672,720,768,816,840)
+        semantics={
+            "gefs_0p25s":("wind_u_10m","wind_v_10m","wind_gust_10m","total_precipitation","total_cloud_cover","cape","cin"),
+            "gefs_0p50a":("wind_u_10m","wind_v_10m","total_precipitation","total_cloud_cover","cape","cin"),
+        }
+        records=[]
+        for lead in near+far:
+            product="gefs_0p25s" if lead in near else "gefs_0p50a"
+            for member in members:
+                fields=[{
+                    "field_key":f"{product}-{semantic}",
+                    "semantic_id":semantic,
+                    "parameter_native":semantic,
+                    "field_provider_product":product,
+                    "value_native":1.0,
+                } for semantic in semantics[product]]
+                records.append({
+                    "member_id":member,
+                    "member_role":"control_member" if member=="c00" else "perturbed_member",
+                    "lead_hours":lead,
+                    "valid_time_utc":(run+timedelta(hours=lead)).isoformat(),
+                    "provider_product":product,
+                    "request_status":"received",
+                    "returned_coordinate":{"latitude":52.5,"longitude":9.25 if product=="gefs_0p25s" else 9.5},
+                    "fields":fields,
+                })
+        return {
+            "method_version":"phase2f3-gefs-full-members-v1",
+            "policy_version":"gefs-sparse-00z-policy-v1",
+            "ensemble_system_id":"NOAA_GEFS",
+            "run_time_utc":run.isoformat(),
+            "expected_member_ids":members,
+            "member_roles":{"c00":"control_member",**{f"p{x:02d}":"perturbed_member" for x in range(1,31)}},
+            "leads_hours":list(near+far),
+            "native_time_policy":"provider-native selected sparse times only; no interpolation",
+            "collection_status":"complete",
+            "expected_request_count":744,
+            "received_request_count":744,
+            "records":records,
+            "request_metrics":{"requests":744,"response_bytes":1054891},
+            "traffic_metrics":{"member_requests":744,"provider_summary_qa_requests":4,
+                               "total_requests":748,"member_response_bytes":1054891,
+                               "provider_summary_qa_response_bytes":1486,
+                               "total_response_bytes":1056377},
+            "provider_summary_qa":{
+                "method_version":"gefs-provider-summary-qa-v1",
+                "member_semantics":"NOAA geavg/gespr empirically reproduce p01-p30 only; c00 excluded",
+                "spread_semantics":"sample standard deviation over p01-p30 (N-1 denominator)",
+                "status":"pass",
+                "comparisons":[
+                    {"lead_hours":lead,"semantic_id":semantic,"member_set":"p01-p30","member_count":30,
+                     "mean_abs_delta":0.003,"spread_abs_delta":0.004,
+                     "mean_tolerance_ms":0.01,"spread_tolerance_ms":0.01,"status":"pass"}
+                    for lead in (120,240) for semantic in ("wind_u_10m","wind_v_10m")
+                ],
+            },
+            "policy_omissions":[{
+                "provider_product":"gefs_0p50b",
+                "availability_status":"not_requested_by_policy",
+                "member_ids":[f"p{x:02d}" for x in range(1,31)],
+                "leads_hours":list(far),
+            }],
+        }
+
+    def test_sparse_full_gefs_source_audit_passes_exact_contract(self):
+        failures,summary,attempt=audit_gefs_full_member_source(
+            {"gefs_full_member_source":self.full_gefs_source()},
+            POLICY["model_policy"]["spot"],
+        )
+        self.assertEqual(failures,[],failures)
+        self.assertIsNone(attempt)
+        self.assertEqual(summary["unique_member_lead_count"],744)
+        self.assertTrue(summary["network_budget_pass"])
+        self.assertTrue(summary["policy_omission_verified"])
+
+    def test_sparse_full_gefs_wrong_product_fails_audit(self):
+        source=self.full_gefs_source()
+        source["records"][0]["provider_product"]="gefs_0p50a"
+        failures,_,_=audit_gefs_full_member_source(
+            {"gefs_full_member_source":source},POLICY["model_policy"]["spot"])
+        self.assertTrue(any(x["reason"]=="member_lead_product_mismatch" for x in failures),failures)
+
+    def test_incomplete_gefs_attempt_is_warning_not_source_replacement(self):
+        now=datetime.now(timezone.utc);d=self.model_bundle()
+        d["gefs_full_member_attempt"]={
+            "collection_status":"partial","run_time_utc":"2026-09-27T00:00:00+00:00",
+            "expected_request_count":744,"received_request_count":743,
+        }
+        with tempfile.TemporaryDirectory() as td:
+            p=Path(td)/"m.json";p.write_text(json.dumps(d))
+            r=audit_models(p,POLICY,now)
+        xs=[x for x in r["issues"] if x["code"]=="GEFS_FULL_MEMBER_ATTEMPT_INCOMPLETE"]
+        self.assertEqual(len(xs),1,r["issues"])
+        self.assertEqual(xs[0]["severity"],"WARN")
+        self.assertEqual(r["error_count"],0,r["issues"])
 
     def test_v15_hourly_source_requires_exact_hourly_20_member_core(self):
         run=datetime(2026,9,20,0,0,tzinfo=timezone.utc)

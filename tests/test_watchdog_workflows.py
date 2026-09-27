@@ -72,6 +72,15 @@ class WatchdogWorkflowTests(unittest.TestCase):
         self.assertIn("Private transfer/promotion: suppressed.",s)
         self.assertIn("steps.cycle_gate.outputs.gefs_control == 'fetch'",s)
 
+    def test_sparse_full_gefs_is_routine_00z_cycle_gated_and_optional(self):
+        s=self.text("collect-models.yml")
+        self.assertIn("Fetch sparse GEFS full members for new 00Z cycle",s)
+        self.assertIn("steps.cycle_gate.outputs.gefs_full == 'fetch'",s)
+        self.assertIn("python src/gefs_full_members.py --workers 4",s)
+        self.assertIn("continue-on-error: true",s)
+        self.assertIn("10m python src/gefs_full_members.py",s)
+        self.assertIn("inputs.watchdog == true",s)
+
     def test_secondary_watchdog_is_freshness_gated(self):
         s=self.text("collect-secondary.yml")
         self.assertIn("watchdog:",s)

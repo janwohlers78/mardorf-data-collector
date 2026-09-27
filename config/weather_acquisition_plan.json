@@ -356,8 +356,8 @@
       }
     },
     "NOAA_GFS_GEFS": {
-      "status": "registry_v1_foundation_active_full_members_blocked",
-      "method_version": "phase2f3-noaa-registry-v1-foundation-v1",
+      "status": "phase2f3_sparse_full_member_canary_pending_live_proof",
+      "method_version": "phase2f3-noaa-registry-and-sparse-full-members-v1",
       "registry_version": "relevant-meteorology-v1",
       "models": [
         "GFS",
@@ -403,7 +403,78 @@
           "p30"
         ],
         "native_time_policy": "provider-native forecast times only; no interpolation",
-        "control_compatibility_view": "c00 is GEFS-control compatibility view and must not be double-counted"
+        "control_compatibility_view": "c00 is GEFS-control compatibility view and must not be double-counted",
+        "full_member_cycles_utc": [
+          0
+        ],
+        "full_member_leads_hours": [
+          60,
+          72,
+          84,
+          96,
+          108,
+          120,
+          144,
+          168,
+          192,
+          216,
+          240,
+          288,
+          336,
+          384,
+          432,
+          480,
+          528,
+          576,
+          624,
+          672,
+          720,
+          768,
+          816,
+          840
+        ],
+        "member_request_count_per_day": 744,
+        "provider_summary_qa_request_count_per_day": 4,
+        "routine_request_count_per_new_full_cycle": 748,
+        "near_member_fields": [
+          "wind_u_10m",
+          "wind_v_10m",
+          "wind_gust_10m",
+          "total_precipitation",
+          "total_cloud_cover",
+          "cape",
+          "cin"
+        ],
+        "far_member_fields": [
+          "wind_u_10m",
+          "wind_v_10m",
+          "total_precipitation",
+          "total_cloud_cover",
+          "cape",
+          "cin"
+        ],
+        "far_pgrb2b_perturbed_members": "not_requested_by_policy",
+        "far_pgrb2b_c00": "retained through existing GEFS-control compatibility/full-horizon path",
+        "provider_summary_qa": {
+          "products": [
+            "geavg",
+            "gespr"
+          ],
+          "leads_hours": [
+            120,
+            240
+          ],
+          "member_reference": "p01-p30 only; c00 excluded",
+          "spread_reference": "sample standard deviation over p01-p30 (N-1 denominator)",
+          "mean_tolerance_ms": 0.01,
+          "spread_tolerance_ms": 0.01,
+          "measurement_run_id": 36295332340,
+          "measurement_max_mean_abs_delta_ms": 0.003292970000000006,
+          "measurement_max_spread_abs_delta_ms": 0.004627163194566686,
+          "filtered_requests_per_day": 4,
+          "filtered_response_bytes_measurement": 1486,
+          "role": "qa_only_not_authoritative"
+        }
       },
       "bounded_measurement": {
         "private_run_id": 36288139320,
@@ -466,7 +537,42 @@
       },
       "far_range_gust_status": "unsupported_by_current_provider_product_after_240h",
       "preserve_native_variants": true,
-      "note": "2F-3 foundation only. This does not activate 31-member production traffic."
+      "note": "Optimized 00Z-only sparse full-member implementation is code-complete on canary branch. Routine production remains disabled until one complete 31-member live proof plus private Archive-v4 readback/runtime proof passes.",
+      "optimized_measurements": {
+        "exact_sparse_network": {
+          "run_id": 36295017345,
+          "status": "success_after_grid_fix",
+          "cycle_run_time_utc": "2026-09-26T00:00:00+00:00",
+          "member_requests_per_day": 744,
+          "projected_member_network_bytes_per_day": 1054891,
+          "provider_summary_qa_requests_per_day": 4,
+          "provider_summary_qa_bytes_per_day": 1486,
+          "projected_total_requests_per_new_full_cycle": 748,
+          "projected_total_network_bytes_per_new_full_cycle": 1056377,
+          "request_gate": 800,
+          "network_gate_bytes": 2097152,
+          "pass": true
+        },
+        "archive_v4": {
+          "private_run_id": 36295587664,
+          "total_parquet_bytes_per_day": 722680,
+          "annual_gib": 0.24566259235143661,
+          "member_value_rows": 5487,
+          "member_availability_rows": 177,
+          "aggregate_rows_including_qa": 185,
+          "target_bytes_per_day": 1572864,
+          "pass": true
+        }
+      },
+      "activation_gates": {
+        "request_gate_per_new_full_cycle": 800,
+        "network_gate_bytes_per_new_full_cycle": 2097152,
+        "archive_parquet_target_bytes_per_day": 1572864,
+        "public_full_member_wall_minutes": 10,
+        "max_additional_private_billable_action_minutes_per_day": 2,
+        "one_full_cycle_live_proof_required": true,
+        "live_proof_status": "pending"
+      }
     }
   },
   "acquisition_grid_v2": {

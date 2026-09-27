@@ -13,6 +13,7 @@ import subprocess
 
 META_KEYS=(
     "shortName","name","paramId","typeOfLevel","level","stepType","stepRange",
+    "startStep","endStep","stepUnits",
     "units","dataDate","dataTime","validityDate","validityTime","totalLength",
     "gridType","Ni","Nj",
 )
