@@ -76,7 +76,7 @@ class WatchdogWorkflowTests(unittest.TestCase):
         s=self.text("collect-models.yml")
         self.assertIn("Fetch sparse GEFS full members for new 00Z cycle",s)
         self.assertIn("steps.cycle_gate.outputs.gefs_full == 'fetch'",s)
-        self.assertIn("python src/gefs_full_members.py --workers 4",s)
+        self.assertIn("python src/gefs_full_members.py --workers 2",s)
         self.assertIn("continue-on-error: true",s)
         self.assertIn("10m python src/gefs_full_members.py",s)
         self.assertIn("inputs.watchdog == true",s)
