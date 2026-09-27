@@ -20,6 +20,51 @@ OPEN_METEO_D2_EPS_META='https://api.open-meteo.com/data/dwd_icon_d2_eps/static/m
 OPEN_METEO_D2_EPS_API='https://ensemble-api.open-meteo.com/v1/ensemble'
 EPS_EXPECTED_MEMBERS=20
 EPS_SETTLING_SECONDS=600
+EPS_MEMBER_METHOD_VERSION="phase2f4-icon-d2-eps-full-member-weather-v1"
+EPS_REGISTRY_VERSION="relevant-meteorology-v1"
+EPS_MEMBER_WEATHER_FIELDS=(
+    "wind_speed_10m","wind_direction_10m","wind_gusts_10m","precipitation","cape",
+    "temperature_2m","relative_humidity_2m","dew_point_2m","pressure_msl",
+    "surface_pressure","cloud_cover","shortwave_radiation",
+)
+EPS_MEMBER_SEMANTICS={
+    "wind_speed_10m":"wind_speed_10m",
+    "wind_direction_10m":"wind_direction_10m",
+    "wind_gusts_10m":"wind_gust_10m",
+    "precipitation":"total_precipitation",
+    "cape":"cape",
+    "temperature_2m":"air_temperature_2m",
+    "relative_humidity_2m":"relative_humidity_2m",
+    "dew_point_2m":"dewpoint_temperature_2m",
+    "pressure_msl":"mean_sea_level_pressure",
+    "surface_pressure":"surface_pressure",
+    "cloud_cover":"total_cloud_cover",
+    "shortwave_radiation":"surface_downward_shortwave",
+}
+EPS_MEMBER_INTERVALS={
+    "wind_speed_10m":"instantaneous",
+    "wind_direction_10m":"instantaneous",
+    "wind_gusts_10m":"preceding_hour_max",
+    "precipitation":"preceding_hour_sum",
+    "cape":"instantaneous",
+    "temperature_2m":"instantaneous",
+    "relative_humidity_2m":"instantaneous",
+    "dew_point_2m":"instantaneous",
+    "pressure_msl":"instantaneous",
+    "surface_pressure":"instantaneous",
+    "cloud_cover":"instantaneous",
+    "shortwave_radiation":"preceding_hour_mean",
+}
+EPS_MEMBER_UNSUPPORTED=(
+    {
+        "semantic_id":"cin",
+        "parameter_native":"cin",
+        "availability_status":"unsupported_by_provider_or_product",
+        "availability_evidence_type":"phase2f4_live_named_model_probe",
+        "evidence_run_id":36299726251,
+        "reason":"Open-Meteo named model dwd_icon_d2_eps rejected cin with HTTP 400 during the stable Phase-2F-4 capability probe; no synthetic CIN is permitted.",
+    },
+)
 
 
 class NearestRows(list):
@@ -269,7 +314,7 @@ def _explicit_utc_times(times):
     return out
 
 
-def _hourly_source(payload,r,meta_before,meta_after,identity,base,response_retrieved,speed,direction,gust,precip,cape):
+def _hourly_source(payload,r,meta_before,meta_after,identity,base,response_retrieved,member_fields):
     if payload.get('utc_offset_seconds')!=0:
         raise RuntimeError(f'ICON-D2-EPS source must be UTC; utc_offset_seconds={payload.get("utc_offset_seconds")}')
     units=payload.get('hourly_units') or {}
@@ -281,10 +326,7 @@ def _hourly_source(payload,r,meta_before,meta_after,identity,base,response_retri
     if abs(float(lat)-LAT)>.05 or abs(float(lon)-LON)>.08:
         raise RuntimeError(f'ICON-D2-EPS returned coordinate implausible: {(lat,lon)}')
     times=_explicit_utc_times((payload.get('hourly') or {}).get('time') or [])
-    columns={
-        'wind_speed_10m':speed,'wind_gusts_10m':gust,'wind_direction_10m':direction,
-        'precipitation':precip,'cape':cape,
-    }
+    columns={field:dict(member_fields.get(field) or {}) for field in EPS_MEMBER_WEATHER_FIELDS}
     if not times:
         raise RuntimeError('ICON-D2-EPS hourly time axis empty')
     for field,members in columns.items():
@@ -295,12 +337,15 @@ def _hourly_source(payload,r,meta_before,meta_after,identity,base,response_retri
                     f'{len(values)} != {len(times)}')
     time_index={t:i for i,t in enumerate(times)}
     expected_ids=list(range(EPS_EXPECTED_MEMBERS))
+    required_indexes=[]
     for hour in range(0,49):
         key=(base+timedelta(hours=hour)).isoformat()
         i=time_index.get(key)
         if i is None:
             raise RuntimeError(f'ICON-D2-EPS v15 hourly timestamp missing: {key}')
-        for field,members in (('wind_speed_10m',speed),('wind_direction_10m',direction),('wind_gusts_10m',gust)):
+        required_indexes.append(i)
+        for field in ('wind_speed_10m','wind_direction_10m','wind_gusts_10m'):
+            members=columns[field]
             if sorted(members)!=expected_ids:
                 raise RuntimeError(f'ICON-D2-EPS v15 member set mismatch for {field}: {sorted(members)}')
             for member in expected_ids:
@@ -311,13 +356,49 @@ def _hourly_source(payload,r,meta_before,meta_after,identity,base,response_retri
                 if field!='wind_direction_10m' and float(value)<0:
                     raise RuntimeError(
                         f'ICON-D2-EPS v15 negative {field} member={member} time={key}: {value}')
+
+    field_completeness={}
+    field_specs={}
+    for field,members in columns.items():
+        complete_ids=[]
+        for member in expected_ids:
+            values=members.get(member)
+            if not isinstance(values,list):
+                continue
+            if all(
+                i < len(values)
+                and isinstance(values[i],(int,float))
+                and not isinstance(values[i],bool)
+                and math.isfinite(float(values[i]))
+                for i in required_indexes
+            ):
+                complete_ids.append(member)
+        status='complete' if complete_ids==expected_ids else ('partial' if complete_ids else 'unavailable')
+        field_completeness[field]={
+            'expected_member_count':EPS_EXPECTED_MEMBERS,
+            'complete_0_48_member_count':len(complete_ids),
+            'complete_0_48_member_ids':complete_ids,
+            'completeness_status':status,
+        }
+        field_specs[field]={
+            'semantic_id':EPS_MEMBER_SEMANTICS[field],
+            'parameter_native':field,
+            'field_provider_product':'open_meteo:dwd_icon_d2_eps',
+            'unit':units.get(field),
+            'interval':EPS_MEMBER_INTERVALS[field],
+            'aggregation':'circular' if field=='wind_direction_10m' else 'scalar',
+            'source_representation':'open_meteo_named_model_member_field',
+        }
+
     response_hash=hashlib.sha256(
         json.dumps(payload,sort_keys=True,separators=(',',':'),allow_nan=False).encode()
     ).hexdigest()
     return {
-        'schema_version':1,
-        'method_version':'hourly-member-ecc-window-v15',
+        'schema_version':2,
+        'method_version':EPS_MEMBER_METHOD_VERSION,
+        'registry_version':EPS_REGISTRY_VERSION,
         'model':'dwd_icon_d2_eps',
+        'ensemble_system_id':'DWD_ICON_D2_EPS',
         'source_class':'Open-Meteo named-model ensemble extraction',
         'source_url':r.url,
         'retrieved_at_utc':response_retrieved.isoformat(),
@@ -338,15 +419,18 @@ def _hourly_source(payload,r,meta_before,meta_after,identity,base,response_retri
         'run_time_utc':base.isoformat(),
         'times_utc':times,
         'columns':columns,
+        'field_specs':field_specs,
+        'field_completeness_0_48':field_completeness,
+        'unsupported_registry_semantics':[dict(x) for x in EPS_MEMBER_UNSUPPORTED],
+        'expected_member_ids':expected_ids,
+        'member_roles':{str(x):'ensemble_member' for x in expected_ids},
         'member_identity':'provider_member_number_in_one_response_zero_is_ensemble_member_not_control',
         'dwd_cycle_confirmation_url':identity['dwd_cycle_confirmation_url'],
         'source_run_identity':identity,
-        'semantics':{
-            'wind_speed_10m':'instantaneous',
-            'wind_gusts_10m':'preceding_hour_max',
-            'precipitation':'preceding_hour_sum',
-            'cape':'instantaneous_not_thunder_probability',
-        },
+        'semantics':dict(EPS_MEMBER_INTERVALS),
+        'authoritative_for_member_weather':True,
+        'compatibility_3h_records_derived_from_this_source':True,
+        'analysis_changed':False,
     }
 
 
@@ -370,14 +454,15 @@ def fetch_icon_d2_eps_bundle(leads):
     dwd_confirmation=find_dwd_file('icon-d2-eps',cycle,farthest,'u_10m')
 
     q={'latitude':LAT,'longitude':LON,
-       'hourly':'wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,cape',
+       'hourly':','.join(EPS_MEMBER_WEATHER_FIELDS),
        'models':'dwd_icon_d2_eps','past_days':1,'forecast_days':4,
        'wind_speed_unit':'ms','timezone':'GMT'}
     r=S.get(OPEN_METEO_D2_EPS_API,params=q,timeout=90);r.raise_for_status();payload=r.json()
     response_retrieved=datetime.now(timezone.utc)
     hourly=payload.get('hourly') or {};times=hourly.get('time') or []
-    speed=member_map(hourly,'wind_speed_10m');direction=member_map(hourly,'wind_direction_10m')
-    gust=member_map(hourly,'wind_gusts_10m');precip=member_map(hourly,'precipitation');cape=member_map(hourly,'cape')
+    member_fields={field:member_map(hourly,field) for field in EPS_MEMBER_WEATHER_FIELDS}
+    speed=member_fields['wind_speed_10m'];direction=member_fields['wind_direction_10m']
+    gust=member_fields['wind_gusts_10m'];precip=member_fields['precipitation'];cape=member_fields['cape']
     member_ids=sorted(set(speed)&set(direction)&set(gust))
     expected_ids=list(range(EPS_EXPECTED_MEMBERS))
     if member_ids!=expected_ids:
@@ -433,7 +518,7 @@ def fetch_icon_d2_eps_bundle(leads):
     }
     hourly_source=_hourly_source(
         payload,r,meta_before,meta_after,identity,base,response_retrieved,
-        speed,direction,gust,precip,cape)
+        member_fields)
 
     index={t:i for i,t in enumerate(times)};out=[]
     for lead in leads:
@@ -460,7 +545,11 @@ def fetch_icon_d2_eps_bundle(leads):
              'source':'Open-Meteo Ensemble API named model dwd_icon_d2_eps; DWD cycle independently confirmed',
              'source_url':r.url,'source_run_identity':identity,
              'forecast_coordinate_or_grid_point':hourly_source['returned_coordinate'],
-             'members':members,'ensemble_statistics':stats}
+             'members':members,'ensemble_statistics':stats,
+             'representation_type':'ensemble_aggregate',
+             'compatibility_record':True,
+             'authoritative_member_source_response_sha256':hourly_source['response_sha256'],
+             'authoritative_member_source_method_version':hourly_source['method_version']}
         if rec_error:
             rec['error_type']='EnsembleCompletenessError';rec['error_message']=rec_error
         elif len(members)==EPS_EXPECTED_MEMBERS:
