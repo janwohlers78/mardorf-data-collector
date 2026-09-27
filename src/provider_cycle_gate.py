@@ -27,6 +27,7 @@ from pathlib import Path
 import fetch_model_data as base
 import fetch_extra_models as extra
 import fetch_dwd_additional_models as dwd
+import gefs_full_members as full_gefs
 from full_horizon_contract import maximum_hours
 
 API="https://api.github.com"
@@ -40,7 +41,7 @@ OUTPUT_KEYS={
     "ICON-D2-EPS":"icon_d2_eps",
     "ECMWF-IFS":"ecmwf_ifs",
 }
-METHOD_VERSION="provider-cycle-gate-v1"
+METHOD_VERSION="provider-cycle-gate-v2-gefs-full"
 
 
 def utc(value):
@@ -95,6 +96,33 @@ def evidence_path(model,run):
         f"data/weather_archive/cycle_evidence/{safe}/"
         f"year={run:%Y}/month={run:%m}/day={run:%d}/run={run:%Y%m%dT%H%M%SZ}.json"
     )
+
+
+def gefs_full_evidence_path(run):
+    run=utc(run)
+    return (
+        "data/weather_archive/ensemble_cycle_evidence/noaa-gefs/"
+        f"year={run:%Y}/month={run:%m}/day={run:%d}/run={run:%Y%m%dT%H%M%SZ}.json"
+    )
+
+
+def exact_archived_gefs_full_cycle(repo,token,run):
+    item=private_json_optional(repo,gefs_full_evidence_path(run),token)
+    if not isinstance(item,dict):
+        return None
+    try:
+        recorded=utc(item.get("run_time_utc"))
+    except Exception:
+        return None
+    if (
+        recorded!=utc(run)
+        or item.get("ensemble_system_id")!="NOAA_GEFS"
+        or item.get("collection_status")!="complete"
+        or item.get("policy_version")!=full_gefs.POLICY_VERSION
+        or int(item.get("expected_member_count") or 0)!=31
+    ):
+        return None
+    return item
 
 
 def exact_archived_cycle(repo,token,model,run):
@@ -248,7 +276,7 @@ def load_seed(repo,token):
     return latest,payload,dest,actual
 
 
-def build_plan(repo,token,full_validation=True,discover_fn=discover):
+def build_plan(repo,token,full_validation=True,discover_fn=discover,discover_gefs_full_fn=None):
     checked=datetime.now(timezone.utc)
     latest,seed,seed_path,seed_sha=load_seed(repo,token)
     models={}
@@ -294,7 +322,47 @@ def build_plan(repo,token,full_validation=True,discover_fn=discover):
             )
         models[model]=entry
 
-    any_work=any(x["action"]!="carry_forward" for x in models.values())
+    full_entry={"action":"fetch","reason":"probe_not_run_fail_open"}
+    try:
+        if discover_gefs_full_fn is None:
+            run,probe_attempts=full_gefs.discover_mature_00z()
+        else:
+            discovered=discover_gefs_full_fn()
+            if isinstance(discovered,tuple):
+                run,probe_attempts=discovered
+            else:
+                run,probe_attempts=discovered,[]
+        run=utc(run)
+        archived=exact_archived_gefs_full_cycle(repo,token,run)
+        source=seed.get("gefs_full_member_source")
+        source_ok=full_gefs.source_matches_policy(source,run)
+        full_entry.update(
+            selected_run_time_utc=run.isoformat(),
+            archive_cycle_evidence_path=gefs_full_evidence_path(run),
+            archive_cycle_evidence_present=bool(archived),
+            seed_payload_source_matches=bool(source_ok),
+            publication_probe_attempts=probe_attempts,
+        )
+        if archived and source_ok:
+            full_entry.update(action="carry_forward",reason="selected_00z_full_member_cycle_already_archived")
+        else:
+            missing=[]
+            if not archived: missing.append("private_ensemble_cycle_evidence")
+            if not source_ok: missing.append("seed_full_member_source")
+            full_entry.update(action="fetch",reason="fetch_fail_open_missing_"+"_".join(missing))
+    except Exception as exc:
+        full_entry.update(
+            action="fetch",
+            reason="full_gefs_cycle_probe_failed_fail_open",
+            probe_exception_type=type(exc).__name__,
+            probe_exception_message=str(exc)[:700],
+        )
+
+    full_ensembles={"NOAA_GEFS":full_entry}
+    any_work=(
+        any(x["action"]!="carry_forward" for x in models.values())
+        or full_entry["action"]!="carry_forward"
+    )
     plan={
         "schema_version":1,
         "method_version":METHOD_VERSION,
@@ -305,6 +373,7 @@ def build_plan(repo,token,full_validation=True,discover_fn=discover):
         "seed_payload_sha256":seed_sha,
         "seed_integrity_generated_at_utc":latest.get("generated_at_utc"),
         "models":models,
+        "full_ensembles":full_ensembles,
         "any_work":any_work,
         "delta_prediction":"nonzero" if any_work else "zero",
         "no_op_transfer_suppressed":not any_work,
@@ -350,6 +419,12 @@ def main():
                 "probe_exception_type":type(exc).__name__,
                 "probe_exception_message":str(exc)[:700],
             } for m in MODELS},
+            "full_ensembles":{"NOAA_GEFS":{
+                "action":"fetch",
+                "reason":"global_private_seed_unavailable_fail_open",
+                "probe_exception_type":type(exc).__name__,
+                "probe_exception_message":str(exc)[:700],
+            }},
             "any_work":True,
             "delta_prediction":"nonzero",
             "no_op_transfer_suppressed":False,
@@ -374,6 +449,7 @@ def main():
     output("delta_prediction",plan["delta_prediction"])
     for model,key in OUTPUT_KEYS.items():
         output(key,plan["models"][model]["action"])
+    output("gefs_full",plan.get("full_ensembles",{}).get("NOAA_GEFS",{}).get("action","fetch"))
     print(json.dumps(plan,indent=2,sort_keys=True))
 
 
