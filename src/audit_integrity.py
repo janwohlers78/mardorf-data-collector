@@ -365,7 +365,43 @@ def audit_gefs_full_member_source(payload,expected_spot):
     if not omission_ok:
         failures.append({"reason":"pgrb2b_policy_omission_missing_or_wrong"})
     metrics=source.get("request_metrics") if isinstance(source.get("request_metrics"),dict) else {}
-    response_bytes=metrics.get("response_bytes")
+    traffic=source.get("traffic_metrics") if isinstance(source.get("traffic_metrics"),dict) else {}
+    response_bytes=traffic.get("total_response_bytes",metrics.get("response_bytes"))
+    total_requests=traffic.get("total_requests",metrics.get("requests"))
+    qa=source.get("provider_summary_qa")
+    qa_status=None
+    if not isinstance(qa,dict):
+        failures.append({"reason":"provider_summary_qa_missing"})
+    else:
+        qa_status=qa.get("status")
+        if qa.get("method_version")!="gefs-provider-summary-qa-v1":
+            failures.append({"reason":"provider_summary_qa_method_mismatch","value":qa.get("method_version")})
+        if qa.get("member_semantics")!="NOAA geavg/gespr empirically reproduce p01-p30 only; c00 excluded":
+            failures.append({"reason":"provider_summary_member_semantics_mismatch","value":qa.get("member_semantics")})
+        if qa.get("spread_semantics")!="sample standard deviation over p01-p30 (N-1 denominator)":
+            failures.append({"reason":"provider_summary_spread_semantics_mismatch","value":qa.get("spread_semantics")})
+        if qa_status=="pass":
+            comparisons=qa.get("comparisons") if isinstance(qa.get("comparisons"),list) else []
+            if len(comparisons)!=4:
+                failures.append({"reason":"provider_summary_comparison_count_mismatch","count":len(comparisons)})
+            for item in comparisons:
+                if not isinstance(item,dict):
+                    failures.append({"reason":"provider_summary_comparison_not_object"});continue
+                if item.get("lead_hours") not in (120,240) or item.get("semantic_id") not in ("wind_u_10m","wind_v_10m"):
+                    failures.append({"reason":"provider_summary_comparison_identity_mismatch","comparison":item})
+                    continue
+                if item.get("member_set")!="p01-p30" or item.get("member_count")!=30:
+                    failures.append({"reason":"provider_summary_member_set_mismatch","comparison":item})
+                md=item.get("mean_abs_delta");sd=item.get("spread_abs_delta")
+                mt=item.get("mean_tolerance_ms");st=item.get("spread_tolerance_ms")
+                if not all(finite(x) for x in (md,sd,mt,st)):
+                    failures.append({"reason":"provider_summary_tolerance_evidence_nonfinite","comparison":item})
+                elif float(md)>float(mt)+1e-12 or float(sd)>float(st)+1e-12 or item.get("status")!="pass":
+                    failures.append({"reason":"provider_summary_tolerance_failed","comparison":item})
+        elif qa_status=="fail":
+            failures.append({"reason":"provider_summary_qa_failed","qa":qa})
+        elif qa_status!="unavailable":
+            failures.append({"reason":"provider_summary_qa_status_invalid","value":qa_status})
     summary={
         "present":True,
         "method_version":source.get("method_version"),"policy_version":source.get("policy_version"),
@@ -376,8 +412,14 @@ def audit_gefs_full_member_source(payload,expected_spot):
         "semantic_counts":dict(sorted(semantic_counts.items())),
         "grid_points_by_product":{k:{"latitude":v[0],"longitude":v[1]} for k,v in sorted(points.items())},
         "request_metrics":metrics,
+        "traffic_metrics":traffic,
+        "total_requests":total_requests,
+        "request_budget":800,
+        "request_budget_pass":finite(total_requests) and float(total_requests)<=800,
         "network_budget_bytes":2*1024*1024,
         "network_budget_pass":finite(response_bytes) and float(response_bytes)<=2*1024*1024,
+        "provider_summary_qa":qa,
+        "provider_summary_qa_status":qa_status,
         "failure_count":len(failures),
         "policy_omission_verified":omission_ok,
     }
@@ -765,11 +807,17 @@ def audit_models(path,cfg,now):
         issues.append(issue("GEFS_FULL_MEMBER_SOURCE_INVALID","ERROR","NOAA_GEFS","ensemble_archive",
             "The optional full-member source is present but violates the frozen sparse 2F-3 contract.",
             failures=gefs_full_failures))
-    if gefs_full_summary and not gefs_full_summary.get("network_budget_pass"):
-        issues.append(issue("GEFS_FULL_MEMBER_NETWORK_BUDGET_EXCEEDED","WARN","NOAA_GEFS","traffic_budget",
-            "The complete source is structurally valid but its filtered transfer exceeded the 2F-3 daily network target.",
+    if gefs_full_summary and (not gefs_full_summary.get("network_budget_pass") or not gefs_full_summary.get("request_budget_pass")):
+        issues.append(issue("GEFS_FULL_MEMBER_TRAFFIC_BUDGET_EXCEEDED","WARN","NOAA_GEFS","traffic_budget",
+            "The complete source is structurally valid but exceeded a frozen 2F-3 daily traffic target.",
             request_metrics=gefs_full_summary.get("request_metrics"),
-            network_budget_bytes=gefs_full_summary.get("network_budget_bytes")))
+            traffic_metrics=gefs_full_summary.get("traffic_metrics"),
+            network_budget_bytes=gefs_full_summary.get("network_budget_bytes"),
+            request_budget=gefs_full_summary.get("request_budget")))
+    if gefs_full_summary and gefs_full_summary.get("provider_summary_qa_status")=="unavailable":
+        issues.append(issue("GEFS_PROVIDER_SUMMARY_QA_UNAVAILABLE","WARN","NOAA_GEFS","ensemble_summary_qa",
+            "Full member values remain authoritative, but the optional NOAA geavg/gespr QA comparison was unavailable for this cycle.",
+            qa=gefs_full_summary.get("provider_summary_qa")))
     if isinstance(gefs_full_attempt,dict):
         issues.append(issue("GEFS_FULL_MEMBER_ATTEMPT_INCOMPLETE","WARN","NOAA_GEFS","ensemble_archive",
             "A new optional full-member attempt was incomplete; the last complete member source remains authoritative.",
