@@ -124,3 +124,30 @@ SEMANTIC_IDS = tuple(x["semantic_id"] for x in REGISTRY["core_semantics"])
 
 def coverage_for(model):
     return REGISTRY["providers"][model]["coverage"]
+
+def non_native_availability_declarations(model, provider_product=None):
+    """Return active Registry-v2 capability states that have no native value.
+
+    parameter_native='*' is deliberate for registry-level capability gaps: E3
+    must not invent a provider-native parameter name where the active product
+    exposes no meteorologically equivalent field.
+    """
+    provider=REGISTRY["providers"][model]
+    exceptions=provider.get("exceptions") or {}
+    out=[]
+    for semantic_id,status in provider["coverage"].items():
+        if status=="native_received":
+            continue
+        item={
+            "semantic_id":semantic_id,
+            "parameter_native":"*",
+            "namespace":"availability",
+            "availability_status":status,
+            "availability_evidence_type":"relevant_meteorology_registry_v2_provider_coverage",
+            "registry_version":REGISTRY["registry_version"],
+            "reason":exceptions[semantic_id],
+        }
+        if provider_product:
+            item["field_provider_product"]=str(provider_product)
+        out.append(item)
+    return out
