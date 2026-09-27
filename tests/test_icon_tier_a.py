@@ -64,6 +64,7 @@ class IconTierARoutineTests(unittest.TestCase):
         self.assertEqual(values[0]["stepType"],"accum")
         self.assertEqual(values[0]["stepRange"],"0-12")
         self.assertEqual(values[0]["availability_status"],"received")
+        self.assertEqual(values[0]["registry_version"],"relevant-meteorology-v2")
         self.assertIsNotNone(values[0]["field_available_at_utc"])
         self.assertIsNotNone(values[0]["availability_observed_at_utc"])
         self.assertEqual(len(values[0]["source_sha256"]),64)
@@ -96,6 +97,7 @@ class IconTierARoutineTests(unittest.TestCase):
                 for parameter,item in r["values"].items():
                     self.assertEqual(item[0]["availability_status"],"received")
                     self.assertEqual(item[0]["semantic_id"],t.CANONICAL[parameter])
+                    self.assertEqual(item[0]["registry_version"],"relevant-meteorology-v2")
                     self.assertIsNotNone(item[0]["field_available_at_utc"])
 
     def test_icon_eu_wind_fetchers_do_not_duplicate_tier_a_fields(self):
@@ -152,7 +154,7 @@ class IconTierARoutineTests(unittest.TestCase):
 
     def test_tier_a_contract_matches_phase2f1_registry_weather_fields(self):
         self.assertEqual(t.TIER_A,("t_2m","td_2m","relhum_2m","pmsl","ps","tot_prec","clct","aswdir_s","aswdifd_s","cape_ml","cin_ml"))
-        self.assertEqual(t.REGISTRY_VERSION,"relevant-meteorology-v1")
+        self.assertEqual(t.REGISTRY_VERSION,"relevant-meteorology-v2")
 
 
 if __name__=="__main__":
