@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "contract_version": "phase2-acquisition-storage-freeze-v1",
+  "status": "complete_frozen",
+  "frozen_on_utc_date": "2026-09-27",
+  "repository": "janwohlers78/mardorf-data-collector",
+  "baseline_main_commit_before_freeze": "c2461843189d2dc25879d67fc34b5dc2997019a5",
+  "contracts": {
+    "acquisition": {
+      "full_horizon_contract_version": "full-horizon-archive-v1",
+      "acquisition_grid_version": "acquisition-grid-v2",
+      "retention_grid_version": "acquisition-grid-v2",
+      "interpolation": "forbidden",
+      "weather_plan_path": "config/weather_acquisition_plan.json"
+    },
+    "registry": {
+      "registry_version": "relevant-meteorology-v1",
+      "status": "frozen_phase2f5",
+      "path": "config/relevant_meteorology_registry_v1.json",
+      "semantic_contract_sha256": "3f502094a90ac8901b103cda730209bb15d6bd20e3f2c59826f502d2c5f400d3",
+      "provider_matrix_sha256": "b3c1643c7cdf0fafff98511f3e38c5c57de04f90b07a68e69a1c87605edaf104",
+      "registry_sha256": "4a9c458bbd8595cb0e5ca4a823aa14992ce087bc2e91813c0c96c8d835153cc1"
+    },
+    "full_gefs": {
+      "method_version": "phase2f3-gefs-full-members-v1",
+      "policy_version": "gefs-sparse-00z-policy-v1",
+      "ensemble_system_id": "NOAA_GEFS",
+      "member_count": 31,
+      "cycle_hours_utc": [
+        0
+      ],
+      "native_time_policy": "provider-native selected sparse times only; no interpolation",
+      "provider_summary_role": "QA only; member set remains authoritative"
+    },
+    "icon_d2_eps": {
+      "method_version": "phase2f4-icon-d2-eps-full-member-weather-v1",
+      "registry_version": "relevant-meteorology-v1",
+      "ensemble_system_id": "DWD_ICON_D2_EPS",
+      "member_count": 20,
+      "native_time_policy": "hourly through +48h",
+      "cin_status": "unsupported_by_provider_or_product"
+    },
+    "private_consumer_expectation": {
+      "archive_schema_version": "mardorf-weather-archive-v4",
+      "availability_contract_version": "field-availability-v1",
+      "ensemble_contract_version": "ensemble-member-storage-contract-v1"
+    }
+  },
+  "accepted_provider_limitations": {
+    "ECMWF-IFS": {
+      "relative_humidity_2m": "unsupported_by_provider_or_product",
+      "cin": "unsupported_by_provider_or_product"
+    },
+    "GEFS-control": {
+      "wind_gust_10m": "native only through 240h; unsupported beyond current provider product"
+    },
+    "ICON-D2-EPS": {
+      "wind_u_10m": "intentionally_not_applicable; provider supplies native polar speed/direction",
+      "wind_v_10m": "intentionally_not_applicable; provider supplies native polar speed/direction",
+      "cin": "unsupported_by_provider_or_product"
+    }
+  },
+  "final_acceptance": {
+    "public_full_live_run_id": 36303621827,
+    "public_integrity": "PASS_WITH_WARNINGS_0_ERRORS_1_MATURE_GEFS_WARNING",
+    "public_post_gefs_gate_fix_validation_run_id": 36305213156,
+    "private_end_to_end_promotion_run_id": 36304233991,
+    "private_archive_readback_run_id": 36304780506,
+    "provider_cycle_live_proof_run_id": 36305225661
+  },
+  "change_control": {
+    "frozen_versions_immutable": true,
+    "rule": "Phase 3 and later may consume this contract but must not silently redefine it. Any semantic, cadence, provider-identity, missingness, ensemble-role, or acquisition-grid change requires a new explicit contract version and regression/live acceptance."
+  }
+}
