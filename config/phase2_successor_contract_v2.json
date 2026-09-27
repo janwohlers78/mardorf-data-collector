@@ -138,7 +138,7 @@
     ]
   },
   "implementation_versions": {
-    "archive_successor": "pending_C1_C2_design",
+    "archive_successor": "mardorf-weather-archive-v5",
     "availability_successor": "pending_C2_design",
     "ensemble_successor": "pending_D1_D2_design",
     "registry_successor": "pending_B1_B2_design",
