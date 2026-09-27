@@ -176,6 +176,21 @@
       "value_binding_rule": "the numerical derived gust must be bound to matching provider-native gust evidence within documented collector rounding tolerance before interval metadata is attached.",
       "verification_rule": "SVG gust truth aggregates the complete canonical gust interval and requires every constituent complete hourly observation; it MUST NOT compare a 3h/6h model maximum only with the final observation hour.",
       "backward_compatibility": "canonical_record_v1 remains retained for historical compatibility but is not the preferred analytical record for new promoted snapshots."
+    },
+    "noaa_optional_failure_availability": {
+      "method_version": "noaa-optional-failure-availability-e2-v1",
+      "status": "active_phase2_audit_e2",
+      "public_contract": "model-field-availability-v2",
+      "private_contract": "field-availability-v2",
+      "subject_identity_rule": "Optional NOAA failure and later recovery use the same availability subject identity defined by field_provider_product + parameter_native + availability semantic identity; status, evidence and time are revisions of that subject.",
+      "failure_mapping": {
+        "PublicationUnavailable": "not_yet_published",
+        "other_optional_request_failure": "fetch_error"
+      },
+      "recovery_rule": "A later successful product observation is a new received availability revision with its own observation/field-available times and revision_event_id; it must not rewrite or delete the earlier failure observation.",
+      "private_visibility_rule": "A provider recovery is not visible in historical as_of reads before its private first_seen_at_utc.",
+      "history_rule": "field_availability_history preserves the complete event-bound failure/recovery sequence; field_availability is the causal latest/as_of projection.",
+      "zero_fill": "forbidden"
     }
   }
 }
