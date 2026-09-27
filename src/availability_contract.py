@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import noaa_weather_context as noaa
+import relevant_meteorology_registry_v2 as registry_v2
 
 METHOD_VERSION = "model-field-availability-v2"
 
@@ -173,6 +174,24 @@ def availability_declarations(row, observed_at):
                 product=field_product,
                 evidence_type="product_weather_context_boolean_v1",
             )
+
+    # E3: materialize every active Registry-v2 provider capability gap that
+    # is not already represented by a more specific producer declaration.
+    # This closes silent omissions such as deterministic DWD native-total
+    # shortwave, ECMWF/NOAA direct+diffuse components and EPS Cartesian U/V.
+    model=row.get("model")
+    if model in registry_v2.EXPECTED_MODELS:
+        declared_semantics={
+            str(item.get("semantic_id"))
+            for item in out if isinstance(item,dict) and item.get("semantic_id")
+        }
+        for declaration in registry_v2.non_native_availability_declarations(
+            model,row.get("provider_product")
+        ):
+            if declaration["semantic_id"] in declared_semantics:
+                continue
+            append_declaration(declaration)
+            declared_semantics.add(declaration["semantic_id"])
 
     # Requested optional NOAA products that fail must remain distinguishable
     # from static provider capability gaps. PublicationUnavailable is a
