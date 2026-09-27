@@ -1,4 +1,5 @@
 import copy
+import json
 import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
@@ -23,6 +24,13 @@ def row(model,run=RUN):
 
 
 class ProviderCycleGateTests(unittest.TestCase):
+    def test_e1_runtime_version_matches_successor_contract(self):
+        cfg=json.loads((Path(__file__).resolve().parents[1]/"config/phase2_successor_contract_v2.json").read_text())
+        self.assertEqual(
+            gate.GEFS_EVIDENCE_SUCCESSOR_VERSION,
+            cfg["implementation_versions"]["gefs_cycle_evidence_successor"],
+        )
+
     def seed(self):
         latest={
             "generated_at_utc":"2026-09-26T15:00:00+00:00",
