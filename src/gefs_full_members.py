@@ -421,9 +421,36 @@ def collect(run,workers=MAX_CONCURRENCY):
     return source
 
 def attach_to_snapshot(path,source):
+    """Promote only a complete full-member cycle; retain partial attempt diagnostics.
+
+    This keeps an optional ensemble failure from replacing the last complete
+    archive source or blocking deterministic model freshness.
+    """
     p=Path(path)
     data=json.loads(p.read_text(encoding="utf-8"))
-    data["gefs_full_member_source"]=source
+    if source.get("collection_status")=="complete":
+        data["gefs_full_member_source"]=source
+        data.pop("gefs_full_member_attempt",None)
+    else:
+        failed=[
+            {"member_id":r.get("member_id"),"lead_hours":r.get("lead_hours"),
+             "provider_product":r.get("provider_product"),
+             "exception_type":r.get("exception_type"),"exception_message":r.get("exception_message")}
+            for r in source.get("records") or [] if r.get("request_status")!="received"
+        ]
+        data["gefs_full_member_attempt"]={
+            "method_version":METHOD_VERSION,
+            "policy_version":POLICY_VERSION,
+            "run_time_utc":source.get("run_time_utc"),
+            "attempted_at_utc":source.get("retrieved_at_utc"),
+            "collection_status":source.get("collection_status"),
+            "expected_request_count":source.get("expected_request_count"),
+            "received_request_count":source.get("received_request_count"),
+            "failed_request_count":source.get("failed_request_count"),
+            "request_metrics":source.get("request_metrics"),
+            "collection_wall_seconds":source.get("collection_wall_seconds"),
+            "failed_units":failed,
+        }
     data["retrieved_at_utc"]=datetime.now(timezone.utc).isoformat()
     p.write_text(json.dumps(data,separators=(",",":"),allow_nan=False)+"\n",encoding="utf-8")
 
