@@ -1,0 +1,161 @@
+{
+  "schema_version": 1,
+  "method_version": "phase2-g2-traffic-actions-rebaseline-v1",
+  "status": "active_phase2_audit_repair",
+  "measured_at_utc": "2026-09-27T23:12:00+00:00",
+  "scope": "Public model acquisition traffic and the directly-triggered private model promotion path. This is not a total account-wide GitHub Actions budget.",
+  "horizon_semantics": {
+    "compatibility_payload_policy_key": "model_policy.compatibility_payload_horizon_by_cycle",
+    "deprecated_ambiguous_key_absent": "model_policy.provider_horizon_by_cycle",
+    "provider_native_horizon_owner": "src/full_horizon_contract.py::maximum_hours",
+    "acquisition_horizon_owner": "src/full_horizon_contract.py::acquisition_policy/acquisition_leads",
+    "rule": "Compatibility horizon never caps full_horizon_archive."
+  },
+  "normal_routine": {
+    "acquisition_grid_version": "acquisition-grid-v2",
+    "daily_core_lead_opportunities_reference": 981,
+    "predecessor_daily_core_lead_opportunities_reference": 1388,
+    "reduction_percent": 29.3228,
+    "real_run_samples": [
+      {
+        "run_id": 36320915920,
+        "workflow_elapsed_seconds": 572,
+        "icon_tier_a_response_bytes": 284630129,
+        "gefs_full_action": "carry_forward"
+      },
+      {
+        "run_id": 36330419969,
+        "workflow_elapsed_seconds": 636,
+        "icon_tier_a_response_bytes": 622207247,
+        "gefs_full_action": "carry_forward"
+      },
+      {
+        "run_id": 36341508397,
+        "workflow_elapsed_seconds": 330,
+        "icon_tier_a_response_bytes": 286373970,
+        "gefs_full_action": "carry_forward"
+      },
+      {
+        "run_id": 36353765616,
+        "workflow_elapsed_seconds": 798,
+        "icon_tier_a_response_bytes": 582774500,
+        "gefs_full_action": "carry_forward"
+      }
+    ],
+    "icon_tier_a_observed_high_water_bytes": 622207247,
+    "icon_tier_a_latest_sample": {
+      "run_id": 36353765616,
+      "icon_d2_requested_fields": 187,
+      "icon_eu_requested_fields": 363,
+      "total_requested_fields": 550,
+      "total_response_bytes": 582774500
+    },
+    "tier_a_guardrail": "At most one request opportunity per selected model/run/lead/native-parameter tuple; provider-cycle carry-forward prevents same-cycle routine re-fetch.",
+    "tier_a_byte_policy": "observational baseline only; compressed DWD GRIB size is provider/cycle dependent and is not used as a hard semantic acceptance gate"
+  },
+  "sparse_gefs_00z": {
+    "live_proof_run_id": 36296863530,
+    "cycle_run_time_utc": "2026-09-26T00:00:00+00:00",
+    "member_requests": 744,
+    "provider_summary_qa_requests": 4,
+    "total_requests": 748,
+    "total_response_bytes": 1056567,
+    "collection_wall_seconds": 300.697414,
+    "request_budget": 800,
+    "network_budget_bytes": 2097152,
+    "request_budget_pass": true,
+    "network_budget_pass": true,
+    "public_wall_minutes_budget": 10,
+    "private_additional_billable_minutes_budget_per_day": 2,
+    "live_private_promotion_wall_seconds": 56,
+    "live_private_conservative_billable_minutes": 1
+  },
+  "supplemental_retry": {
+    "method_version": "gefs-pgrb2b-bounded-supplement-v1",
+    "retry_delay_hours": 3,
+    "maximum_retries": 1,
+    "request_product": "gefs_0p50b",
+    "request_rule": "exactly one pgrb2b request per missing far lead",
+    "max_missing_far_leads_current_contract": 6,
+    "max_requests_per_cycle_current_contract": 6,
+    "forbidden_redundant_fetches": [
+      "gefs_0p50a",
+      "GEFS-control base horizon",
+      "GEFS-control extension full fetch",
+      "NOAA_GEFS full-member cycle"
+    ],
+    "provider_cycle_action": "supplemental_retry"
+  },
+  "no_op": {
+    "real_samples": [
+      {
+        "run_id": 36318210468,
+        "workflow_elapsed_seconds": 8,
+        "reason": "last_success_within_threshold"
+      },
+      {
+        "run_id": 36335511976,
+        "workflow_elapsed_seconds": 9,
+        "reason": "last_success_within_threshold"
+      }
+    ],
+    "provider_downloads": 0,
+    "private_transfers": 0,
+    "private_model_promotions": 0,
+    "provider_cycle_zero_delta_rule": "any_work=false => transfer/promotion suppressed"
+  },
+  "private_model_promotion": {
+    "workflow": "Promote public collector model data",
+    "trigger_path": "data/inbox/public_collector/integrity/models/latest_success.json",
+    "observation_window_utc": [
+      "2026-09-26T23:12:00+00:00",
+      "2026-09-27T23:12:00+00:00"
+    ],
+    "observed_runs": [
+      {
+        "run_id": 36321462937,
+        "conclusion": "success",
+        "execution_seconds": 54,
+        "conservative_billable_minutes": 1
+      },
+      {
+        "run_id": 36331052944,
+        "conclusion": "failure",
+        "execution_seconds": 39,
+        "conservative_billable_minutes": 1
+      },
+      {
+        "run_id": 36341848277,
+        "conclusion": "success",
+        "execution_seconds": 51,
+        "conservative_billable_minutes": 1
+      },
+      {
+        "run_id": 36354560724,
+        "conclusion": "success",
+        "execution_seconds": 55,
+        "conservative_billable_minutes": 1
+      }
+    ],
+    "observed_execution_seconds_total": 199,
+    "observed_conservative_billable_minutes_total": 4,
+    "successful_execution_seconds_range": [
+      51,
+      55
+    ],
+    "latest_public_transfer_private_run_id": 36354560724,
+    "latest_public_transfer_private_run_count": 1
+  },
+  "acceptance": {
+    "compatibility_horizon_terminology_unambiguous": true,
+    "full_horizon_independent_from_compatibility_cap": true,
+    "normal_daily_core_lead_opportunities_at_or_below_reference": true,
+    "sparse_gefs_within_request_budget": true,
+    "sparse_gefs_within_network_budget": true,
+    "supplemental_retry_never_redownloads_primary_product": true,
+    "supplemental_retry_never_runs_full_gefs_fetch": true,
+    "no_op_has_zero_provider_downloads": true,
+    "no_op_has_zero_private_promotion": true,
+    "one_successful_transfer_triggers_one_private_model_promotion": true
+  }
+}
