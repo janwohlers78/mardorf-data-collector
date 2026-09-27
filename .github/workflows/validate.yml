@@ -41,6 +41,16 @@ jobs:
         run: python -m compileall -q src tests
       - name: Run integrity regression tests
         run: PYTHONPATH=src python -m unittest discover -s tests -v
+      - name: Cross-repository Phase 2 successor contract gate
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          CROSS_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
+        run: |
+          test -n "$CROSS_REPO_TOKEN"
+          python src/validate_phase2_cross_repo_contract.py \
+            --remote-repo janwohlers78/mardorf-kitevorhersage \
+            --remote-ref main
+
       - name: Parse integrity policy
         run: python -m json.tool config/integrity_policy.json >/dev/null
       - name: Verify no generated data is tracked
