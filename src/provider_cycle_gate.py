@@ -323,40 +323,69 @@ def build_plan(repo,token,full_validation=True,discover_fn=discover,discover_gef
         models[model]=entry
 
     full_entry={"action":"fetch","reason":"probe_not_run_fail_open"}
+    source=seed.get("gefs_full_member_source")
+    source_run=None
     try:
-        if discover_gefs_full_fn is None:
-            run,probe_attempts=full_gefs.discover_mature_00z()
-        else:
-            discovered=discover_gefs_full_fn()
-            if isinstance(discovered,tuple):
-                run,probe_attempts=discovered
+        if isinstance(source,dict) and source.get("collection_status")=="complete":
+            source_run=utc(source.get("run_time_utc"))
+    except Exception:
+        source_run=None
+    existing_evidence=exact_archived_gefs_full_cycle(repo,token,source_run) if source_run else None
+    today_00=checked.replace(hour=0,minute=0,second=0,microsecond=0)
+    if source_run==today_00 and existing_evidence and full_gefs.source_matches_policy(source,source_run):
+        full_entry.update(
+            action="carry_forward",
+            reason="today_00z_full_member_cycle_already_archived_no_provider_probe",
+            selected_run_time_utc=source_run.isoformat(),
+            archive_cycle_evidence_path=gefs_full_evidence_path(source_run),
+            archive_cycle_evidence_present=True,
+            seed_payload_source_matches=True,
+            publication_probe_attempts=[],
+        )
+    elif checked.hour<6 and source_run and existing_evidence and full_gefs.source_matches_policy(source,source_run):
+        full_entry.update(
+            action="carry_forward",
+            reason="pre_06z_full_member_probe_window_carry_previous_complete_source",
+            selected_run_time_utc=source_run.isoformat(),
+            archive_cycle_evidence_path=gefs_full_evidence_path(source_run),
+            archive_cycle_evidence_present=True,
+            seed_payload_source_matches=True,
+            publication_probe_attempts=[],
+        )
+    else:
+        try:
+            if discover_gefs_full_fn is None:
+                run,probe_attempts=full_gefs.discover_mature_00z()
             else:
-                run,probe_attempts=discovered,[]
-        run=utc(run)
-        archived=exact_archived_gefs_full_cycle(repo,token,run)
-        source=seed.get("gefs_full_member_source")
-        source_ok=full_gefs.source_matches_policy(source,run)
-        full_entry.update(
-            selected_run_time_utc=run.isoformat(),
-            archive_cycle_evidence_path=gefs_full_evidence_path(run),
-            archive_cycle_evidence_present=bool(archived),
-            seed_payload_source_matches=bool(source_ok),
-            publication_probe_attempts=probe_attempts,
-        )
-        if archived and source_ok:
-            full_entry.update(action="carry_forward",reason="selected_00z_full_member_cycle_already_archived")
-        else:
-            missing=[]
-            if not archived: missing.append("private_ensemble_cycle_evidence")
-            if not source_ok: missing.append("seed_full_member_source")
-            full_entry.update(action="fetch",reason="fetch_fail_open_missing_"+"_".join(missing))
-    except Exception as exc:
-        full_entry.update(
-            action="fetch",
-            reason="full_gefs_cycle_probe_failed_fail_open",
-            probe_exception_type=type(exc).__name__,
-            probe_exception_message=str(exc)[:700],
-        )
+                discovered=discover_gefs_full_fn()
+                if isinstance(discovered,tuple):
+                    run,probe_attempts=discovered
+                else:
+                    run,probe_attempts=discovered,[]
+            run=utc(run)
+            archived=exact_archived_gefs_full_cycle(repo,token,run)
+            source_ok=full_gefs.source_matches_policy(source,run)
+            full_entry.update(
+                selected_run_time_utc=run.isoformat(),
+                archive_cycle_evidence_path=gefs_full_evidence_path(run),
+                archive_cycle_evidence_present=bool(archived),
+                seed_payload_source_matches=bool(source_ok),
+                publication_probe_attempts=probe_attempts,
+            )
+            if archived and source_ok:
+                full_entry.update(action="carry_forward",reason="selected_00z_full_member_cycle_already_archived")
+            else:
+                missing=[]
+                if not archived: missing.append("private_ensemble_cycle_evidence")
+                if not source_ok: missing.append("seed_full_member_source")
+                full_entry.update(action="fetch",reason="fetch_fail_open_missing_"+"_".join(missing))
+        except Exception as exc:
+            full_entry.update(
+                action="fetch",
+                reason="full_gefs_cycle_probe_failed_fail_open",
+                probe_exception_type=type(exc).__name__,
+                probe_exception_message=str(exc)[:700],
+            )
 
     full_ensembles={"NOAA_GEFS":full_entry}
     any_work=(
