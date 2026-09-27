@@ -1,4 +1,5 @@
 import json
+import hashlib
 import unittest
 from pathlib import Path
 
@@ -12,6 +13,7 @@ ROOT=Path(__file__).resolve().parents[1]
 class Phase2FrozenContractTests(unittest.TestCase):
     def setUp(self):
         self.freeze=json.loads((ROOT/"config/phase2_frozen_contract_v1.json").read_text())
+        self.successor=json.loads((ROOT/"config/phase2_successor_contract_v2.json").read_text())
         self.plan=json.loads((ROOT/"config/weather_acquisition_plan.json").read_text())
         self.integrity=json.loads((ROOT/"config/integrity_policy.json").read_text())
 
@@ -43,6 +45,34 @@ class Phase2FrozenContractTests(unittest.TestCase):
         self.assertEqual(link["contract_version"],self.freeze["contract_version"])
         self.assertEqual(link["status"],"complete_frozen")
 
+
+    def test_successor_v2_shared_core_hash_and_revision_invariants(self):
+        c=self.successor
+        self.assertEqual(c["contract_version"],"phase2-acquisition-storage-successor-v2")
+        self.assertEqual(c["status"],"active_repair_contract_not_refrozen")
+        self.assertTrue(c["change_control"]["v1_immutable"])
+        canonical=json.dumps(c["shared_core"],sort_keys=True,separators=(",",":"),ensure_ascii=False)
+        self.assertEqual(
+            hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
+            c["shared_core_sha256"],
+        )
+        core=c["shared_core"]
+        self.assertIn("A -> B -> A",core["identity_and_revision_model"]["aba_rule"])
+        self.assertIn("visibility gate",core["identity_and_revision_model"]["ordering_rule"])
+        self.assertIn("MUST NOT inherit",core["causality_and_as_of"]["metadata_leak_rule"])
+        self.assertIn("same selected source revision set",core["ensemble_revision_contract"]["atomic_member_selection"])
+        self.assertEqual(
+            core["evidence_publication_contract"]["gefs_cycle_evidence"]["required_model"],
+            "immutable_event_stream_plus_monotonic_index",
+        )
+        self.assertEqual(
+            core["phase3_gate"]["feature_broker_blocked_until"],
+            [
+                "C1 deterministic revision-event ledger green",
+                "C2 revision-bound field availability green",
+                "C3 adversarial causality matrix green",
+            ],
+        )
 
 if __name__=="__main__":
     unittest.main()
