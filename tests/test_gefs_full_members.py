@@ -1,5 +1,6 @@
 import json
 import unittest
+from unittest.mock import patch
 from datetime import datetime, timezone
 from urllib.parse import parse_qs, urlparse
 
@@ -96,12 +97,67 @@ class SparseGefsPolicyTests(unittest.TestCase):
         source["received_request_count"]-=1
         self.assertFalse(g.source_matches_policy(source,self.run))
 
+    def test_provider_summary_qa_uses_p01_p30_and_sample_spread(self):
+        records=[]
+        for lead in g.QA_LEADS:
+            for i,member in enumerate(g.MEMBERS):
+                # Make c00 an extreme outlier so an accidental 31-member mean is obvious.
+                base=100.0 if member=="c00" else float(i)
+                records.append({
+                    "member_id":member,"lead_hours":lead,"request_status":"received",
+                    "fields":[
+                        {"semantic_id":"wind_u_10m","value_native":base},
+                        {"semantic_id":"wind_v_10m","value_native":base+10.0},
+                    ],
+                })
+        import statistics
+        pert=[float(i) for i,member in enumerate(g.MEMBERS) if member!="c00"]
+        expected={
+            "wind_u_10m":(statistics.fmean(pert),statistics.stdev(pert)),
+            "wind_v_10m":(statistics.fmean([x+10 for x in pert]),statistics.stdev([x+10 for x in pert])),
+        }
+        def summary(_run,product,_lead):
+            key=0 if product=="geavg" else 1
+            return {
+                "wind_u_10m":expected["wind_u_10m"][key],
+                "wind_v_10m":expected["wind_v_10m"][key],
+                "response_bytes":400,"response_sha256":"a"*64,
+                "elapsed_seconds":0.1,"attempt_count":1,"url":"test",
+            }
+        with patch.object(g,"_summary_qa_filtered",side_effect=summary):
+            qa=g.provider_summary_qa(self.run,records)
+        self.assertEqual(qa["status"],"pass")
+        self.assertEqual(len(qa["comparisons"]),4)
+        self.assertTrue(all(x["member_set"]=="p01-p30" and x["member_count"]==30 for x in qa["comparisons"]))
+        self.assertTrue(all(x["mean_abs_delta"]==0 and x["spread_abs_delta"]==0 for x in qa["comparisons"]))
+        self.assertEqual(qa["request_metrics"]["requests"],4)
+
+    def test_provider_summary_qa_unavailable_is_non_authoritative(self):
+        records=[]
+        for lead in g.QA_LEADS:
+            for member in g.MEMBERS:
+                records.append({
+                    "member_id":member,"lead_hours":lead,"request_status":"received",
+                    "fields":[
+                        {"semantic_id":"wind_u_10m","value_native":1.0},
+                        {"semantic_id":"wind_v_10m","value_native":2.0},
+                    ],
+                })
+        with patch.object(g,"_summary_qa_filtered",side_effect=RuntimeError("summary unavailable")):
+            qa=g.provider_summary_qa(self.run,records)
+        self.assertEqual(qa["status"],"unavailable")
+        self.assertEqual(qa["comparisons"],[])
+
     def test_policy_summary_records_no_interpolation_and_no_conditional_fetch(self):
         p=g.policy_summary()
         self.assertEqual(p["full_member_cycles_utc"],[0])
         self.assertIn("no interpolation",p["native_time_policy"])
         self.assertFalse(p["conditional_forecast_triggered_fetch"])
         self.assertEqual(p["pgrb2b_perturbed_members"],"not_requested_by_policy")
+        self.assertEqual(p["member_request_count_per_full_cycle"],744)
+        self.assertEqual(p["provider_summary_qa_request_count"],4)
+        self.assertEqual(p["request_count_per_full_cycle"],748)
+        self.assertLessEqual(p["request_count_per_full_cycle"],p["max_requests_per_day"])
 
 
 if __name__=="__main__":
