@@ -89,6 +89,19 @@ def identify_item(model,parameter,item):
             "provider_product":item.get("provider_product"),
         }
     spec=matches[0]
+    declared=item.get("cape_native_identity_id")
+    if declared is not None and str(declared)!=spec["identity_id"]:
+        return {
+            "status":"ambiguous","reason":"producer_declared_identity_mismatch",
+            "declared_identity_id":str(declared),"contract_identity_id":spec["identity_id"],
+        }
+    declared_contract=item.get("cape_identity_contract_version")
+    if declared_contract is not None and str(declared_contract)!=CONTRACT_VERSION:
+        return {
+            "status":"ambiguous","reason":"producer_cape_identity_contract_mismatch",
+            "declared_contract_version":str(declared_contract),
+            "expected_contract_version":CONTRACT_VERSION,
+        }
     return {
         "status":"identified",
         "contract_version":CONTRACT_VERSION,
@@ -101,6 +114,9 @@ def identify_item(model,parameter,item):
         "typeOfLevel":item.get("typeOfLevel"),
         "level":item.get("level"),
         "provider_product":item.get("provider_product"),
+        "unit_native":item.get("units"),
+        "step_type_native":item.get("stepType"),
+        "step_range_native":item.get("stepRange"),
         "member_id":None,
     }
 
@@ -144,6 +160,9 @@ def _member_evidence(model,record):
             "typeOfLevel":None,
             "level":None,
             "provider_product":(spec.get("provider_products") or [None])[0],
+            "unit_native":None,
+            "step_type_native":"instantaneous",
+            "step_range_native":None,
             "member_id":member_id,
         })
     if expected and len(seen)!=expected:
