@@ -1,0 +1,242 @@
+{
+  "schema_version": 1,
+  "registry_version": "relevant-meteorology-v1",
+  "status": "frozen_phase2f5",
+  "coverage_status_values": [
+    "native_received",
+    "unsupported_by_provider_or_product",
+    "intentionally_not_applicable"
+  ],
+  "core_semantics": [
+    {"semantic_id": "wind_u_10m", "time_semantics": "instantaneous"},
+    {"semantic_id": "wind_v_10m", "time_semantics": "instantaneous"},
+    {"semantic_id": "wind_gust_10m", "time_semantics": "provider_native_maximum_window"},
+    {"semantic_id": "air_temperature_2m", "time_semantics": "instantaneous"},
+    {"semantic_id": "dewpoint_temperature_2m", "time_semantics": "instantaneous"},
+    {"semantic_id": "relative_humidity_2m", "time_semantics": "instantaneous"},
+    {"semantic_id": "mean_sea_level_pressure", "time_semantics": "instantaneous"},
+    {"semantic_id": "surface_pressure", "time_semantics": "instantaneous"},
+    {"semantic_id": "total_precipitation", "time_semantics": "provider_native_accumulation"},
+    {"semantic_id": "total_cloud_cover", "time_semantics": "provider_native"},
+    {"semantic_id": "surface_downward_shortwave", "time_semantics": "provider_native_accumulation_or_average"},
+    {"semantic_id": "cape", "time_semantics": "instantaneous_variant_specific"},
+    {"semantic_id": "cin", "time_semantics": "instantaneous_variant_specific"}
+  ],
+  "identity_preservation": {
+    "units": "provider_native_no_acquisition_conversion",
+    "vertical": "provider_native_level_identity",
+    "temporal": "provider_native_step_or_named_interval",
+    "product": "provider_product_and_native_parameter_identity",
+    "ensemble": "ensemble_system_member_role_and_representation_identity",
+    "missing": "closed_status_no_zero_fill",
+    "derivation": "downstream_only_never_provider_replacement"
+  },
+  "providers": {
+    "ICON-D2": {
+      "family": "DWD-ICON",
+      "representation": "deterministic",
+      "coverage": {
+        "wind_u_10m": "native_received",
+        "wind_v_10m": "native_received",
+        "wind_gust_10m": "native_received",
+        "air_temperature_2m": "native_received",
+        "dewpoint_temperature_2m": "native_received",
+        "relative_humidity_2m": "native_received",
+        "mean_sea_level_pressure": "native_received",
+        "surface_pressure": "native_received",
+        "total_precipitation": "native_received",
+        "total_cloud_cover": "native_received",
+        "surface_downward_shortwave": "native_received",
+        "cape": "native_received",
+        "cin": "native_received"
+      },
+      "native_mapping": {
+        "u_10m": "wind_u_10m",
+        "v_10m": "wind_v_10m",
+        "vmax_10m": "wind_gust_10m",
+        "t_2m": "air_temperature_2m",
+        "td_2m": "dewpoint_temperature_2m",
+        "relhum_2m": "relative_humidity_2m",
+        "pmsl": "mean_sea_level_pressure",
+        "ps": "surface_pressure",
+        "tot_prec": "total_precipitation",
+        "clct": "total_cloud_cover",
+        "aswdir_s": "surface_downward_shortwave",
+        "aswdifd_s": "surface_downward_shortwave",
+        "cape_ml": "cape",
+        "cin_ml": "cin"
+      }
+    },
+    "ICON-EU": {
+      "family": "DWD-ICON",
+      "representation": "deterministic",
+      "coverage": {
+        "wind_u_10m": "native_received",
+        "wind_v_10m": "native_received",
+        "wind_gust_10m": "native_received",
+        "air_temperature_2m": "native_received",
+        "dewpoint_temperature_2m": "native_received",
+        "relative_humidity_2m": "native_received",
+        "mean_sea_level_pressure": "native_received",
+        "surface_pressure": "native_received",
+        "total_precipitation": "native_received",
+        "total_cloud_cover": "native_received",
+        "surface_downward_shortwave": "native_received",
+        "cape": "native_received",
+        "cin": "native_received"
+      },
+      "native_mapping": {
+        "u_10m": "wind_u_10m",
+        "v_10m": "wind_v_10m",
+        "vmax_10m": "wind_gust_10m",
+        "t_2m": "air_temperature_2m",
+        "td_2m": "dewpoint_temperature_2m",
+        "relhum_2m": "relative_humidity_2m",
+        "pmsl": "mean_sea_level_pressure",
+        "ps": "surface_pressure",
+        "tot_prec": "total_precipitation",
+        "clct": "total_cloud_cover",
+        "aswdir_s": "surface_downward_shortwave",
+        "aswdifd_s": "surface_downward_shortwave",
+        "cape_ml": "cape",
+        "cin_ml": "cin"
+      }
+    },
+    "ECMWF-IFS": {
+      "family": "ECMWF",
+      "representation": "deterministic",
+      "coverage": {
+        "wind_u_10m": "native_received",
+        "wind_v_10m": "native_received",
+        "wind_gust_10m": "native_received",
+        "air_temperature_2m": "native_received",
+        "dewpoint_temperature_2m": "native_received",
+        "relative_humidity_2m": "unsupported_by_provider_or_product",
+        "mean_sea_level_pressure": "native_received",
+        "surface_pressure": "native_received",
+        "total_precipitation": "native_received",
+        "total_cloud_cover": "native_received",
+        "surface_downward_shortwave": "native_received",
+        "cape": "native_received",
+        "cin": "unsupported_by_provider_or_product"
+      },
+      "native_mapping": {
+        "10u": "wind_u_10m",
+        "10v": "wind_v_10m",
+        "10fg": "wind_gust_10m",
+        "10fg3": "wind_gust_10m",
+        "10fg6": "wind_gust_10m",
+        "2t": "air_temperature_2m",
+        "2d": "dewpoint_temperature_2m",
+        "sp": "surface_pressure",
+        "msl": "mean_sea_level_pressure",
+        "tcc": "total_cloud_cover",
+        "ssrd": "surface_downward_shortwave",
+        "tp": "total_precipitation",
+        "mucape": "cape"
+      },
+      "exceptions": {
+        "relative_humidity_2m": "No unambiguous native 2 m RH in IFS Open Data oper/fc; pressure-level r is not a substitute.",
+        "cin": "No native CIN in the probed IFS Open Data oper/fc product."
+      }
+    },
+    "GFS": {
+      "family": "GFS",
+      "representation": "deterministic",
+      "coverage": {
+        "wind_u_10m": "native_received",
+        "wind_v_10m": "native_received",
+        "wind_gust_10m": "native_received",
+        "air_temperature_2m": "native_received",
+        "dewpoint_temperature_2m": "native_received",
+        "relative_humidity_2m": "native_received",
+        "mean_sea_level_pressure": "native_received",
+        "surface_pressure": "native_received",
+        "total_precipitation": "native_received",
+        "total_cloud_cover": "native_received",
+        "surface_downward_shortwave": "native_received",
+        "cape": "native_received",
+        "cin": "native_received"
+      },
+      "mapping_rule": "src/noaa_weather_context.py::registry_semantic",
+      "products": ["gfs_0p25"]
+    },
+    "GEFS-control": {
+      "family": "GFS",
+      "representation": "control_member_compatibility_view",
+      "ensemble_system_id": "NOAA_GEFS",
+      "coverage": {
+        "wind_u_10m": "native_received",
+        "wind_v_10m": "native_received",
+        "wind_gust_10m": "native_received",
+        "air_temperature_2m": "native_received",
+        "dewpoint_temperature_2m": "native_received",
+        "relative_humidity_2m": "native_received",
+        "mean_sea_level_pressure": "native_received",
+        "surface_pressure": "native_received",
+        "total_precipitation": "native_received",
+        "total_cloud_cover": "native_received",
+        "surface_downward_shortwave": "native_received",
+        "cape": "native_received",
+        "cin": "native_received"
+      },
+      "mapping_rule": "src/noaa_weather_context.py::registry_semantic",
+      "products": ["gefs_0p25s", "gefs_0p50a", "gefs_0p50b"],
+      "limitations": {
+        "wind_gust_10m": {
+          "scope": "through_240h",
+          "outside_scope_status": "unsupported_by_provider_or_product"
+        },
+        "dewpoint_temperature_2m": {"far_source": "gefs_0p50b"},
+        "cape": {"native_variants_preserved": true},
+        "cin": {"native_variants_preserved": true}
+      }
+    },
+    "ICON-D2-EPS": {
+      "family": "DWD-ICON",
+      "representation": "ensemble_member",
+      "ensemble_system_id": "DWD_ICON_D2_EPS",
+      "coverage": {
+        "wind_u_10m": "intentionally_not_applicable",
+        "wind_v_10m": "intentionally_not_applicable",
+        "wind_gust_10m": "native_received",
+        "air_temperature_2m": "native_received",
+        "dewpoint_temperature_2m": "native_received",
+        "relative_humidity_2m": "native_received",
+        "mean_sea_level_pressure": "native_received",
+        "surface_pressure": "native_received",
+        "total_precipitation": "native_received",
+        "total_cloud_cover": "native_received",
+        "surface_downward_shortwave": "native_received",
+        "cape": "native_received",
+        "cin": "unsupported_by_provider_or_product"
+      },
+      "native_mapping": {
+        "wind_gusts_10m": "wind_gust_10m",
+        "precipitation": "total_precipitation",
+        "cape": "cape",
+        "temperature_2m": "air_temperature_2m",
+        "relative_humidity_2m": "relative_humidity_2m",
+        "dew_point_2m": "dewpoint_temperature_2m",
+        "pressure_msl": "mean_sea_level_pressure",
+        "surface_pressure": "surface_pressure",
+        "cloud_cover": "total_cloud_cover",
+        "shortwave_radiation": "surface_downward_shortwave"
+      },
+      "native_vector_auxiliary": {
+        "wind_speed_10m": "wind_speed_10m",
+        "wind_direction_10m": "wind_direction_10m"
+      },
+      "exceptions": {
+        "wind_u_10m": "Provider returns polar speed/direction; acquisition must not fabricate Cartesian U.",
+        "wind_v_10m": "Provider returns polar speed/direction; acquisition must not fabricate Cartesian V.",
+        "cin": "Open-Meteo dwd_icon_d2_eps rejected CIN in Phase-2F-4 live probe 36299726251."
+      }
+    }
+  },
+  "hashes": {
+    "semantic_contract_sha256": "3f502094a90ac8901b103cda730209bb15d6bd20e3f2c59826f502d2c5f400d3",
+    "provider_matrix_sha256": "b3c1643c7cdf0fafff98511f3e38c5c57de04f90b07a68e69a1c87605edaf104",
+    "registry_sha256": "4a9c458bbd8595cb0e5ca4a823aa14992ce087bc2e91813c0c96c8d835153cc1"
+  }
+}
