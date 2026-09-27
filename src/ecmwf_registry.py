@@ -12,6 +12,7 @@ import json
 import subprocess
 
 from grib_identity import _step_end_hours
+import cape_native_identity as cape_identity
 
 REGISTRY_VERSION = "relevant-meteorology-v1"
 METHOD_VERSION = "phase2f2-ecmwf-registry-v1-routine-v1"
@@ -117,6 +118,14 @@ def values_by_lead(nearest_rows, metadata, requested_leads, source_sha256=None):
             "availability_status": "received",
             "availability_evidence_type": "ecmwf_open_data_grib_message",
         })
+        if semantic=="cape":
+            identity=cape_identity.identify_item("ECMWF-IFS",name,item)
+            item["cape_identity_contract_version"]=cape_identity.CONTRACT_VERSION
+            item["cape_native_identity_status"]=identity.get("status")
+            if identity.get("status")=="identified":
+                item["cape_native_identity_id"]=identity["identity_id"]
+            else:
+                item["cape_native_identity_reason"]=identity.get("reason")
         if source_sha256:
             item["source_sha256"] = str(source_sha256)
         out[lead].setdefault(name, []).append(item)

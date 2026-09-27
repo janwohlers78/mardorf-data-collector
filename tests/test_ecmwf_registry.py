@@ -73,6 +73,26 @@ class ECMWFRegistryTests(unittest.TestCase):
             for item in got.values()
         ))
 
+
+    def test_mucape_carries_exact_native_identity(self):
+        nearest=[("mucape","12",325.0)]
+        metadata=[{
+            "shortName":"mucape","paramId":228235,
+            "typeOfLevel":"mostUnstableParcel","level":0,
+            "stepType":"instant","stepRange":"12","startStep":12,"endStep":12,
+            "stepUnits":1,"units":"J kg**-1",
+        }]
+        item=ecmwf_registry.values_by_lead(nearest,metadata,[12])[12]["mucape"][0]
+        self.assertEqual(item["cape_native_identity_status"],"identified")
+        self.assertEqual(
+            item["cape_native_identity_id"],
+            "ecmwf-ifs:mucape:mostUnstableParcel:0",
+        )
+        self.assertEqual(
+            item["cape_identity_contract_version"],
+            "cape-native-identity-contract-v1",
+        )
+
     def test_unsupported_surface_rh_and_cin_are_explicit_registry_declarations(self):
         declarations = ecmwf_registry.unsupported_declarations()
         by_semantic = {x["semantic_id"]: x for x in declarations}

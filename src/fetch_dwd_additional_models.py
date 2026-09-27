@@ -8,6 +8,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from grib_identity import assert_grib_valid_time
+import cape_native_identity as cape_identity
 
 LAT=52.4942; LON=9.3418
 S=requests.Session(); S.headers.update({'User-Agent':'mardorf-data-collector/1.0 (+github-actions)'})
@@ -389,6 +390,9 @@ def _hourly_source(payload,r,meta_before,meta_after,identity,base,response_retri
             'aggregation':'circular' if field=='wind_direction_10m' else 'scalar',
             'source_representation':'open_meteo_named_model_member_field',
         }
+        if field=='cape':
+            field_specs[field]['cape_identity_contract_version']=cape_identity.CONTRACT_VERSION
+            field_specs[field]['cape_native_identity_id']='open-meteo:dwd_icon_d2_eps:cape:member'
 
     response_hash=hashlib.sha256(
         json.dumps(payload,sort_keys=True,separators=(',',':'),allow_nan=False).encode()
@@ -534,7 +538,10 @@ def fetch_icon_d2_eps_bundle(leads):
                 g=gust[m][i]
                 d=derived_from_speed(float(speed[m][i]),float(direction[m][i]),float(g));d['member']=m
                 if m in precip and i<len(precip[m]) and precip[m][i] is not None:d['precipitation']=precip[m][i]
-                if m in cape and i<len(cape[m]) and cape[m][i] is not None:d['cape']=cape[m][i]
+                if m in cape and i<len(cape[m]) and cape[m][i] is not None:
+                    d['cape']=cape[m][i]
+                    d['cape_identity_contract_version']=cape_identity.CONTRACT_VERSION
+                    d['cape_native_identity_id']='open-meteo:dwd_icon_d2_eps:cape:member'
                 members.append(d)
             got_ids=sorted(m['member'] for m in members)
             if got_ids!=expected_ids:
