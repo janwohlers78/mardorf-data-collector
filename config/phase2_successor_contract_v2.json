@@ -142,7 +142,7 @@
     "availability_successor": "field-availability-v2",
     "ensemble_successor": "ensemble-member-storage-contract-v2",
     "registry_successor": "relevant-meteorology-v2",
-    "canonical_record_successor": "pending_B3_design",
+    "canonical_record_successor": "canonical-model-record-v2",
     "gefs_cycle_evidence_successor": "gefs-cycle-evidence-event-stream-index-v2"
   },
   "change_control": {
@@ -160,6 +160,22 @@
       "ambiguity_rule": "unresolved or conflicting CAPE identity is unknown/warn and MUST NOT be represented as false/clear",
       "positive_rule": "any identified native CAPE candidate at or above the configured threshold is conservative positive hazard evidence",
       "provenance_rule": "selected hazard candidate carries its native CAPE identity into the operational C3 slot"
+    },
+    "canonical_gust_v2": {
+      "method_version": "canonical-gust-interval-v2",
+      "canonical_record_version": "canonical-model-record-v2",
+      "active_record_key": "canonical_record_v2",
+      "compatibility_record_key": "canonical_record_v1",
+      "native_interval_precedence": [
+        "explicit interval_start_utc/interval_end_utc when complete and valid-time consistent",
+        "startStep/endStep/stepUnits",
+        "explicit stepRange historical fallback"
+      ],
+      "alias_rule": "10fg, 10fg3 and 10fg6 names do not imply duration; duration is resolved from native step metadata.",
+      "unresolved_rule": "missing, incomplete, conflicting or invalid interval evidence remains unknown/ambiguous and MUST NOT be converted to a zero-duration point interval.",
+      "value_binding_rule": "the numerical derived gust must be bound to matching provider-native gust evidence within documented collector rounding tolerance before interval metadata is attached.",
+      "verification_rule": "SVG gust truth aggregates the complete canonical gust interval and requires every constituent complete hourly observation; it MUST NOT compare a 3h/6h model maximum only with the final observation hour.",
+      "backward_compatibility": "canonical_record_v1 remains retained for historical compatibility but is not the preferred analytical record for new promoted snapshots."
     }
   }
 }
