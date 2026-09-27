@@ -354,6 +354,119 @@
           ]
         }
       }
+    },
+    "NOAA_GFS_GEFS": {
+      "status": "registry_v1_foundation_active_full_members_blocked",
+      "method_version": "phase2f3-noaa-registry-v1-foundation-v1",
+      "registry_version": "relevant-meteorology-v1",
+      "models": [
+        "GFS",
+        "GEFS-control"
+      ],
+      "acquisition_grid": "acquisition-grid-v2",
+      "deterministic_gfs_registry_mapping_enabled": true,
+      "gefs_control_registry_mapping_enabled": true,
+      "full_gefs_member_production_enabled": false,
+      "full_gefs_member_target": {
+        "ensemble_system_id": "NOAA_GEFS",
+        "expected_member_ids": [
+          "c00",
+          "p01",
+          "p02",
+          "p03",
+          "p04",
+          "p05",
+          "p06",
+          "p07",
+          "p08",
+          "p09",
+          "p10",
+          "p11",
+          "p12",
+          "p13",
+          "p14",
+          "p15",
+          "p16",
+          "p17",
+          "p18",
+          "p19",
+          "p20",
+          "p21",
+          "p22",
+          "p23",
+          "p24",
+          "p25",
+          "p26",
+          "p27",
+          "p28",
+          "p29",
+          "p30"
+        ],
+        "native_time_policy": "provider-native forecast times only; no interpolation",
+        "control_compatibility_view": "c00 is GEFS-control compatibility view and must not be double-counted"
+      },
+      "bounded_measurement": {
+        "private_run_id": 36288139320,
+        "cycle_run_time_utc": "2026-09-26T18:00:00+00:00",
+        "sampled_members": [
+          "c00",
+          "p01",
+          "p15",
+          "p30"
+        ],
+        "sampled_leads_hours": [
+          24,
+          120,
+          240,
+          264
+        ],
+        "result": "success",
+        "registry_semantics_count": 13,
+        "projected_full31_daily_network_bytes": 16501840,
+        "projected_full31_daily_parquet_bytes": 14651863,
+        "projected_full31_annual_parquet_gib": 4.980648045117657,
+        "projected_daily_parquet_vs_2e3_reference_ratio": 11.329674275270145,
+        "production_activation_authorized": false,
+        "reason": "storage/request-rate acceptance required before high-volume c00+p01-p30 production activation"
+      },
+      "product_registry_coverage": {
+        "gefs_0p25s": [
+          "wind_u_10m",
+          "wind_v_10m",
+          "wind_gust_10m",
+          "air_temperature_2m",
+          "dewpoint_temperature_2m",
+          "relative_humidity_2m",
+          "mean_sea_level_pressure",
+          "surface_pressure",
+          "total_precipitation",
+          "total_cloud_cover",
+          "surface_downward_shortwave",
+          "cape",
+          "cin"
+        ],
+        "gefs_0p50a": [
+          "wind_u_10m",
+          "wind_v_10m",
+          "air_temperature_2m",
+          "relative_humidity_2m",
+          "mean_sea_level_pressure",
+          "surface_pressure",
+          "total_precipitation",
+          "total_cloud_cover",
+          "surface_downward_shortwave",
+          "cape",
+          "cin"
+        ],
+        "gefs_0p50b": [
+          "dewpoint_temperature_2m",
+          "cape",
+          "cin"
+        ]
+      },
+      "far_range_gust_status": "unsupported_by_current_provider_product_after_240h",
+      "preserve_native_variants": true,
+      "note": "2F-3 foundation only. This does not activate 31-member production traffic."
     }
   },
   "acquisition_grid_v2": {

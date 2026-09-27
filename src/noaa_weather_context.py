@@ -17,6 +17,44 @@ META_KEYS=(
     "gridType","Ni","Nj",
 )
 
+REGISTRY_VERSION="relevant-meteorology-v1"
+METHOD_VERSION="phase2f3-noaa-registry-v1-foundation-v1"
+
+def registry_semantic(item):
+    """Map one native NOAA GRIB message to the frozen cross-provider semantic."""
+    native=str(item.get("shortName") or "").lower()
+    label=str(item.get("name") or "").lower()
+    level_type=str(item.get("typeOfLevel") or "")
+    level=str(item.get("level"))
+    if native in ("10u","u") or ("u component" in label and level_type=="heightAboveGround" and level=="10"):
+        return "wind_u_10m"
+    if native in ("10v","v") or ("v component" in label and level_type=="heightAboveGround" and level=="10"):
+        return "wind_v_10m"
+    if native in ("gust","10fg") or "gust" in label:
+        return "wind_gust_10m"
+    if native in ("tp","apcp") or "total precipitation" in label:
+        return "total_precipitation"
+    if native=="2t" or ("temperature" in label and "dew" not in label and level_type=="heightAboveGround" and level=="2"):
+        return "air_temperature_2m"
+    if native in ("2d","dpt") or ("dew point" in label and level_type=="heightAboveGround" and level=="2"):
+        return "dewpoint_temperature_2m"
+    if native in ("2r","rh") and level_type=="heightAboveGround" and level=="2":
+        return "relative_humidity_2m"
+    if native in ("prmsl","msl") or "pressure reduced to msl" in label:
+        return "mean_sea_level_pressure"
+    if native=="sp" or (label=="surface pressure" and level_type=="surface"):
+        return "surface_pressure"
+    if native=="tcc" or "total cloud cover" in label:
+        return "total_cloud_cover"
+    if native=="cape" or "convective available potential energy" in label:
+        return "cape"
+    if native=="cin" or "convective inhibition" in label:
+        return "cin"
+    if native in ("dswrf","sdswrf") or "downward short-wave radiation" in label or "downward shortwave radiation" in label:
+        return "surface_downward_shortwave"
+    return None
+
+
 PRODUCTS={
     "gfs_0p25":{
         "variables":("TMP","DPT","RH","PRMSL","PRES","TCDC","CAPE","CIN","DSWRF"),
@@ -110,6 +148,9 @@ def extract_native_values(path,lat,lon,source_sha256=None,product=None):
             "availability_status":"received",
             "availability_evidence_type":"nomads_filtered_grib_exact_run_valid",
         }
+        semantic=registry_semantic(m)
+        if semantic is not None:
+            item["semantic_id"]=semantic
         if source_sha256 is not None:
             item["source_sha256"]=source_sha256
         if product is not None:
