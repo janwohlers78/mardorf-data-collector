@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 from datetime import datetime, timezone
 from urllib.parse import parse_qs, urlparse
 
@@ -90,6 +91,46 @@ class NoaaWeatherContextTests(unittest.TestCase):
         for item,expected in cases:
             with self.subTest(expected=expected):
                 self.assertEqual(noaa.registry_semantic(item),expected)
+
+
+    @patch("noaa_weather_context._nearest")
+    @patch("noaa_weather_context._metadata")
+    def test_extract_native_cape_attaches_level_specific_identity(self, metadata, nearest):
+        metadata.return_value=[
+            {
+                "shortName":"cape","name":"Convective available potential energy",
+                "paramId":59,"typeOfLevel":"surface","level":0,
+                "stepType":"instant","stepRange":"12","startStep":12,"endStep":12,
+                "stepUnits":1,"units":"J kg**-1",
+            },
+            {
+                "shortName":"cape","name":"Convective available potential energy",
+                "paramId":59,"typeOfLevel":"pressureFromGroundLayer","level":25500,
+                "stepType":"instant","stepRange":"12","startStep":12,"endStep":12,
+                "stepUnits":1,"units":"J kg**-1",
+            },
+        ]
+        nearest.return_value=([
+            {"shortName":"cape","stepRange":"12","value":100.0},
+            {"shortName":"cape","stepRange":"12","value":350.0},
+        ],{"latitude":52.5,"longitude":9.25,"selection":"test"})
+        values,_=noaa.extract_native_values(
+            "x.grib2",52.5,9.25,source_sha256="a"*64,product="gfs_0p25"
+        )
+        self.assertEqual(
+            [x["cape_native_identity_id"] for x in values["cape"]],
+            [
+                "noaa-gfs:gfs_0p25:cape:surface:0",
+                "noaa-gfs:gfs_0p25:cape:pressureFromGroundLayer:25500",
+            ],
+        )
+        self.assertTrue(all(
+            x["cape_native_identity_status"]=="identified" for x in values["cape"]
+        ))
+        self.assertTrue(all(
+            x["cape_identity_contract_version"]=="cape-native-identity-contract-v1"
+            for x in values["cape"]
+        ))
 
     def test_pressure_level_relative_humidity_is_not_mislabeled_as_2m_rh(self):
         self.assertIsNone(noaa.registry_semantic({
