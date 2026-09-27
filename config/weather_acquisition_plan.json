@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "status": "phase2f1_icon_deterministic_registry_v1_active",
+  "status": "phase2_complete_frozen",
   "owner": "public_collector_acquisition_private_normalization",
   "parameters": [
     {
@@ -677,7 +677,7 @@
     "interpolation": "forbidden",
     "no_download_then_discard_goal": true,
     "weather_context_rule": "NOAA weather context is requested only on leads actually selected by Acquisition Grid v2.",
-    "phase_boundary": "Provider due-cycle/no-op suppression is 2E-2; full GEFS 31-member production acquisition remains gated until after 2E-3."
+    "phase_boundary": "Phase 2 is complete_frozen. Full NOAA_GEFS member production is active only under gefs-sparse-00z-policy-v1; future acquisition/cadence changes require a versioned successor to Acquisition Grid v2 or the affected ensemble policy."
   },
   "relevant_meteorology_registry_version": "relevant-meteorology-v1",
   "relevant_meteorology_registry_contract": {
@@ -685,5 +685,11 @@
     "semantic_contract_sha256": "3f502094a90ac8901b103cda730209bb15d6bd20e3f2c59826f502d2c5f400d3",
     "provider_matrix_sha256": "b3c1643c7cdf0fafff98511f3e38c5c57de04f90b07a68e69a1c87605edaf104",
     "registry_sha256": "4a9c458bbd8595cb0e5ca4a823aa14992ce087bc2e91813c0c96c8d835153cc1"
+  },
+  "phase2_freeze": {
+    "contract_version": "phase2-acquisition-storage-freeze-v1",
+    "frozen_on_utc_date": "2026-09-27",
+    "state": "complete_frozen",
+    "change_control": "Do not mutate frozen v1/v2 semantics in place. Any post-Phase-2 acquisition, cadence, provider, registry, or identity change requires an explicitly versioned successor contract and fresh acceptance evidence."
   }
 }
