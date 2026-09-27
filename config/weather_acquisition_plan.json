@@ -356,7 +356,7 @@
       }
     },
     "NOAA_GFS_GEFS": {
-      "status": "phase2f3_sparse_full_member_canary_pending_live_proof",
+      "status": "phase2f3_sparse_full_member_production_active",
       "method_version": "phase2f3-noaa-registry-and-sparse-full-members-v1",
       "registry_version": "relevant-meteorology-v1",
       "models": [
@@ -366,7 +366,7 @@
       "acquisition_grid": "acquisition-grid-v2",
       "deterministic_gfs_registry_mapping_enabled": true,
       "gefs_control_registry_mapping_enabled": true,
-      "full_gefs_member_production_enabled": false,
+      "full_gefs_member_production_enabled": true,
       "full_gefs_member_target": {
         "ensemble_system_id": "NOAA_GEFS",
         "expected_member_ids": [
@@ -497,8 +497,8 @@
         "projected_full31_daily_parquet_bytes": 14651863,
         "projected_full31_annual_parquet_gib": 4.980648045117657,
         "projected_daily_parquet_vs_2e3_reference_ratio": 11.329674275270145,
-        "production_activation_authorized": false,
-        "reason": "storage/request-rate acceptance required before high-volume c00+p01-p30 production activation"
+        "production_activation_authorized": true,
+        "reason": "Superseded by exact sparse-policy measurements and successful full-cycle live proof."
       },
       "product_registry_coverage": {
         "gefs_0p25s": [
@@ -537,7 +537,7 @@
       },
       "far_range_gust_status": "unsupported_by_current_provider_product_after_240h",
       "preserve_native_variants": true,
-      "note": "Optimized 00Z-only sparse full-member implementation is code-complete on canary branch. Routine production remains disabled until one complete 31-member live proof plus private Archive-v4 readback/runtime proof passes.",
+      "note": "Phase 2F-3 production active: one complete 31-member 00Z sparse GEFS archive cycle per day when a new mature 00Z cycle lacks private ensemble-cycle evidence. 06/12/18 deterministic/control paths remain unchanged.",
       "optimized_measurements": {
         "exact_sparse_network": {
           "run_id": 36295017345,
@@ -562,6 +562,35 @@
           "aggregate_rows_including_qa": 185,
           "target_bytes_per_day": 1572864,
           "pass": true
+        },
+        "full_cycle_live_proof": {
+          "public_run_id": 36296863530,
+          "public_status": "success",
+          "cycle_run_time_utc": "2026-09-26T00:00:00+00:00",
+          "member_count": 31,
+          "lead_count": 24,
+          "member_requests": 744,
+          "qa_requests": 4,
+          "total_requests": 748,
+          "total_response_bytes": 1056567,
+          "member_response_bytes": 1055081,
+          "collection_wall_seconds": 300.697414,
+          "public_workflow_duration_seconds": 341,
+          "integrity_status": "PASS",
+          "integrity_errors": 0,
+          "integrity_warnings": 0,
+          "provider_summary_qa_status": "pass",
+          "observed_member_attempts": 744,
+          "observed_member_retries": 0,
+          "private_payload_sha256": "e3000796930037f9bf3e775a5012d28ee46e66b8ee770f0242e32620ec111476",
+          "private_archive_readback_run_id": 36297613332,
+          "private_archive_readback_status": "PASS",
+          "private_member_rows": 5487,
+          "private_availability_rows": 177,
+          "private_authoritative_aggregate_rows": 177,
+          "private_provider_summary_qa_rows": 8,
+          "private_distinct_members": 31,
+          "private_distinct_leads": 24
         }
       },
       "activation_gates": {
@@ -571,7 +600,17 @@
         "public_full_member_wall_minutes": 10,
         "max_additional_private_billable_action_minutes_per_day": 2,
         "one_full_cycle_live_proof_required": true,
-        "live_proof_status": "pending"
+        "live_proof_status": "pass",
+        "request_gate_pass": true,
+        "network_gate_pass": true,
+        "archive_parquet_gate_pass": true,
+        "public_runtime_gate_pass": true,
+        "private_runtime_gate_pass": true,
+        "private_promotion_run_id": 36297137273,
+        "private_promotion_run_attempt": 2,
+        "private_promotion_wall_seconds": 56,
+        "private_conservative_billable_minutes": 1,
+        "private_billable_limit_minutes": 2
       }
     }
   },
