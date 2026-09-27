@@ -34,15 +34,16 @@ jobs:
           PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
         run: python src/phase2f3_liveproof_helper.py seed
       - name: Fetch complete sparse 31-member GEFS 00Z source
-        id: full_gefs
-        continue-on-error: true
-        run: timeout --signal=TERM --kill-after=15s 10m python src/gefs_full_members.py --workers 2 --force
-      - name: Print partial GEFS diagnostics when needed
-        if: steps.full_gefs.outcome != 'success'
-        run: python src/phase2f3_liveproof_helper.py diagnose
-      - name: Stop after incomplete GEFS fetch
-        if: steps.full_gefs.outcome != 'success'
-        run: exit 2
+        shell: bash
+        run: |
+          set +e
+          timeout --signal=TERM --kill-after=15s 10m python src/gefs_full_members.py --workers 2 --force
+          rc=$?
+          set -e
+          if [ "$rc" -ne 0 ]; then
+            python src/phase2f3_liveproof_helper.py diagnose
+            exit "$rc"
+          fi
       - name: Finalize availability contract
         run: python src/availability_contract.py --input work/model_snapshot.json
       - name: Audit complete liveproof bundle
