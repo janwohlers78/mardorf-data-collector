@@ -64,8 +64,63 @@ class ProviderCycleGateTests(unittest.TestCase):
     def test_full_gefs_evidence_path_is_stable(self):
         self.assertEqual(
             gate.gefs_full_evidence_path(FULL_RUN),
-            "data/weather_archive/ensemble_cycle_evidence/noaa-gefs/year=2026/month=09/day=26/run=20260926T000000Z.json",
+            "data/weather_archive/ensemble_cycle_evidence/noaa-gefs/indexes/year=2026/month=09/day=26/run=20260926T000000Z.json",
         )
+
+    def test_exact_archived_full_gefs_prefers_v2_index_and_validates_latest_event(self):
+        index_path=gate.gefs_full_evidence_path(FULL_RUN)
+        event_path=(
+            "data/weather_archive/ensemble_cycle_evidence/noaa-gefs/events/"
+            "year=2026/month=09/day=26/run=20260926T000000Z/"
+            "event="+"a"*64+".json"
+        )
+        index={
+            "schema_version":2,
+            "method_version":gate.GEFS_EVIDENCE_INDEX_METHOD_VERSION,
+            "ensemble_system_id":"NOAA_GEFS",
+            "run_time_utc":FULL_RUN.isoformat(),
+            "event_count":1,
+            "latest_event_id":"a"*64,
+            "latest_event_path":event_path,
+        }
+        event={
+            "schema_version":2,
+            "method_version":gate.GEFS_EVIDENCE_EVENT_METHOD_VERSION,
+            "evidence_event_id":"a"*64,
+            "ensemble_system_id":"NOAA_GEFS",
+            "run_time_utc":FULL_RUN.isoformat(),
+            "collection_status":"complete",
+            "policy_version":"gefs-sparse-00z-policy-v1",
+            "expected_member_count":31,
+        }
+        def read(_repo,path,_token):
+            if path==index_path:return index
+            if path==event_path:return event
+            return None
+        with patch.object(gate,"private_json_optional",side_effect=read):
+            got=gate.exact_archived_gefs_full_cycle("owner/private","token",FULL_RUN)
+        self.assertIsNotNone(got)
+        self.assertEqual(got["_archive_cycle_evidence_path"],index_path)
+        self.assertEqual(got["_archive_cycle_event_path"],event_path)
+
+    def test_exact_archived_full_gefs_legacy_path_remains_readable(self):
+        legacy_path=gate.gefs_full_legacy_evidence_path(FULL_RUN)
+        legacy={
+            "schema_version":1,
+            "method_version":"gefs-full-member-cycle-evidence-v1",
+            "ensemble_system_id":"NOAA_GEFS",
+            "run_time_utc":FULL_RUN.isoformat(),
+            "collection_status":"complete",
+            "policy_version":"gefs-sparse-00z-policy-v1",
+            "expected_member_count":31,
+        }
+        def read(_repo,path,_token):
+            if path==legacy_path:return legacy
+            return None
+        with patch.object(gate,"private_json_optional",side_effect=read):
+            got=gate.exact_archived_gefs_full_cycle("owner/private","token",FULL_RUN)
+        self.assertIsNotNone(got)
+        self.assertEqual(got["_archive_cycle_evidence_path"],legacy_path)
 
     def test_all_archived_cycles_predict_zero_delta(self):
         latest,payload=self.seed()
