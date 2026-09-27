@@ -9,6 +9,7 @@ import provider_cycle_gate as gate
 
 
 RUN=datetime(2026,9,26,12,tzinfo=timezone.utc)
+FULL_RUN=datetime(2026,9,26,0,tzinfo=timezone.utc)
 
 
 def row(model,run=RUN):
@@ -40,8 +41,19 @@ class ProviderCycleGateTests(unittest.TestCase):
             "models":{model:[row(model)] for model in gate.MODELS},
             "quality":{"errors":[]},
             "provider_attempts":[{"model":"GFS","status":"success"}],
+            "gefs_full_member_source":{
+                "run_time_utc":FULL_RUN.isoformat(),
+                "method_version":"phase2f3-gefs-full-members-v1",
+                "policy_version":"gefs-sparse-00z-policy-v1",
+                "collection_status":"complete",
+                "expected_request_count":744,
+                "received_request_count":744,
+            },
         }
         return latest,payload
+
+    def full_discover(self):
+        return FULL_RUN,[{"run_time_utc":FULL_RUN.isoformat(),"published":True}]
 
     def test_exact_cycle_evidence_path_is_stable(self):
         self.assertEqual(
@@ -49,15 +61,23 @@ class ProviderCycleGateTests(unittest.TestCase):
             "data/weather_archive/cycle_evidence/gefs-control/year=2026/month=09/day=26/run=20260926T120000Z.json",
         )
 
+    def test_full_gefs_evidence_path_is_stable(self):
+        self.assertEqual(
+            gate.gefs_full_evidence_path(FULL_RUN),
+            "data/weather_archive/ensemble_cycle_evidence/noaa-gefs/year=2026/month=09/day=26/run=20260926T000000Z.json",
+        )
+
     def test_all_archived_cycles_predict_zero_delta(self):
         latest,payload=self.seed()
         with patch.object(gate,"load_seed",return_value=(latest,payload,"seed.json.gz","a"*64)), \
-             patch.object(gate,"exact_archived_cycle",return_value={"model":"ok"}):
-            plan,seed=gate.build_plan("owner/private","token",True,discover_fn=lambda model,full: RUN)
+             patch.object(gate,"exact_archived_cycle",return_value={"model":"ok"}), \
+             patch.object(gate,"exact_archived_gefs_full_cycle",return_value={"ensemble_system_id":"NOAA_GEFS"}):
+            plan,seed=gate.build_plan("owner/private","token",True,discover_fn=lambda model,full: RUN,discover_gefs_full_fn=self.full_discover)
         self.assertFalse(plan["any_work"])
         self.assertEqual(plan["delta_prediction"],"zero")
         self.assertTrue(plan["no_op_transfer_suppressed"])
         self.assertTrue(all(x["action"]=="carry_forward" for x in plan["models"].values()))
+        self.assertEqual(plan["full_ensembles"]["NOAA_GEFS"]["action"],"carry_forward")
         self.assertIs(seed,payload)
 
     def test_one_new_provider_keeps_only_that_provider_fetchable(self):
@@ -68,8 +88,9 @@ class ProviderCycleGateTests(unittest.TestCase):
         def archived(repo,token,model,run):
             return None if model=="GFS" else {"model":model,"run_time_utc":run.isoformat()}
         with patch.object(gate,"load_seed",return_value=(latest,payload,"seed.json.gz","a"*64)), \
-             patch.object(gate,"exact_archived_cycle",side_effect=archived):
-            plan,_=gate.build_plan("owner/private","token",True,discover_fn=discover)
+             patch.object(gate,"exact_archived_cycle",side_effect=archived), \
+             patch.object(gate,"exact_archived_gefs_full_cycle",return_value={"ensemble_system_id":"NOAA_GEFS"}):
+            plan,_=gate.build_plan("owner/private","token",True,discover_fn=discover,discover_gefs_full_fn=self.full_discover)
         self.assertTrue(plan["any_work"])
         self.assertEqual(plan["delta_prediction"],"nonzero")
         self.assertEqual(plan["models"]["GFS"]["action"],"fetch")
@@ -81,10 +102,12 @@ class ProviderCycleGateTests(unittest.TestCase):
     def test_missing_private_evidence_fails_open_to_fetch(self):
         latest,payload=self.seed()
         with patch.object(gate,"load_seed",return_value=(latest,payload,"seed.json.gz","a"*64)), \
-             patch.object(gate,"exact_archived_cycle",return_value=None):
-            plan,_=gate.build_plan("owner/private","token",True,discover_fn=lambda model,full: RUN)
+             patch.object(gate,"exact_archived_cycle",return_value=None), \
+             patch.object(gate,"exact_archived_gefs_full_cycle",return_value=None):
+            plan,_=gate.build_plan("owner/private","token",True,discover_fn=lambda model,full: RUN,discover_gefs_full_fn=self.full_discover)
         self.assertTrue(plan["any_work"])
         self.assertTrue(all(x["action"]=="fetch" for x in plan["models"].values()))
+        self.assertEqual(plan["full_ensembles"]["NOAA_GEFS"]["action"],"fetch")
 
     def test_gefs_supplemental_retry_is_due_only_after_not_before(self):
         payload={
