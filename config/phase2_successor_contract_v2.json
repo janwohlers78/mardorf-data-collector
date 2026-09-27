@@ -143,7 +143,7 @@
     "ensemble_successor": "pending_D1_D2_design",
     "registry_successor": "pending_B1_B2_design",
     "canonical_record_successor": "pending_B3_design",
-    "gefs_cycle_evidence_successor": "pending_E1_design"
+    "gefs_cycle_evidence_successor": "gefs-cycle-evidence-event-stream-index-v2"
   },
   "change_control": {
     "v1_immutable": true,
