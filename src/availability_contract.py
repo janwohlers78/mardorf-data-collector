@@ -84,19 +84,50 @@ def _declaration(parameter, status, observed_at, *, product=None, evidence_type)
 
 
 def availability_declarations(row, observed_at):
-    """Normalize legacy boolean missingness evidence into explicit state rows."""
+    """Merge explicit declarations with normalized legacy boolean evidence."""
     out = []
     seen = set()
 
-    def add(parameter, status, *, product=None, evidence_type):
-        key = (str(parameter), str(product or ""), status, evidence_type)
+    def append_declaration(declaration):
+        if not isinstance(declaration, dict):
+            raise ValueError("field_availability_states declaration must be an object")
+        item = dict(declaration)
+        parameter = item.get("parameter_native")
+        if not parameter:
+            raise ValueError("field_availability_states declaration missing parameter_native")
+        item.setdefault("namespace", "availability")
+        if item["namespace"] != "availability":
+            raise ValueError("field_availability_states declaration namespace must be availability")
+        status = _status(item)
+        item["availability_status"] = status
+        item.setdefault("availability_observed_at_utc", observed_at)
+        if status == "received":
+            item.setdefault("field_available_at_utc", observed_at)
+        else:
+            item.pop("field_available_at_utc", None)
+        key = (
+            str(parameter),
+            str(item.get("field_provider_product") or ""),
+            str(item.get("semantic_id") or ""),
+            status,
+            str(item.get("availability_evidence_type") or ""),
+        )
         if key in seen:
             return
         seen.add(key)
-        out.append(_declaration(
+        out.append(item)
+
+    def add(parameter, status, *, product=None, evidence_type):
+        append_declaration(_declaration(
             parameter, status, observed_at,
             product=product, evidence_type=evidence_type,
         ))
+
+    # Collector-native declarations are authoritative and may carry a frozen
+    # cross-provider semantic_id. Preserve them rather than replacing them with
+    # legacy availability:* identities during the final normalization pass.
+    for declaration in (row.get("field_availability_states") or []):
+        append_declaration(declaration)
 
     product = row.get("provider_product")
     for parameter, present in (row.get("field_availability") or {}).items():
