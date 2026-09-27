@@ -141,7 +141,7 @@
     "archive_successor": "mardorf-weather-archive-v5",
     "availability_successor": "field-availability-v2",
     "ensemble_successor": "ensemble-member-storage-contract-v2",
-    "registry_successor": "pending_B1_B2_design",
+    "registry_successor": "relevant-meteorology-v2",
     "canonical_record_successor": "pending_B3_design",
     "gefs_cycle_evidence_successor": "gefs-cycle-evidence-event-stream-index-v2"
   },
