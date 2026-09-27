@@ -59,8 +59,8 @@ class IconParameterProbeTests(unittest.TestCase):
             "ps":"surface_pressure",
             "tot_prec":"total_precipitation",
             "clct":"total_cloud_cover",
-            "aswdir_s":"surface_downward_shortwave",
-            "aswdifd_s":"surface_downward_shortwave",
+            "aswdir_s":"surface_downward_shortwave_direct",
+            "aswdifd_s":"surface_downward_shortwave_diffuse",
             "cape_ml":"cape",
             "cin_ml":"cin",
         })
