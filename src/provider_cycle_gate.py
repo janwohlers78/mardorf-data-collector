@@ -42,6 +42,7 @@ OUTPUT_KEYS={
     "ECMWF-IFS":"ecmwf_ifs",
 }
 METHOD_VERSION="provider-cycle-gate-v2-gefs-full"
+GEFS_EVIDENCE_SUCCESSOR_VERSION="gefs-cycle-evidence-event-stream-index-v2"
 
 
 def utc(value):
