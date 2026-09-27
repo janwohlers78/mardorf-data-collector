@@ -14,6 +14,7 @@ import fetch_extra_models as extra
 import fetch_dwd_additional_models as dwd
 import extend_model_horizon as ext
 import availability_contract as availability
+import ecmwf_registry
 
 SNAP=Path(os.getenv("COLLECTOR_MODEL_FILE","work/model_snapshot.json"))
 
@@ -91,6 +92,10 @@ def fetch_base(d,model,test):
         raise ValueError(model)
     availability.stamp_rows(rows, observed_at=now(), replace_row_time=True)
     d["models"][model]=rows
+    if model=="ECMWF-IFS":
+        summary=ecmwf_registry.acquisition_summary()
+        summary.update(last_stage="base",last_updated_at_utc=now(),row_count=len(rows))
+        d["ecmwf_registry_v1_acquisition"]=summary
     quality_one(d,model,leads)
 
 def fetch_extension(d,model):
@@ -107,6 +112,10 @@ def fetch_extension(d,model):
     availability.stamp_rows(new, observed_at=now(), replace_row_time=True)
     old=[r for r in d["models"].get(model,[]) if int(r.get("forecast_lead_hours",9999))<=48]
     d["models"][model]=old+new
+    if model=="ECMWF-IFS":
+        summary=ecmwf_registry.acquisition_summary()
+        summary.update(last_stage="extension",last_updated_at_utc=now(),row_count=len(d["models"][model]))
+        d["ecmwf_registry_v1_acquisition"]=summary
     ext.quality(d)
     d["horizon_extension_retrieved_at_utc"]=now()
 
