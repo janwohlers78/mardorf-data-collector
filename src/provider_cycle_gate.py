@@ -98,7 +98,21 @@ def evidence_path(model,run):
     )
 
 
+GEFS_EVIDENCE_EVENT_METHOD_VERSION="gefs-full-member-cycle-evidence-event-v2"
+GEFS_EVIDENCE_INDEX_METHOD_VERSION="gefs-full-member-cycle-evidence-index-v2"
+
+
 def gefs_full_evidence_path(run):
+    """Current E1 monotonic index path for one GEFS 00Z cycle."""
+    run=utc(run)
+    return (
+        "data/weather_archive/ensemble_cycle_evidence/noaa-gefs/indexes/"
+        f"year={run:%Y}/month={run:%m}/day={run:%d}/run={run:%Y%m%dT%H%M%SZ}.json"
+    )
+
+
+def gefs_full_legacy_evidence_path(run):
+    """Read-only predecessor path retained for already archived pre-E1 cycles."""
     run=utc(run)
     return (
         "data/weather_archive/ensemble_cycle_evidence/noaa-gefs/"
@@ -106,23 +120,67 @@ def gefs_full_evidence_path(run):
     )
 
 
-def exact_archived_gefs_full_cycle(repo,token,run):
-    item=private_json_optional(repo,gefs_full_evidence_path(run),token)
+def _valid_gefs_event(item,run):
     if not isinstance(item,dict):
-        return None
+        return False
     try:
         recorded=utc(item.get("run_time_utc"))
     except Exception:
-        return None
-    if (
-        recorded!=utc(run)
-        or item.get("ensemble_system_id")!="NOAA_GEFS"
-        or item.get("collection_status")!="complete"
-        or item.get("policy_version")!=full_gefs.POLICY_VERSION
-        or int(item.get("expected_member_count") or 0)!=31
-    ):
-        return None
-    return item
+        return False
+    return (
+        recorded==utc(run)
+        and item.get("ensemble_system_id")=="NOAA_GEFS"
+        and item.get("collection_status")=="complete"
+        and item.get("policy_version")==full_gefs.POLICY_VERSION
+        and int(item.get("expected_member_count") or 0)==31
+    )
+
+
+def exact_archived_gefs_full_cycle(repo,token,run):
+    """Return exact archived cycle evidence, preferring the E1 event/index model.
+
+    The index is only a monotonic reference set; acceptance is based on the
+    immutable latest event it names. Pre-E1 fixed-path evidence remains readable
+    so historical cycles do not trigger redundant provider downloads.
+    """
+    run=utc(run)
+    index_path=gefs_full_evidence_path(run)
+    index=private_json_optional(repo,index_path,token)
+    if isinstance(index,dict):
+        try:
+            recorded=utc(index.get("run_time_utc"))
+        except Exception:
+            recorded=None
+        latest_path=index.get("latest_event_path")
+        if (
+            index.get("schema_version")==2
+            and index.get("method_version")==GEFS_EVIDENCE_INDEX_METHOD_VERSION
+            and index.get("ensemble_system_id")=="NOAA_GEFS"
+            and recorded==run
+            and int(index.get("event_count") or 0)>=1
+            and isinstance(latest_path,str)
+            and latest_path
+        ):
+            event=private_json_optional(repo,latest_path,token)
+            if (
+                isinstance(event,dict)
+                and event.get("schema_version")==2
+                and event.get("method_version")==GEFS_EVIDENCE_EVENT_METHOD_VERSION
+                and event.get("evidence_event_id")==index.get("latest_event_id")
+                and _valid_gefs_event(event,run)
+            ):
+                out=dict(event)
+                out["_archive_cycle_evidence_path"]=index_path
+                out["_archive_cycle_event_path"]=latest_path
+                return out
+
+    legacy_path=gefs_full_legacy_evidence_path(run)
+    legacy=private_json_optional(repo,legacy_path,token)
+    if _valid_gefs_event(legacy,run):
+        out=dict(legacy)
+        out["_archive_cycle_evidence_path"]=legacy_path
+        return out
+    return None
 
 
 def exact_archived_cycle(repo,token,model,run):
@@ -337,7 +395,7 @@ def build_plan(repo,token,full_validation=True,discover_fn=discover,discover_gef
             action="carry_forward",
             reason="today_00z_full_member_cycle_already_archived_no_provider_probe",
             selected_run_time_utc=source_run.isoformat(),
-            archive_cycle_evidence_path=gefs_full_evidence_path(source_run),
+            archive_cycle_evidence_path=existing_evidence.get("_archive_cycle_evidence_path",gefs_full_evidence_path(source_run)),
             archive_cycle_evidence_present=True,
             seed_payload_source_matches=True,
             publication_probe_attempts=[],
@@ -347,7 +405,7 @@ def build_plan(repo,token,full_validation=True,discover_fn=discover,discover_gef
             action="carry_forward",
             reason="pre_06z_full_member_probe_window_carry_previous_complete_source",
             selected_run_time_utc=source_run.isoformat(),
-            archive_cycle_evidence_path=gefs_full_evidence_path(source_run),
+            archive_cycle_evidence_path=existing_evidence.get("_archive_cycle_evidence_path",gefs_full_evidence_path(source_run)),
             archive_cycle_evidence_present=True,
             seed_payload_source_matches=True,
             publication_probe_attempts=[],
@@ -367,7 +425,10 @@ def build_plan(repo,token,full_validation=True,discover_fn=discover,discover_gef
             source_ok=full_gefs.source_matches_policy(source,run)
             full_entry.update(
                 selected_run_time_utc=run.isoformat(),
-                archive_cycle_evidence_path=gefs_full_evidence_path(run),
+                archive_cycle_evidence_path=(
+                    archived.get("_archive_cycle_evidence_path",gefs_full_evidence_path(run))
+                    if archived else gefs_full_evidence_path(run)
+                ),
                 archive_cycle_evidence_present=bool(archived),
                 seed_payload_source_matches=bool(source_ok),
                 publication_probe_attempts=probe_attempts,
