@@ -148,6 +148,11 @@ class SparseGefsPolicyTests(unittest.TestCase):
         self.assertEqual(qa["status"],"unavailable")
         self.assertEqual(qa["comparisons"],[])
 
+    def test_nomads_rate_control_is_conservative_for_full_member_collection(self):
+        self.assertLessEqual(g.MAX_CONCURRENCY,2)
+        self.assertGreaterEqual(g.MIN_REQUEST_INTERVAL_SECONDS,0.40)
+        self.assertGreaterEqual(g.MAX_ATTEMPTS,4)
+
     def test_policy_summary_records_no_interpolation_and_no_conditional_fetch(self):
         p=g.policy_summary()
         self.assertEqual(p["full_member_cycles_utc"],[0])
