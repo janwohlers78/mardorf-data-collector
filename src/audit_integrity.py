@@ -229,6 +229,161 @@ def audit_eps_hourly_source(source,run,expected_members=20):
     }
     return failures,summary
 
+GEFS_FULL_METHOD_VERSION="phase2f3-gefs-full-members-v1"
+GEFS_FULL_POLICY_VERSION="gefs-sparse-00z-policy-v1"
+GEFS_FULL_MEMBERS=("c00",)+tuple(f"p{x:02d}" for x in range(1,31))
+GEFS_FULL_NEAR=(60,72,84,96,108,120,144,168,192,216,240)
+GEFS_FULL_FAR=(288,336,384,432,480,528,576,624,672,720,768,816,840)
+GEFS_FULL_LEADS=GEFS_FULL_NEAR+GEFS_FULL_FAR
+
+
+def audit_gefs_full_member_source(payload,expected_spot):
+    """Validate optional archive-only sparse GEFS full-member evidence."""
+    failures=[]
+    source=payload.get("gefs_full_member_source")
+    attempt=payload.get("gefs_full_member_attempt")
+    if source is None:
+        return failures,None,attempt
+    if not isinstance(source,dict):
+        return [{"reason":"source_not_object"}],{"present":True},attempt
+    if source.get("method_version")!=GEFS_FULL_METHOD_VERSION:
+        failures.append({"reason":"method_version_mismatch","value":source.get("method_version")})
+    if source.get("policy_version")!=GEFS_FULL_POLICY_VERSION:
+        failures.append({"reason":"policy_version_mismatch","value":source.get("policy_version")})
+    if source.get("ensemble_system_id")!="NOAA_GEFS":
+        failures.append({"reason":"ensemble_system_id_mismatch","value":source.get("ensemble_system_id")})
+    run=dt(source.get("run_time_utc"))
+    if run is None or run.hour!=0:
+        failures.append({"reason":"run_not_00z","run_time_utc":source.get("run_time_utc")})
+    expected_ids=list(GEFS_FULL_MEMBERS)
+    if source.get("expected_member_ids")!=expected_ids:
+        failures.append({"reason":"expected_member_ids_mismatch","value":source.get("expected_member_ids")})
+    roles=source.get("member_roles") if isinstance(source.get("member_roles"),dict) else {}
+    expected_roles={"c00":"control_member",**{f"p{x:02d}":"perturbed_member" for x in range(1,31)}}
+    if roles!=expected_roles:
+        failures.append({"reason":"member_roles_mismatch"})
+    leads=source.get("leads_hours")
+    if leads!=list(GEFS_FULL_LEADS):
+        failures.append({"reason":"sparse_lead_policy_mismatch","value":leads})
+    if source.get("native_time_policy")!="provider-native selected sparse times only; no interpolation":
+        failures.append({"reason":"native_time_policy_mismatch","value":source.get("native_time_policy")})
+    expected_requests=len(GEFS_FULL_MEMBERS)*len(GEFS_FULL_LEADS)
+    if source.get("collection_status")!="complete":
+        failures.append({"reason":"collection_not_complete","value":source.get("collection_status")})
+    if source.get("expected_request_count")!=expected_requests or source.get("received_request_count")!=expected_requests:
+        failures.append({"reason":"request_count_mismatch","expected":expected_requests,
+                         "recorded_expected":source.get("expected_request_count"),
+                         "recorded_received":source.get("received_request_count")})
+    records=source.get("records")
+    if not isinstance(records,list) or len(records)!=expected_requests:
+        failures.append({"reason":"record_inventory_mismatch","expected":expected_requests,
+                         "received":len(records) if isinstance(records,list) else None})
+        records=[] if not isinstance(records,list) else records
+    seen=set();points={};semantic_counts=Counter();field_count=0
+    allowed={
+        "gefs_0p25s":{"wind_u_10m","wind_v_10m","wind_gust_10m","total_precipitation","total_cloud_cover","cape","cin"},
+        "gefs_0p50a":{"wind_u_10m","wind_v_10m","total_precipitation","total_cloud_cover","cape","cin"},
+    }
+    required_semantics={k:set(v) for k,v in allowed.items()}
+    per_unit_semantics={}
+    for record in records:
+        if not isinstance(record,dict):
+            failures.append({"reason":"record_not_object"});continue
+        member=str(record.get("member_id"))
+        try:lead=int(record.get("lead_hours"))
+        except Exception:
+            failures.append({"reason":"invalid_lead","value":record.get("lead_hours")});continue
+        product=str(record.get("provider_product"))
+        key=(member,lead)
+        if key in seen:
+            failures.append({"reason":"duplicate_member_lead","member_id":member,"lead_hours":lead})
+        seen.add(key)
+        wanted="gefs_0p25s" if lead in GEFS_FULL_NEAR else "gefs_0p50a" if lead in GEFS_FULL_FAR else None
+        if member not in GEFS_FULL_MEMBERS or wanted is None or product!=wanted:
+            failures.append({"reason":"member_lead_product_mismatch","member_id":member,"lead_hours":lead,
+                             "provider_product":product,"expected_product":wanted})
+        valid=dt(record.get("valid_time_utc"))
+        if run is not None and (valid is None or abs((valid-run).total_seconds()/3600-lead)>0.01):
+            failures.append({"reason":"valid_time_mismatch","member_id":member,"lead_hours":lead,
+                             "valid_time_utc":record.get("valid_time_utc")})
+        if record.get("request_status")!="received":
+            failures.append({"reason":"request_not_received","member_id":member,"lead_hours":lead,
+                             "status":record.get("request_status")})
+        point=record.get("returned_coordinate") if isinstance(record.get("returned_coordinate"),dict) else {}
+        lat=point.get("latitude");lon=point.get("longitude")
+        if not finite(lat) or not finite(lon):
+            failures.append({"reason":"grid_point_missing","member_id":member,"lead_hours":lead})
+        else:
+            pad=.30 if product=="gefs_0p25s" else .75
+            if abs(float(lat)-float(expected_spot["latitude"]))>pad+0.01 or abs(float(lon)-float(expected_spot["longitude"]))>pad+0.01:
+                failures.append({"reason":"grid_point_implausible","member_id":member,"lead_hours":lead,
+                                 "provider_product":product,"point":point})
+            prior=points.get(product)
+            rounded=(round(float(lat),6),round(float(lon),6))
+            if prior is None:points[product]=rounded
+            elif prior!=rounded:
+                failures.append({"reason":"grid_point_changes_within_product","provider_product":product,
+                                 "expected":prior,"observed":rounded})
+        fields=record.get("fields")
+        if not isinstance(fields,list) or not fields:
+            failures.append({"reason":"fields_missing","member_id":member,"lead_hours":lead});continue
+        unit_semantics=set()
+        for field in fields:
+            if not isinstance(field,dict):
+                failures.append({"reason":"field_not_object","member_id":member,"lead_hours":lead});continue
+            semantic=str(field.get("semantic_id") or "")
+            unit_semantics.add(semantic);semantic_counts[semantic]+=1;field_count+=1
+            if semantic not in allowed.get(product,set()):
+                failures.append({"reason":"unapproved_semantic","member_id":member,"lead_hours":lead,
+                                 "provider_product":product,"semantic_id":semantic})
+            if not field.get("field_key") or not field.get("parameter_native") or not finite(field.get("value_native")):
+                failures.append({"reason":"native_field_identity_or_value_incomplete","member_id":member,
+                                 "lead_hours":lead,"semantic_id":semantic})
+            if str(field.get("field_provider_product"))!=product:
+                failures.append({"reason":"field_product_mismatch","member_id":member,"lead_hours":lead,
+                                 "semantic_id":semantic})
+        per_unit_semantics[key]=unit_semantics
+        if unit_semantics!=required_semantics.get(product,set()):
+            failures.append({"reason":"unit_semantic_set_mismatch","member_id":member,"lead_hours":lead,
+                             "provider_product":product,
+                             "expected":sorted(required_semantics.get(product,set())),
+                             "observed":sorted(unit_semantics)})
+    if len(seen)!=expected_requests:
+        failures.append({"reason":"unique_member_lead_count_mismatch","expected":expected_requests,"received":len(seen)})
+    omissions=source.get("policy_omissions")
+    omission_ok=False
+    if isinstance(omissions,list):
+        for item in omissions:
+            if not isinstance(item,dict):continue
+            if (
+                item.get("provider_product")=="gefs_0p50b"
+                and item.get("availability_status")=="not_requested_by_policy"
+                and item.get("member_ids")==[f"p{x:02d}" for x in range(1,31)]
+                and item.get("leads_hours")==list(GEFS_FULL_FAR)
+            ):
+                omission_ok=True
+    if not omission_ok:
+        failures.append({"reason":"pgrb2b_policy_omission_missing_or_wrong"})
+    metrics=source.get("request_metrics") if isinstance(source.get("request_metrics"),dict) else {}
+    response_bytes=metrics.get("response_bytes")
+    summary={
+        "present":True,
+        "method_version":source.get("method_version"),"policy_version":source.get("policy_version"),
+        "run_time_utc":run.isoformat() if run else source.get("run_time_utc"),
+        "member_count":len(expected_ids),"lead_count":len(GEFS_FULL_LEADS),
+        "expected_request_count":expected_requests,"record_count":len(records),
+        "unique_member_lead_count":len(seen),"field_count":field_count,
+        "semantic_counts":dict(sorted(semantic_counts.items())),
+        "grid_points_by_product":{k:{"latitude":v[0],"longitude":v[1]} for k,v in sorted(points.items())},
+        "request_metrics":metrics,
+        "network_budget_bytes":2*1024*1024,
+        "network_budget_pass":finite(response_bytes) and float(response_bytes)<=2*1024*1024,
+        "failure_count":len(failures),
+        "policy_omission_verified":omission_ok,
+    }
+    return failures,summary,attempt
+
+
 def full_horizon_coverage_issue(archive_summary, full_validation):
     """Classify archive coverage without hiding required-horizon gaps."""
     if archive_summary.get("horizon_status") != "complete" and full_validation:
@@ -605,6 +760,21 @@ def audit_models(path,cfg,now):
             "currentness_policy_pass":run_age is not None and run_age<=age_limit and run_age>=-float(cfg["model_policy"]["run_timestamp_future_tolerance_minutes"])/60,
         }
 
+    gefs_full_failures,gefs_full_summary,gefs_full_attempt=audit_gefs_full_member_source(d,expected_spot)
+    if gefs_full_failures:
+        issues.append(issue("GEFS_FULL_MEMBER_SOURCE_INVALID","ERROR","NOAA_GEFS","ensemble_archive",
+            "The optional full-member source is present but violates the frozen sparse 2F-3 contract.",
+            failures=gefs_full_failures))
+    if gefs_full_summary and not gefs_full_summary.get("network_budget_pass"):
+        issues.append(issue("GEFS_FULL_MEMBER_NETWORK_BUDGET_EXCEEDED","WARN","NOAA_GEFS","traffic_budget",
+            "The complete source is structurally valid but its filtered transfer exceeded the 2F-3 daily network target.",
+            request_metrics=gefs_full_summary.get("request_metrics"),
+            network_budget_bytes=gefs_full_summary.get("network_budget_bytes")))
+    if isinstance(gefs_full_attempt,dict):
+        issues.append(issue("GEFS_FULL_MEMBER_ATTEMPT_INCOMPLETE","WARN","NOAA_GEFS","ensemble_archive",
+            "A new optional full-member attempt was incomplete; the last complete member source remains authoritative.",
+            attempt=gefs_full_attempt))
+
     complete_current_families=sorted({v["family"] for v in sources.values() if v["provider_cycle_complete"] and v["currentness_policy_pass"]})
     usable=len(complete_current_families)>=2
     if not usable:
@@ -627,6 +797,8 @@ def audit_models(path,cfg,now):
             usable = False
     return make_report("models",now,sources,issues,usable,{
         "input_file_present":True,"collector_mode":mode,"full_horizon_archive":archive_summary,
+        "gefs_full_member_source":gefs_full_summary,
+        "gefs_full_member_attempt":gefs_full_attempt,
         "retrieved_at_utc":retrieval.isoformat() if retrieval else None,
         "complete_current_independent_families":complete_current_families,
         "minimum_two_complete_current_independent_families_met":usable,
