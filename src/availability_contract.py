@@ -15,9 +15,14 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
+import noaa_weather_context as noaa
+
+METHOD_VERSION = "model-field-availability-v2"
+
 STATES = {
     "received",
     "unsupported_by_provider_or_product",
+    "intentionally_not_applicable",
     "not_requested_by_policy",
     "not_yet_published",
     "fetch_error",
@@ -133,11 +138,25 @@ def availability_declarations(row, observed_at):
     for parameter, present in (row.get("field_availability") or {}).items():
         if not isinstance(present, bool):
             raise ValueError(f"field_availability must be boolean: {parameter}={present!r}")
+        if present:
+            status="received"
+        elif (
+            row.get("model")=="GEFS-control"
+            and str(parameter)=="gust"
+            and int(row.get("forecast_lead_hours") or 0)>240
+        ):
+            status="intentionally_not_applicable"
+        else:
+            status="unsupported_by_provider_or_product"
         add(
             parameter,
-            "received" if present else "unsupported_by_provider_or_product",
+            status,
             product=product,
-            evidence_type="legacy_field_availability_boolean_v1",
+            evidence_type=(
+                "gefs_far_gust_contract_v2"
+                if status=="intentionally_not_applicable"
+                else "legacy_field_availability_boolean_v1"
+            ),
         )
 
     for field_product, fields in (row.get("weather_context_availability") or {}).items():
@@ -154,6 +173,35 @@ def availability_declarations(row, observed_at):
                 product=field_product,
                 evidence_type="product_weather_context_boolean_v1",
             )
+
+    # Requested optional NOAA products that fail must remain distinguishable
+    # from static provider capability gaps. PublicationUnavailable is a
+    # not-yet-published observation; all other optional request failures are
+    # fetch_error. Materialize one declaration per product-native weather field.
+    for error in (row.get("optional_product_errors") or []):
+        if not isinstance(error,dict):
+            continue
+        failed_product=str(error.get("product") or "")
+        if not failed_product:
+            continue
+        status=(
+            "not_yet_published"
+            if str(error.get("type") or "")=="PublicationUnavailable"
+            else "fetch_error"
+        )
+        try:
+            parameters=noaa.expected_weather_variables(failed_product)
+        except Exception:
+            parameters=("*",)
+        for parameter in parameters:
+            declaration=_declaration(
+                parameter,status,observed_at,
+                product=failed_product,
+                evidence_type="optional_product_error_v2",
+            )
+            declaration["availability_error_type"]=error.get("type")
+            declaration["availability_error_reason"]=error.get("reason")
+            append_declaration(declaration)
     return out
 
 
@@ -188,7 +236,7 @@ def normalize_snapshot(snapshot, observed_at=None):
         stamp_rows(source.get("records") or [], observed_at=observed_at, replace_row_time=False)
     snapshot["availability_contract"] = {
         "schema_version": 1,
-        "method_version": "model-field-availability-v1",
+        "method_version": METHOD_VERSION,
         "normalized_at_utc": observed_at,
         "states": sorted(STATES),
         "missing_value_policy": "explicit_status_never_zero_fill",
