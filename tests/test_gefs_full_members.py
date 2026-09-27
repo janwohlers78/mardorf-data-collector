@@ -58,6 +58,41 @@ class SparseGefsPolicyTests(unittest.TestCase):
         self.assertEqual(g.MEMBER_ROLES["c00"],"control_member")
         self.assertEqual(g.MEMBER_ROLES["p01"],"perturbed_member")
 
+    def test_fetch_unit_preserves_exact_native_step_metadata(self):
+        unit=next(
+            dict(x) for x in g.request_plan(self.run)
+            if x["member_id"]=="c00" and x["lead_hours"]==120
+        )
+        unit["semantics"]=["total_precipitation"]
+        native={
+            "tp":[{
+                "semantic_id":"total_precipitation",
+                "shortName":"tp",
+                "paramId":228228,
+                "typeOfLevel":"surface",
+                "level":0,
+                "stepType":"accum",
+                "stepRange":"114-120",
+                "startStep":114,
+                "endStep":120,
+                "stepUnits":1,
+                "units":"kg m**-2",
+                "value":2.5,
+            }]
+        }
+        point={"latitude":52.5,"longitude":9.25}
+        with patch.object(g,"_download",return_value=(b"GRIBtest",0.1,1)), \
+             patch.object(g.noaa,"extract_native_values",return_value=(native,point)):
+            row=g._fetch_unit(self.run,unit)
+        self.assertEqual(row["request_status"],"received")
+        self.assertEqual(len(row["fields"]),1)
+        field=row["fields"][0]
+        self.assertEqual(field["step_type_native"],"accum")
+        self.assertEqual(field["step_range_native"],"114-120")
+        self.assertEqual(field["start_step_native"],114)
+        self.assertEqual(field["end_step_native"],120)
+        self.assertEqual(field["step_units_native"],"1")
+
     def test_source_complete_requires_all_member_lead_units(self):
         records=[]
         point={"latitude":52.5,"longitude":9.25,"selection":"test"}
