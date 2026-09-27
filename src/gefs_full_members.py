@@ -22,6 +22,7 @@ import math
 import os
 import random
 import re
+import statistics
 import tempfile
 import threading
 import time
@@ -80,6 +81,9 @@ MAX_REQUESTS_PER_DAY=800
 MAX_CONCURRENCY=4
 MIN_REQUEST_INTERVAL_SECONDS=0.05
 MAX_ATTEMPTS=3
+QA_LEADS=(120,240)
+QA_TOLERANCE_MEAN_MS=0.01
+QA_TOLERANCE_SPREAD_MS=0.01
 
 _thread=threading.local()
 _rate_lock=threading.Lock()
@@ -165,7 +169,9 @@ def policy_summary():
         "near_leads_hours":list(NEAR_LEADS),
         "far_leads_hours":list(FAR_LEADS),
         "all_leads_hours":list(LEADS),
-        "request_count_per_full_cycle":len(MEMBERS)*len(LEADS),
+        "member_request_count_per_full_cycle":len(MEMBERS)*len(LEADS),
+        "provider_summary_qa_request_count":len(QA_LEADS)*2,
+        "request_count_per_full_cycle":len(MEMBERS)*len(LEADS)+len(QA_LEADS)*2,
         "max_requests_per_day":MAX_REQUESTS_PER_DAY,
         "pgrb2b_perturbed_members":"not_requested_by_policy",
         "pgrb2b_c00":"retained by existing GEFS-control compatibility/full-horizon path; not duplicated here",
@@ -338,6 +344,111 @@ def _fetch_unit(run,unit):
             "fields":[],
         }
 
+def _summary_qa_filtered(run,product,lead):
+    run=utc(run);pad=.30
+    q={
+        "file":f"{product}.t00z.pgrb2s.0p25.f{int(lead):03d}",
+        "dir":f"/gefs.{run:%Y%m%d}/00/atmos/pgrb2sp25",
+        "subregion":"",
+        "leftlon":f"{LON-pad:.4f}","rightlon":f"{LON+pad:.4f}",
+        "toplat":f"{LAT+pad:.4f}","bottomlat":f"{LAT-pad:.4f}",
+        "lev_10_m_above_ground":"on","var_UGRD":"on","var_VGRD":"on",
+    }
+    url="https://nomads.ncep.noaa.gov/cgi-bin/filter_gefs_atmos_0p25s.pl?"+urlencode(q)
+    raw,elapsed,attempts=_download(url)
+    with tempfile.NamedTemporaryFile(suffix=".grib2") as fh:
+        fh.write(raw);fh.flush()
+        values,_point=noaa.extract_native_values(Path(fh.name),LAT,LON,source_sha256=hashlib.sha256(raw).hexdigest(),product="gefs_0p25s")
+    def one(*names):
+        for name in names:
+            if name in values and values[name]:
+                return float(values[name][0]["value"])
+        raise RuntimeError(f"summary QA missing {names}")
+    return {
+        "wind_u_10m":one("10u","u"),
+        "wind_v_10m":one("10v","v"),
+        "response_bytes":len(raw),
+        "response_sha256":hashlib.sha256(raw).hexdigest(),
+        "elapsed_seconds":elapsed,
+        "attempt_count":attempts,
+        "url":url,
+    }
+
+
+def provider_summary_qa(run,records):
+    """Cross-check provider geavg/gespr against p01-p30; c00 is excluded by NOAA."""
+    run=utc(run)
+    comparisons=[];request_count=0;response_bytes=0;attempts=0;elapsed=0.0
+    try:
+        for lead in QA_LEADS:
+            lead_records={r["member_id"]:r for r in records if int(r["lead_hours"])==lead and r.get("request_status")=="received"}
+            if set(lead_records)!=set(MEMBERS):
+                raise RuntimeError(f"QA lead {lead} lacks complete 31-member set")
+            mean_product=_summary_qa_filtered(run,"geavg",lead)
+            spread_product=_summary_qa_filtered(run,"gespr",lead)
+            request_count+=2
+            response_bytes+=mean_product["response_bytes"]+spread_product["response_bytes"]
+            attempts+=mean_product["attempt_count"]+spread_product["attempt_count"]
+            elapsed+=mean_product["elapsed_seconds"]+spread_product["elapsed_seconds"]
+            for semantic in ("wind_u_10m","wind_v_10m"):
+                perturbed=[]
+                for member in MEMBERS:
+                    if member=="c00": continue
+                    fields=[x for x in lead_records[member].get("fields") or [] if x.get("semantic_id")==semantic]
+                    if len(fields)!=1:
+                        raise RuntimeError(f"QA {lead} {member} {semantic} count={len(fields)}")
+                    perturbed.append(float(fields[0]["value_native"]))
+                derived_mean=statistics.fmean(perturbed)
+                derived_spread=statistics.stdev(perturbed)
+                provider_mean=float(mean_product[semantic])
+                provider_spread=float(spread_product[semantic])
+                mean_delta=abs(derived_mean-provider_mean)
+                spread_delta=abs(derived_spread-provider_spread)
+                comparisons.append({
+                    "lead_hours":lead,"semantic_id":semantic,
+                    "member_set":"p01-p30","member_count":30,
+                    "derived_mean":derived_mean,"provider_mean":provider_mean,
+                    "mean_abs_delta":mean_delta,
+                    "derived_sample_stdev":derived_spread,"provider_spread":provider_spread,
+                    "spread_abs_delta":spread_delta,
+                    "mean_tolerance_ms":QA_TOLERANCE_MEAN_MS,
+                    "spread_tolerance_ms":QA_TOLERANCE_SPREAD_MS,
+                    "status":"pass" if mean_delta<=QA_TOLERANCE_MEAN_MS and spread_delta<=QA_TOLERANCE_SPREAD_MS else "fail",
+                    "provider_mean_source_sha256":mean_product["response_sha256"],
+                    "provider_spread_source_sha256":spread_product["response_sha256"],
+                })
+        status="pass" if comparisons and all(x["status"]=="pass" for x in comparisons) else "fail"
+        return {
+            "method_version":"gefs-provider-summary-qa-v1",
+            "measurement_basis_run_id":36295332340,
+            "member_semantics":"NOAA geavg/gespr empirically reproduce p01-p30 only; c00 excluded",
+            "spread_semantics":"sample standard deviation over p01-p30 (N-1 denominator)",
+            "leads_hours":list(QA_LEADS),
+            "mean_tolerance_ms":QA_TOLERANCE_MEAN_MS,
+            "spread_tolerance_ms":QA_TOLERANCE_SPREAD_MS,
+            "status":status,
+            "comparisons":comparisons,
+            "request_metrics":{"requests":request_count,"response_bytes":response_bytes,
+                               "total_attempts":attempts,"http_elapsed_seconds_sum":round(elapsed,6)},
+        }
+    except Exception as exc:
+        return {
+            "method_version":"gefs-provider-summary-qa-v1",
+            "measurement_basis_run_id":36295332340,
+            "member_semantics":"NOAA geavg/gespr expected p01-p30 only; c00 excluded",
+            "spread_semantics":"sample standard deviation over p01-p30 (N-1 denominator)",
+            "leads_hours":list(QA_LEADS),
+            "mean_tolerance_ms":QA_TOLERANCE_MEAN_MS,
+            "spread_tolerance_ms":QA_TOLERANCE_SPREAD_MS,
+            "status":"unavailable",
+            "exception_type":type(exc).__name__,
+            "exception_message":str(exc)[:1000],
+            "comparisons":[],
+            "request_metrics":{"requests":request_count,"response_bytes":response_bytes,
+                               "total_attempts":attempts,"http_elapsed_seconds_sum":round(elapsed,6)},
+        }
+
+
 def build_source(run,records,cycle_probe=None):
     run=utc(run)
     records=sorted(records,key=lambda x:(x["lead_hours"],x["member_id"]))
@@ -417,6 +528,18 @@ def collect(run,workers=MAX_CONCURRENCY):
         for fut in as_completed(futures):
             records.append(fut.result())
     source=build_source(run,records)
+    if source["collection_status"]=="complete":
+        source["provider_summary_qa"]=provider_summary_qa(run,records)
+        qa_metrics=(source["provider_summary_qa"].get("request_metrics") or {})
+        member_metrics=source["request_metrics"]
+        source["traffic_metrics"]={
+            "member_requests":member_metrics["requests"],
+            "provider_summary_qa_requests":int(qa_metrics.get("requests") or 0),
+            "total_requests":member_metrics["requests"]+int(qa_metrics.get("requests") or 0),
+            "member_response_bytes":member_metrics["response_bytes"],
+            "provider_summary_qa_response_bytes":int(qa_metrics.get("response_bytes") or 0),
+            "total_response_bytes":member_metrics["response_bytes"]+int(qa_metrics.get("response_bytes") or 0),
+        }
     source["collection_wall_seconds"]=round(time.monotonic()-started,6)
     return source
 
