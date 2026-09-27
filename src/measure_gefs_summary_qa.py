@@ -65,23 +65,33 @@ def main():
     for lead in LEADS:
         recs=[x for x in records if x["lead_hours"]==lead]
         for semantic,var in (("wind_u_10m","UGRD"),("wind_v_10m","VGRD")):
-            values=[]
+            by_member={}
             for r in recs:
                 hits=[f["value_native"] for f in r["fields"] if f["semantic_id"]==semantic]
                 if len(hits)!=1:raise RuntimeError(f"{lead} {r['member_id']} {semantic} hits={hits}")
-                values.append(float(hits[0]))
+                by_member[r["member_id"]]=float(hits[0])
+            values=[by_member[m] for m in g.MEMBERS]
+            perturbed=[by_member[m] for m in g.MEMBERS if m!="c00"]
             mean=statistics.fmean(values)
             pop=statistics.pstdev(values)
             sample=statistics.stdev(values)
+            pert_mean=statistics.fmean(perturbed)
+            pert_pop=statistics.pstdev(perturbed)
+            pert_sample=statistics.stdev(perturbed)
             provider_mean,mp=point(summary_url(run,"geavg",lead),var,s)
             provider_spread,sp=point(summary_url(run,"gespr",lead),var,s)
             output.append({
                 "lead_hours":lead,"semantic_id":semantic,"member_count":len(values),
                 "member_mean":mean,"member_pstdev":pop,"member_sample_stdev":sample,
+                "perturbed30_mean":pert_mean,"perturbed30_pstdev":pert_pop,
+                "perturbed30_sample_stdev":pert_sample,
                 "provider_mean":provider_mean,"provider_spread":provider_spread,
                 "mean_abs_delta":abs(mean-provider_mean),
                 "pstdev_abs_delta":abs(pop-provider_spread),
                 "sample_stdev_abs_delta":abs(sample-provider_spread),
+                "perturbed30_mean_abs_delta":abs(pert_mean-provider_mean),
+                "perturbed30_pstdev_abs_delta":abs(pert_pop-provider_spread),
+                "perturbed30_sample_stdev_abs_delta":abs(pert_sample-provider_spread),
                 "mean_message":mp,"spread_message":sp,
             })
     result={
@@ -90,6 +100,9 @@ def main():
         "max_mean_abs_delta":max(x["mean_abs_delta"] for x in output),
         "max_pstdev_abs_delta":max(x["pstdev_abs_delta"] for x in output),
         "max_sample_stdev_abs_delta":max(x["sample_stdev_abs_delta"] for x in output),
+        "max_perturbed30_mean_abs_delta":max(x["perturbed30_mean_abs_delta"] for x in output),
+        "max_perturbed30_pstdev_abs_delta":max(x["perturbed30_pstdev_abs_delta"] for x in output),
+        "max_perturbed30_sample_stdev_abs_delta":max(x["perturbed30_sample_stdev_abs_delta"] for x in output),
     }
     print(json.dumps(result,indent=2,sort_keys=True))
 
