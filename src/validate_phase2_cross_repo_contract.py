@@ -11,6 +11,7 @@ from pathlib import Path
 
 SUCCESSOR_PATH = "config/phase2_successor_contract_v2.json"
 FROZEN_V1_PATH = "config/phase2_frozen_contract_v1.json"
+CAPE_IDENTITY_PATH = "config/cape_native_identity_contract_v1.json"
 EXPECTED_SUCCESSOR = "phase2-acquisition-storage-successor-v2"
 
 
@@ -96,6 +97,44 @@ def require_successor_invariants(contract,label):
         raise AssertionError(f"{label}: implementation-version ownership keys drift")
     if any(not isinstance(value,str) or not value.strip() for value in implementation_versions.values()):
         raise AssertionError(f"{label}: implementation-version value missing")
+    cape_extension=(contract.get("semantic_extensions") or {}).get("cape_native_identity")
+    if not isinstance(cape_extension,dict):
+        raise AssertionError(f"{label}: B2 CAPE identity extension missing")
+    if cape_extension.get("path")!=CAPE_IDENTITY_PATH:
+        raise AssertionError(f"{label}: B2 CAPE identity path drift")
+    if cape_extension.get("method_version")!="cape-native-identity-contract-v1":
+        raise AssertionError(f"{label}: B2 CAPE identity version drift")
+    if "MUST NOT" not in cape_extension.get("ambiguity_rule",""):
+        raise AssertionError(f"{label}: B2 ambiguous CAPE fail-safe rule missing")
+
+
+def require_cape_identity_invariants(contract,label):
+    if contract.get("method_version")!="cape-native-identity-contract-v1":
+        raise AssertionError(f"{label}: wrong CAPE identity contract version")
+    if contract.get("status")!="active_phase2_audit_b2":
+        raise AssertionError(f"{label}: CAPE identity contract not active")
+    if float(contract.get("threshold_jkg"))!=300.0:
+        raise AssertionError(f"{label}: CAPE hazard threshold drift")
+    providers=contract.get("providers") or {}
+    expected={"ICON-D2","ICON-EU","ICON-D2-EPS","ECMWF-IFS","GFS","GEFS-control"}
+    if set(providers)!=expected:
+        raise AssertionError(f"{label}: CAPE provider set drift")
+    gfs={x["identity_id"] for x in providers["GFS"]["identities"]}
+    required={
+        "noaa-gfs:gfs_0p25:cape:surface:0",
+        "noaa-gfs:gfs_0p25:cape:pressureFromGroundLayer:18000",
+        "noaa-gfs:gfs_0p25:cape:pressureFromGroundLayer:9000",
+        "noaa-gfs:gfs_0p25:cape:pressureFromGroundLayer:25500",
+    }
+    if gfs!=required:
+        raise AssertionError(f"{label}: GFS CAPE identity set drift")
+    policy=contract.get("hazard_policy") or {}
+    if policy.get("permutation_invariant") is not True:
+        raise AssertionError(f"{label}: CAPE permutation-invariance missing")
+    if not str(policy.get("ambiguous_rule","")).startswith("unknown"):
+        raise AssertionError(f"{label}: ambiguous CAPE must remain unknown")
+    if not str(policy.get("missing_rule","")).startswith("unknown"):
+        raise AssertionError(f"{label}: missing CAPE must remain unknown")
 
 
 def compatibility_pins(v1):
@@ -162,6 +201,18 @@ def main():
             f"{args.remote_repo}:{SUCCESSOR_PATH}@{args.remote_ref}"
         )
 
+    local_cape_bytes=Path(CAPE_IDENTITY_PATH).read_bytes()
+    remote_cape_bytes=fetch_contents(args.remote_repo,CAPE_IDENTITY_PATH,args.remote_ref,token)
+    if local_cape_bytes!=remote_cape_bytes:
+        raise AssertionError(
+            "B2 CAPE native identity contract drift: local bytes differ from "
+            f"{args.remote_repo}:{CAPE_IDENTITY_PATH}@{args.remote_ref}"
+        )
+    local_cape=json.loads(local_cape_bytes)
+    remote_cape=json.loads(remote_cape_bytes)
+    require_cape_identity_invariants(local_cape,"local CAPE")
+    require_cape_identity_invariants(remote_cape,"remote CAPE")
+
     local_v1=json.loads(Path(args.local_v1).read_text(encoding="utf-8"))
     remote_v1=json.loads(fetch_contents(args.remote_repo,FROZEN_V1_PATH,args.remote_ref,token))
     local_pins=compatibility_pins(local_v1)
@@ -179,6 +230,8 @@ def main():
         "contract_version":local["contract_version"],
         "contract_bytes_sha256":hashlib.sha256(local_bytes).hexdigest(),
         "shared_core_sha256":local["shared_core_sha256"],
+        "cape_native_identity_contract_version":local_cape["method_version"],
+        "cape_native_identity_contract_sha256":hashlib.sha256(local_cape_bytes).hexdigest(),
         "predecessor_compatibility_pins":local_pins,
     }
     print(json.dumps(result,sort_keys=True))
