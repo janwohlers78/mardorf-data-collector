@@ -71,6 +71,32 @@ class NoaaWeatherContextTests(unittest.TestCase):
         self.assertTrue(got["CAPE"])
         self.assertFalse(got["DSWRF"])
 
+    def test_registry_semantics_cover_verified_noaa_native_fields(self):
+        cases=[
+            ({"shortName":"10u","name":"10 metre U wind component","typeOfLevel":"heightAboveGround","level":10},"wind_u_10m"),
+            ({"shortName":"10v","name":"10 metre V wind component","typeOfLevel":"heightAboveGround","level":10},"wind_v_10m"),
+            ({"shortName":"gust","name":"Wind speed (gust)","typeOfLevel":"surface","level":0},"wind_gust_10m"),
+            ({"shortName":"tp","name":"Total precipitation","typeOfLevel":"surface","level":0},"total_precipitation"),
+            ({"shortName":"2t","name":"2 metre temperature","typeOfLevel":"heightAboveGround","level":2},"air_temperature_2m"),
+            ({"shortName":"2d","name":"2 metre dewpoint temperature","typeOfLevel":"heightAboveGround","level":2},"dewpoint_temperature_2m"),
+            ({"shortName":"2r","name":"2 metre relative humidity","typeOfLevel":"heightAboveGround","level":2},"relative_humidity_2m"),
+            ({"shortName":"prmsl","name":"Pressure reduced to MSL","typeOfLevel":"meanSea","level":0},"mean_sea_level_pressure"),
+            ({"shortName":"sp","name":"Surface pressure","typeOfLevel":"surface","level":0},"surface_pressure"),
+            ({"shortName":"tcc","name":"Total Cloud Cover","typeOfLevel":"atmosphere","level":0},"total_cloud_cover"),
+            ({"shortName":"cape","name":"Convective available potential energy","typeOfLevel":"surface","level":0},"cape"),
+            ({"shortName":"cin","name":"Convective inhibition","typeOfLevel":"surface","level":0},"cin"),
+            ({"shortName":"dswrf","name":"Downward short-wave radiation flux","typeOfLevel":"surface","level":0},"surface_downward_shortwave"),
+        ]
+        for item,expected in cases:
+            with self.subTest(expected=expected):
+                self.assertEqual(noaa.registry_semantic(item),expected)
+
+    def test_pressure_level_relative_humidity_is_not_mislabeled_as_2m_rh(self):
+        self.assertIsNone(noaa.registry_semantic({
+            "shortName":"r","name":"Relative humidity",
+            "typeOfLevel":"isobaricInhPa","level":850,
+        }))
+
     def test_all_returned_variants_are_preserved_as_lists(self):
         # Storage relies on keeping distinct native messages rather than
         # collapsing stepType/level variants to one scalar.
