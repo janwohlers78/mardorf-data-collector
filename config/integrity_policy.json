@@ -554,5 +554,10 @@
     "semantic_contract_sha256": "3f502094a90ac8901b103cda730209bb15d6bd20e3f2c59826f502d2c5f400d3",
     "provider_matrix_sha256": "b3c1643c7cdf0fafff98511f3e38c5c57de04f90b07a68e69a1c87605edaf104",
     "registry_sha256": "4a9c458bbd8595cb0e5ca4a823aa14992ce087bc2e91813c0c96c8d835153cc1"
+  },
+  "phase2_freeze_contract": {
+    "path": "config/phase2_frozen_contract_v1.json",
+    "contract_version": "phase2-acquisition-storage-freeze-v1",
+    "status": "complete_frozen"
   }
 }
