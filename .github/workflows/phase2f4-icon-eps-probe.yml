@@ -16,11 +16,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Probe one stable 20-member response
+      - name: Probe stable 20-member weather response
         shell: bash
         run: |
           python3 - <<'PY'
-          import json, math, re, urllib.parse, urllib.request
+          import json, math, re, urllib.parse, urllib.request, urllib.error
           from datetime import datetime, timezone, timedelta
 
           META='https://api.open-meteo.com/data/dwd_icon_d2_eps/static/meta.json'
@@ -32,14 +32,27 @@ jobs:
               'pressure_msl','surface_pressure','cloud_cover',
               'shortwave_radiation','cin'
           ]
-          FIELDS=EXISTING+CANDIDATES
 
           def get_json(url):
               req=urllib.request.Request(url,headers={'User-Agent':'mardorf-data-collector/phase2f4-probe'})
-              with urllib.request.urlopen(req,timeout=90) as r:
-                  return json.load(r), r.status, r.geturl()
+              try:
+                  with urllib.request.urlopen(req,timeout=90) as r:
+                      return json.load(r), r.status, r.geturl(), None
+              except urllib.error.HTTPError as e:
+                  body=e.read().decode('utf-8','replace')[:1000]
+                  return None, e.code, e.geturl(), body
 
-          before,_,_=get_json(META)
+          def query(fields):
+              q={
+                  'latitude':LAT,'longitude':LON,'hourly':','.join(fields),
+                  'models':'dwd_icon_d2_eps','past_days':1,'forecast_days':4,
+                  'wind_speed_unit':'ms','timezone':'GMT'
+              }
+              return get_json(API+'?'+urllib.parse.urlencode(q))
+
+          before,status,_,err=get_json(META)
+          if before is None:
+              raise SystemExit(f'metadata read failed HTTP {status}: {err}')
           init=int(before['last_run_initialisation_time'])
           avail=int(before['last_run_availability_time'])
           run=datetime.fromtimestamp(init,tz=timezone.utc)
@@ -47,19 +60,31 @@ jobs:
           if age < 600:
               raise SystemExit(f'run not settled: availability age {age:.1f}s < 600s')
 
-          q={
-              'latitude':LAT,'longitude':LON,'hourly':','.join(FIELDS),
-              'models':'dwd_icon_d2_eps','past_days':1,'forecast_days':4,
-              'wind_speed_unit':'ms','timezone':'GMT'
-          }
-          payload,status,url=get_json(API+'?'+urllib.parse.urlencode(q))
-          after,_,_=get_json(META)
+          capability={}
+          accepted=[]
+          for candidate in CANDIDATES:
+              payload,status,url,err=query(EXISTING+[candidate])
+              capability[candidate]={
+                  'http_status':status,
+                  'accepted':payload is not None,
+                  'error':err,
+              }
+              if payload is not None:
+                  accepted.append(candidate)
+
+          fields=EXISTING+accepted
+          payload,status,url,err=query(fields)
+          if payload is None:
+              raise SystemExit(f'final combined request failed HTTP {status}: {err}')
+          after,status2,_,err2=get_json(META)
+          if after is None:
+              raise SystemExit(f'final metadata read failed HTTP {status2}: {err2}')
           stable=(
               before.get('last_run_initialisation_time')==after.get('last_run_initialisation_time')
               and before.get('last_run_availability_time')==after.get('last_run_availability_time')
           )
           if not stable:
-              raise SystemExit('provider metadata changed across ensemble response')
+              raise SystemExit('provider metadata changed across capability/final ensemble responses')
 
           hourly=payload.get('hourly') or {}
           times=hourly.get('time') or []
@@ -78,18 +103,22 @@ jobs:
 
           report={
               'run_time_utc':run.isoformat(),
+              'availability_age_seconds':round(age,1),
               'metadata_stable':stable,
+              'capability':capability,
+              'accepted_candidates':accepted,
+              'rejected_candidates':[x for x in CANDIDATES if x not in accepted],
+              'final_request_fields':fields,
               'returned_coordinate':{'latitude':payload.get('latitude'),'longitude':payload.get('longitude')},
               'response_http_status':status,
               'hourly_units':payload.get('hourly_units') or {},
               'fields':{}
           }
-          all_required_times=all(t in index for t in required)
-          if not all_required_times:
-              missing=[t for t in required if t not in index]
+          missing=[t for t in required if t not in index]
+          if missing:
               raise SystemExit('required 0-48h axis missing: '+repr(missing[:5]))
 
-          for field in FIELDS:
+          for field in fields:
               cols=columns(field)
               member_ids=sorted(cols)
               finite_members=[]
@@ -116,11 +145,14 @@ jobs:
                   'complete_0_48_member_count':len(finite_members),
                   'member_failures':member_failures,
                   'unit':(payload.get('hourly_units') or {}).get(field),
-                  'same_response':True,
+                  'same_final_response':True,
               }
 
           print('PHASE2F4_PROBE='+json.dumps(report,sort_keys=True,separators=(',',':')))
-          print('\nSummary:')
+          print('\nCapability:')
+          for f,d in capability.items():
+              print(f"{f}: HTTP={d['http_status']} accepted={d['accepted']} error={d['error']}")
+          print('\nFinal combined response:')
           for f,d in report['fields'].items():
               print(f"{f}: columns={d['member_count']} complete_0_48={d['complete_0_48_member_count']} unit={d['unit']} failures={d['member_failures']}")
 
