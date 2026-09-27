@@ -322,7 +322,7 @@ def _fetch_unit(run,unit):
             "response_sha256":sha,
             "attempt_count":attempt_count,
             "elapsed_seconds":round(elapsed,6),
-            "returned_coordinates_by_product":coords_by_product,
+            "returned_coordinate":point,
             "fields":fields,
         }
     except Exception as exc:
@@ -377,7 +377,7 @@ def build_source(run,records,cycle_probe=None):
         "run_time_utc":run.isoformat(),
         "retrieved_at_utc":datetime.now(timezone.utc).isoformat(),
         "response_sha256":payload_hash,
-        "returned_coordinate":point,
+        "returned_coordinates_by_product":coords_by_product,
         "identity_evidence_tier":"provider_embedded",
         "expected_member_ids":list(MEMBERS),
         "member_roles":dict(MEMBER_ROLES),
