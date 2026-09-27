@@ -27,8 +27,8 @@ from icon_parameter_probe import CANONICAL, message_metadata, select_exact_messa
 SNAP=Path(os.getenv("COLLECTOR_MODEL_FILE","work/model_snapshot.json"))
 TIER_A=("t_2m","td_2m","relhum_2m","pmsl","ps","tot_prec","clct","aswdir_s","aswdifd_s","cape_ml","cin_ml")
 MODEL_MAP={"ICON-D2":"icon-d2","ICON-EU":"icon-eu"}
-METHOD_VERSION="phase2f1-icon-registry-v1-routine-v2"
-REGISTRY_VERSION="relevant-meteorology-v1"
+METHOD_VERSION="phase2-b1-icon-registry-v2-routine-v1"
+REGISTRY_VERSION="relevant-meteorology-v2"
 WIND_SEMANTICS={"u_10m":"wind_u_10m","v_10m":"wind_v_10m","vmax_10m":"wind_gust_10m"}
 
 
@@ -52,7 +52,7 @@ def url_inventory(provider_model,cycle,param):
 def fetch_field(provider_model,cycle,lead,param,url,run,valid):
     started=time.monotonic()
     checked=datetime.now(timezone.utc).isoformat()
-    stable={"parameter_native":param,"semantic_id":CANONICAL[param],"value":None,"availability_status":"fetch_error","error_type":"OptionalFieldUnavailable","availability_observed_at_utc":checked}
+    stable={"parameter_native":param,"semantic_id":CANONICAL[param],"registry_version":REGISTRY_VERSION,"value":None,"availability_status":"fetch_error","error_type":"OptionalFieldUnavailable","availability_observed_at_utc":checked}
     diagnostic={"parameter":param,"lead_hours":lead,"status":"fetch_error"}
     if not url:
         stable["availability_status"]="not_yet_published"
@@ -80,6 +80,7 @@ def fetch_field(provider_model,cycle,lead,param,url,run,valid):
             values.append({
                 **m,
                 "semantic_id":CANONICAL[param],
+                "registry_version":REGISTRY_VERSION,
                 "value":p["value"],
                 "latitude":p["lat"],
                 "longitude":p["lon"],
@@ -103,7 +104,7 @@ def fetch_field(provider_model,cycle,lead,param,url,run,valid):
 
 
 def annotate_registry_semantics(row):
-    """Attach frozen Registry-v1 semantics without altering native field identity."""
+    """Attach active Registry-v2 semantics without altering native field identity."""
     values=row.get("values") or {}
     for parameter,semantic_id in WIND_SEMANTICS.items():
         native=values.get(parameter)
@@ -116,6 +117,7 @@ def annotate_registry_semantics(row):
         for item in items:
             if isinstance(item,dict):
                 item.setdefault("semantic_id",semantic_id)
+                item.setdefault("registry_version",REGISTRY_VERSION)
 
 
 def attach(snapshot,workers=4,models=None):
@@ -161,6 +163,10 @@ def attach(snapshot,workers=4,models=None):
 
     for (model,idx,param),(value,url) in results.items():
         row=snapshot["models"][model][idx]
+        items=value if isinstance(value,list) else [value]
+        for item in items:
+            if isinstance(item,dict):
+                item.setdefault("registry_version",REGISTRY_VERSION)
         row.setdefault("values",{})[param]=value
         if url:
             urls=row.setdefault("source_urls",[])

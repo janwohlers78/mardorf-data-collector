@@ -110,20 +110,40 @@
       "required_for_core_wind": false
     },
     {
-      "parameter_id": "surface_downward_shortwave",
-      "target_unit": "separate:J/m2_or_W/m2",
+      "parameter_id": "surface_downward_shortwave_direct",
+      "target_unit": "provider_native:J/m2_or_W/m2",
       "dwd_fields": [
-        "aswdir_s",
+        "aswdir_s"
+      ],
+      "ecmwf_fields": [],
+      "noaa_selectors_inventory_check_required": [],
+      "time_semantics": "provider_native_accumulation_or_average",
+      "required_for_core_wind": false
+    },
+    {
+      "parameter_id": "surface_downward_shortwave_diffuse",
+      "target_unit": "provider_native:J/m2_or_W/m2",
+      "dwd_fields": [
         "aswdifd_s"
       ],
+      "ecmwf_fields": [],
+      "noaa_selectors_inventory_check_required": [],
+      "time_semantics": "provider_native_accumulation_or_average",
+      "required_for_core_wind": false
+    },
+    {
+      "parameter_id": "surface_downward_shortwave",
+      "target_unit": "provider_native:J/m2_or_W/m2",
+      "dwd_fields": [],
       "ecmwf_fields": [
         "ssrd"
       ],
       "noaa_selectors_inventory_check_required": [
         "DSWRF|surface"
       ],
-      "time_semantics": "accumulation_or_average",
-      "required_for_core_wind": false
+      "time_semantics": "provider_native_accumulation_or_average",
+      "required_for_core_wind": false,
+      "dwd_derivation_policy": "explicit_only_same_interval_same_grid_compatible_units_with_component_provenance"
     },
     {
       "parameter_id": "cape",
@@ -190,7 +210,7 @@
   "analysis_changes": false,
   "provider_activation": {
     "DWD_ICON": {
-      "status": "routine_registry_v1_active",
+      "status": "routine_registry_v2_active",
       "models": [
         "ICON-D2",
         "ICON-EU"
@@ -240,10 +260,10 @@
       },
       "routine_collection_enabled": true,
       "analysis_changes": false,
-      "note": "Phase 2F-1 routine activation after 2E-3 acceptance. All validated Registry-v1 ICON fields use the existing Acquisition Grid v2; no denser weather-only grid is introduced.",
+      "note": "Phase-2 audit B1: Registry v2 is active for deterministic DWD ICON. ASWDIR_S and ASWDIFD_S are distinct direct/diffuse semantics; total shortwave is not synthesized during acquisition.",
       "tier_a_routine": {
         "status": "active_phase2f1",
-        "method_version": "phase2f1-icon-registry-v1-routine-v2",
+        "method_version": "phase2-b1-icon-registry-v2-routine-v1",
         "parameters": [
           "t_2m",
           "td_2m",
@@ -266,7 +286,7 @@
         "normalization_performed": false,
         "analysis_changed": false,
         "missing_policy": "explicit missing/fetch_error; never zero-fill; never invalidate wind-critical records",
-        "registry_version": "relevant-meteorology-v1"
+        "registry_version": "relevant-meteorology-v2"
       },
       "registry_v1_coverage": {
         "ICON-D2": {
@@ -353,12 +373,105 @@
             "cin_ml"
           ]
         }
+      },
+      "registry_version": "relevant-meteorology-v2",
+      "registry_v2_coverage": {
+        "ICON-D2": {
+          "wind_u_10m": [
+            "u_10m"
+          ],
+          "wind_v_10m": [
+            "v_10m"
+          ],
+          "wind_gust_10m": [
+            "vmax_10m"
+          ],
+          "air_temperature_2m": [
+            "t_2m"
+          ],
+          "dewpoint_temperature_2m": [
+            "td_2m"
+          ],
+          "relative_humidity_2m": [
+            "relhum_2m"
+          ],
+          "mean_sea_level_pressure": [
+            "pmsl"
+          ],
+          "surface_pressure": [
+            "ps"
+          ],
+          "total_precipitation": [
+            "tot_prec"
+          ],
+          "total_cloud_cover": [
+            "clct"
+          ],
+          "surface_downward_shortwave_direct": [
+            "aswdir_s"
+          ],
+          "surface_downward_shortwave_diffuse": [
+            "aswdifd_s"
+          ],
+          "surface_downward_shortwave": [],
+          "cape": [
+            "cape_ml"
+          ],
+          "cin": [
+            "cin_ml"
+          ]
+        },
+        "ICON-EU": {
+          "wind_u_10m": [
+            "u_10m"
+          ],
+          "wind_v_10m": [
+            "v_10m"
+          ],
+          "wind_gust_10m": [
+            "vmax_10m"
+          ],
+          "air_temperature_2m": [
+            "t_2m"
+          ],
+          "dewpoint_temperature_2m": [
+            "td_2m"
+          ],
+          "relative_humidity_2m": [
+            "relhum_2m"
+          ],
+          "mean_sea_level_pressure": [
+            "pmsl"
+          ],
+          "surface_pressure": [
+            "ps"
+          ],
+          "total_precipitation": [
+            "tot_prec"
+          ],
+          "total_cloud_cover": [
+            "clct"
+          ],
+          "surface_downward_shortwave_direct": [
+            "aswdir_s"
+          ],
+          "surface_downward_shortwave_diffuse": [
+            "aswdifd_s"
+          ],
+          "surface_downward_shortwave": [],
+          "cape": [
+            "cape_ml"
+          ],
+          "cin": [
+            "cin_ml"
+          ]
+        }
       }
     },
     "NOAA_GFS_GEFS": {
       "status": "phase2f3_sparse_full_member_production_active",
       "method_version": "phase2f3-noaa-registry-and-sparse-full-members-v1",
-      "registry_version": "relevant-meteorology-v1",
+      "registry_version": "relevant-meteorology-v2",
       "models": [
         "GFS",
         "GEFS-control"
@@ -679,12 +792,12 @@
     "weather_context_rule": "NOAA weather context is requested only on leads actually selected by Acquisition Grid v2.",
     "phase_boundary": "Phase 2 is complete_frozen. Full NOAA_GEFS member production is active only under gefs-sparse-00z-policy-v1; future acquisition/cadence changes require a versioned successor to Acquisition Grid v2 or the affected ensemble policy."
   },
-  "relevant_meteorology_registry_version": "relevant-meteorology-v1",
+  "relevant_meteorology_registry_version": "relevant-meteorology-v2",
   "relevant_meteorology_registry_contract": {
-    "path": "config/relevant_meteorology_registry_v1.json",
-    "semantic_contract_sha256": "3f502094a90ac8901b103cda730209bb15d6bd20e3f2c59826f502d2c5f400d3",
-    "provider_matrix_sha256": "b3c1643c7cdf0fafff98511f3e38c5c57de04f90b07a68e69a1c87605edaf104",
-    "registry_sha256": "4a9c458bbd8595cb0e5ca4a823aa14992ce087bc2e91813c0c96c8d835153cc1"
+    "path": "config/relevant_meteorology_registry_v2.json",
+    "semantic_contract_sha256": "169de0495c8b4b24f8d541ed7d9a829c494d4710bf5383e356c044bff2c7a141",
+    "provider_matrix_sha256": "221529e2533616dd2e6fcf597c4765d6532323899da5a366bf482dd7ae23ffc1",
+    "registry_sha256": "6ffbad0550201b075e1b5f6d527e7e340d95611d23cc193aca5855aec9d3c9a7"
   },
   "phase2_freeze": {
     "contract_version": "phase2-acquisition-storage-freeze-v1",
