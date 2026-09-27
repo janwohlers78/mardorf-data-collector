@@ -322,7 +322,7 @@ def _fetch_unit(run,unit):
             "response_sha256":sha,
             "attempt_count":attempt_count,
             "elapsed_seconds":round(elapsed,6),
-            "returned_coordinate":point,
+            "returned_coordinates_by_product":coords_by_product,
             "fields":fields,
         }
     except Exception as exc:
@@ -353,14 +353,21 @@ def build_source(run,records,cycle_probe=None):
         [x["member_id"],x["lead_hours"],x.get("response_sha256"),x.get("request_status")]
         for x in records
     ],sort_keys=True,separators=(",",":")).encode()).hexdigest()
-    coords=[x.get("returned_coordinate") for x in records if x.get("request_status")=="received"]
-    point=coords[0] if coords else None
-    if point and any(
-        abs(float(x.get("latitude"))-float(point.get("latitude")))>1e-9
-        or abs(float(x.get("longitude"))-float(point.get("longitude")))>1e-9
-        for x in coords
-    ):
-        raise ValueError("GEFS full-member grid point changed within source")
+    coords_by_product={}
+    for product in PRODUCTS:
+        coords=[x.get("returned_coordinate") for x in records
+                if x.get("request_status")=="received" and x.get("provider_product")==product
+                and isinstance(x.get("returned_coordinate"),dict)]
+        if not coords:
+            continue
+        point=coords[0]
+        if any(
+            abs(float(x.get("latitude"))-float(point.get("latitude")))>1e-9
+            or abs(float(x.get("longitude"))-float(point.get("longitude")))>1e-9
+            for x in coords
+        ):
+            raise ValueError(f"GEFS full-member grid point changed within {product}")
+        coords_by_product[product]=point
     source={
         "schema_version":1,
         "method_version":METHOD_VERSION,
