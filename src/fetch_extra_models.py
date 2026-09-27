@@ -9,9 +9,10 @@ from ecmwf.opendata import Client
 from grib_identity import _step_end_hours,assert_grib_batch_leads,assert_grib_valid_time,grib_run_times
 from full_horizon_contract import maximum_hours,gefs_lead_contract
 import noaa_weather_context as noaa
+import ecmwf_registry
 LAT=52.4942; LON=9.3418
 ECMWF_SOURCE=os.getenv('ECMWF_OPEN_DATA_SOURCE','azure')
-ECMWF_PARAMS=['10u','10v','10fg','10fg3','tp','mucape']
+ECMWF_PARAMS=list(ecmwf_registry.PARAMS)
 S=requests.Session(); S.headers.update({'User-Agent':'mardorf-data-collector/1.0 (+github-actions)'})
 
 class NearestRows(list):
@@ -59,17 +60,18 @@ def fetch_ifs(leads,run_time=None):
   run=grib_run_time(target)
   if planned is not None and run!=planned:
    raise RuntimeError(f'ECMWF run identity mismatch: planned {planned.isoformat()} got {run.isoformat()}')
-  assert_grib_batch_leads(target,run,leads,'ECMWF-IFS base batch'); bylead={int(x):{} for x in leads}; rows=nearest(target);point=rows.point
-  for n,s,v in rows:
-   lead=step_end(s)
-   if lead in bylead:bylead[lead].setdefault(n,[]).append({'stepRange':s,'value':v})
+  assert_grib_batch_leads(target,run,leads,'ECMWF-IFS base batch')
+  rows=nearest(target);point=rows.point
+  source_sha=hashlib.sha256(target.read_bytes()).hexdigest()
+  metadata=ecmwf_registry.message_metadata(target)
+  bylead=ecmwf_registry.values_by_lead(rows,metadata,leads,source_sha256=source_sha)
   for lead in leads:
    vals=bylead[int(lead)]
    def one(*names):
     for n in names:
      if n in vals and vals[n]: return vals[n][0]['value']
    u=one('10u');v=one('10v');g=one('10fg','10fg3','10fg6')
-   rec={'model':'ECMWF-IFS','run_time_utc':run.isoformat(),'forecast_lead_hours':lead,'valid_time_utc':(run+timedelta(hours=lead)).isoformat(),'source':f'ECMWF Open Data via {ECMWF_SOURCE} mirror raw GRIB2','values':vals,'forecast_coordinate_or_grid_point':point,'source_request':{'steps':leads,'retrieved_run_time_utc':run.isoformat()}}
+   rec={'model':'ECMWF-IFS','run_time_utc':run.isoformat(),'forecast_lead_hours':lead,'valid_time_utc':(run+timedelta(hours=lead)).isoformat(),'provider_product':ecmwf_registry.PRODUCT,'source':f'ECMWF Open Data via {ECMWF_SOURCE} mirror raw GRIB2','values':vals,'field_availability_states':ecmwf_registry.unsupported_declarations(),'forecast_coordinate_or_grid_point':point,'source_request':{'steps':leads,'params':ECMWF_PARAMS,'retrieved_run_time_utc':run.isoformat(),'registry_version':ecmwf_registry.REGISTRY_VERSION}}
    if u is not None and v is not None:rec['derived']=derived(u,v,g)
    out.append(rec)
  return out
