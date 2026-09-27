@@ -72,12 +72,12 @@ using any transferred bundle.
 
 ## Integrity reporting
 
-Every acquisition is followed by `collector-integrity-v1.5`.
+Every acquisition is followed by `collector-integrity-v1.6`.
 
 For production model bundles the v1.5 gate also requires the complete native-hourly ICON-D2-EPS source used by v15: one stable run, exact UTC hours through +48 h, and all 20 fixed wind/direction/gust members. This hourly block is retained from the same Open-Meteo response already used for the 3-hour EPS summary; it creates no second provider request.\n\nFor models the report identifies, per source, the selected run, exact run age,
 age limit, expected/received lead hours, exact absent or duplicate leads,
 required-field failures, timestamp inconsistencies and provider/decode exceptions.
-Provider-cycle horizon limitations are distinguished from real download failures.
+Compatibility-payload horizon limitations are distinguished from provider-native/full-archive horizons and from real download failures.
 GRIB-backed sources additionally verify provider `dataDate/dataTime`, `stepRange` and
 `validityDate/validityTime` before a record is accepted. The audit hard-fails on
 model-record identity or collection-spot mismatches.

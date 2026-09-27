@@ -26,7 +26,7 @@ def report(kind,now,sources,issues,meta):
     infos=sum(x["severity"]=="INFO" for x in issues)
     return {
         "schema_version":1,
-        "method_version":json.loads(POLICY.read_text(encoding="utf-8")).get("method_version","collector-integrity-v1.5"),
+        "method_version":json.loads(POLICY.read_text(encoding="utf-8")).get("method_version","collector-integrity-v1.6"),
         "kind":kind,"generated_at_utc":now.isoformat(),
         "status":"FAIL" if errors else ("PASS_WITH_WARNINGS" if warnings else "PASS"),
         "error_count":errors,"warning_count":warnings,"info_count":infos,

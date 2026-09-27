@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "method_version": "collector-integrity-v1.5",
+  "method_version": "collector-integrity-v1.6",
   "model_policy": {
     "spot": {
       "latitude": 52.4942,
@@ -185,38 +185,6 @@
         114,
         120
       ]
-    },
-    "provider_horizon_by_cycle": {
-      "ICON-D2": {
-        "default_max_hours": 48
-      },
-      "ICON-D2-EPS": {
-        "default_max_hours": 48
-      },
-      "ICON-EU": {
-        "main_cycle_hours": [
-          0,
-          6,
-          12,
-          18
-        ],
-        "main_max_hours": 120,
-        "other_max_hours": 51
-      },
-      "ECMWF-IFS": {
-        "main_cycle_hours": [
-          0,
-          12
-        ],
-        "main_max_hours": 120,
-        "other_max_hours": 90
-      },
-      "GFS": {
-        "default_max_hours": 120
-      },
-      "GEFS-control": {
-        "default_max_hours": 120
-      }
     },
     "maximum_run_age_hours": {
       "ICON-D2": 9,
@@ -510,6 +478,46 @@
       },
       "full_member_failure_policy": "retain_last_complete_source_and_emit_attempt_warning",
       "canonical_forecast_policy": "archive_only_not_exposed_in_current_snapshot"
+    },
+    "compatibility_payload_horizon_by_cycle": {
+      "ICON-D2": {
+        "default_max_hours": 48
+      },
+      "ICON-D2-EPS": {
+        "default_max_hours": 48
+      },
+      "ICON-EU": {
+        "main_cycle_hours": [
+          0,
+          6,
+          12,
+          18
+        ],
+        "main_max_hours": 120,
+        "other_max_hours": 51
+      },
+      "ECMWF-IFS": {
+        "main_cycle_hours": [
+          0,
+          12
+        ],
+        "main_max_hours": 120,
+        "other_max_hours": 90
+      },
+      "GFS": {
+        "default_max_hours": 120
+      },
+      "GEFS-control": {
+        "default_max_hours": 120
+      }
+    },
+    "horizon_semantics": {
+      "method_version": "phase2-g2-horizon-semantics-v1",
+      "compatibility_payload_horizon_key": "compatibility_payload_horizon_by_cycle",
+      "compatibility_payload_scope": "models compatibility/current snapshot only",
+      "provider_native_horizon_owner": "src/full_horizon_contract.py::maximum_hours",
+      "acquisition_horizon_owner": "src/full_horizon_contract.py::acquisition_policy/acquisition_leads",
+      "invariant": "Compatibility payload horizon must never cap or reject full_horizon_archive provider-native/acquisition records."
     }
   },
   "svg_policy": {

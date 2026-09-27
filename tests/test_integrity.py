@@ -584,11 +584,11 @@ class IntegrityAuditTests(unittest.TestCase):
         self.assertFalse(r["bundle_ready_for_private_revalidation"])
 
     def test_ecmwf_cycle_horizon_and_freshness_policy(self):
-        from audit_integrity import provider_max
-        self.assertEqual(provider_max("ECMWF-IFS",0,POLICY),120)
-        self.assertEqual(provider_max("ECMWF-IFS",12,POLICY),120)
-        self.assertEqual(provider_max("ECMWF-IFS",6,POLICY),90)
-        self.assertEqual(provider_max("ECMWF-IFS",18,POLICY),90)
+        from audit_integrity import compatibility_payload_max
+        self.assertEqual(compatibility_payload_max("ECMWF-IFS",0,POLICY),120)
+        self.assertEqual(compatibility_payload_max("ECMWF-IFS",12,POLICY),120)
+        self.assertEqual(compatibility_payload_max("ECMWF-IFS",6,POLICY),90)
+        self.assertEqual(compatibility_payload_max("ECMWF-IFS",18,POLICY),90)
         self.assertEqual(POLICY["model_policy"]["maximum_run_age_hours"]["ECMWF-IFS"],14)
 
     def test_svg_exact_gap_is_reported(self):

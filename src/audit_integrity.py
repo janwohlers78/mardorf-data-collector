@@ -10,7 +10,7 @@ FAMILY={
     "ICON-D2":"DWD-ICON","ICON-D2-EPS":"DWD-ICON","ICON-EU":"DWD-ICON",
     "ECMWF-IFS":"ECMWF","GFS":"GFS","GEFS-control":"GFS",
 }
-POLICY_VERSION="collector-integrity-v1.5"
+POLICY_VERSION="collector-integrity-v1.6"
 
 def dt(v):
     if not v:return None
@@ -25,8 +25,13 @@ def finite(v):
 def issue(code,severity,source,scope,impact,**details):
     return {"code":code,"severity":severity,"source":source,"scope":scope,"impact":impact,"details":details}
 
-def provider_max(model,run_hour,cfg):
-    p=cfg["model_policy"]["provider_horizon_by_cycle"][model]
+def compatibility_payload_max(model,run_hour,cfg):
+    """Maximum lead represented by the compatibility/current models payload.
+
+    This is deliberately not the provider-native or archive acquisition horizon;
+    those are owned by full_horizon_contract.
+    """
+    p=cfg["model_policy"]["compatibility_payload_horizon_by_cycle"][model]
     if "default_max_hours" in p:return int(p["default_max_hours"])
     return int(p["main_max_hours"] if run_hour in p["main_cycle_hours"] else p["other_max_hours"])
 
@@ -554,7 +559,7 @@ def audit_models(path,cfg,now):
         run_values=sorted({str(r.get("run_time_utc")) for r in recs if r.get("run_time_utc")})
         run=dt(run_values[0]) if len(run_values)==1 else None
         run_hour=run.hour if run else None
-        pmax=provider_max(model,run_hour,cfg) if run_hour is not None else None
+        pmax=compatibility_payload_max(model,run_hour,cfg) if run_hour is not None else None
         if mode=="test":
             expected=[0,12,24,30,36,42,48] if model in ("ICON-D2","GFS") else [0,12,24,36,48]
             project_gap=[]
