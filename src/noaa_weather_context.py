@@ -154,6 +154,8 @@ def extract_native_values(path,lat,lon,source_sha256=None,product=None):
         semantic=registry_semantic(m)
         if semantic is not None:
             item["semantic_id"]=semantic
+        if product is not None:
+            item["provider_product"]=product
         if semantic=="cape":
             model="GFS" if product=="gfs_0p25" else "GEFS-control" if str(product or "").startswith("gefs_") else None
             identity=cape_identity.identify_item(model,str(m.get("shortName") or "cape"),item) if model else {
@@ -167,8 +169,6 @@ def extract_native_values(path,lat,lon,source_sha256=None,product=None):
                 item["cape_native_identity_reason"]=identity.get("reason")
         if source_sha256 is not None:
             item["source_sha256"]=source_sha256
-        if product is not None:
-            item["provider_product"]=product
         values.setdefault(str(m["shortName"]),[]).append(item)
     return values,point
 
