@@ -1,0 +1,126 @@
+{
+  "schema_version": 2,
+  "plan_version": "weather-acquisition-plan-v2",
+  "status": "dev03_wp03_i04_implementation_contract",
+  "date": "2026-09-28",
+  "development_phase": "DEV-03",
+  "work_package": "DEV03-WP03",
+  "implementation_step": "WP03-I04",
+  "predecessor": {
+    "path": "config/weather_acquisition_plan.json",
+    "git_blob_sha": "b4e6e20842748f06c6ca9ce0fdd0a9834bc8a772",
+    "status": "phase2_complete_frozen",
+    "mutation_allowed": false
+  },
+  "registry": {
+    "path": "config/relevant_meteorology_registry_v3.json",
+    "registry_version": "relevant-meteorology-v3",
+    "git_blob_sha": "867abdbd1e2e9616bcaf3f29473d514963c76721"
+  },
+  "parent_binding": {
+    "contract": "dev03-wp03-i03-parent-transfer-v1",
+    "exact_parent_payload_sha_required_before_planning": true,
+    "parent_cycle_binding_method_version": "dev03-parent-cycle-binding-v1",
+    "newest_or_mature_cycle_selection_allowed": false,
+    "provider_product_inference_allowed": false,
+    "grid_or_coordinate_inference_allowed": false
+  },
+  "successor_acquisition": {
+    "semantic_id": "convective_precipitation",
+    "time_semantics": "provider_native_accumulation",
+    "normalization_performed": false,
+    "interval_resolution_deferred_to": "WP03-I06",
+    "allowed_initial_provider_paths": {
+      "ICON-D2": {
+        "parent_provider_product": "icon-d2_regular-lat-lon",
+        "parameter_native": "rain_con",
+        "field_provider_product": "DWD ICON-D2 Open Data raw GRIB2",
+        "provider_model": "icon-d2",
+        "url_template": "https://opendata.dwd.de/weather/nwp/icon-d2/grib/{cycle_hour}/rain_con/icon-d2_germany_regular-lat-lon_single-level_{cycle_yyyymmddhh}_{lead_3}_2d_rain_con.grib2.bz2"
+      },
+      "ICON-EU": {
+        "parent_provider_product": "icon-eu_regular-lat-lon",
+        "parameter_native": "rain_con",
+        "field_provider_product": "DWD ICON-EU Open Data raw GRIB2",
+        "provider_model": "icon-eu",
+        "url_template": "https://opendata.dwd.de/weather/nwp/icon-eu/grib/{cycle_hour}/rain_con/icon-eu_europe_regular-lat-lon_single-level_{cycle_yyyymmddhh}_{lead_3}_RAIN_CON.grib2.bz2"
+      },
+      "GFS": {
+        "parent_provider_product": "gfs_0p25",
+        "parameter_native": "ACPCP",
+        "field_provider_product": "gfs_0p25",
+        "provider_model": "gfs",
+        "selector": "ACPCP|surface",
+        "explicitly_forbidden_alias": "CPRAT",
+        "endpoint": "https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl"
+      }
+    },
+    "zero_additional_request_paths": [
+      "ECMWF-IFS",
+      "GEFS-control",
+      "NOAA_GEFS_FULL",
+      "ICON-D2-EPS"
+    ]
+  },
+  "request_policy": {
+    "one_provider_request_per_parent_occurrence_per_v3_attempt": true,
+    "hidden_http_retries_allowed": false,
+    "retry_requires_new_v3_attempt": true,
+    "retry_attribution_required": true,
+    "request_timeout_seconds": 120,
+    "user_agent": "mardorf-data-collector/DEV03-I04 (+github-actions)"
+  },
+  "resource_budget": {
+    "budget_version": "dev03-resource-budget-v1",
+    "daily_incremental_request_hard_max": 500,
+    "daily_opportunity_derivation": {
+      "ICON-D2": 136,
+      "ICON-EU": 200,
+      "GFS": 164
+    },
+    "deterministic_network_target_incremental_ratio_max": 0.15,
+    "deterministic_network_hard_incremental_ratio_max": 0.25,
+    "matched_v2_baseline_required": true,
+    "unknown_measurement_fails_closed": true,
+    "request_and_byte_budget_checked_before_every_request": true,
+    "response_bytes_attributed_after_every_request": true,
+    "hard_breach_stops_further_requests": true,
+    "response_body_requires_content_length": true,
+    "declared_response_must_fit_remaining_hard_byte_budget_before_body_read": true,
+    "missing_or_invalid_content_length": "fetch_error_fail_closed"
+  },
+  "output_contract": {
+    "bundle_method_version": "collector-model-bundle-v3-shell",
+    "provider_evidence_semantic": "convective_precipitation",
+    "availability_method_version": "model-field-availability-v3",
+    "native_metadata_preserved": [
+      "parameter_native",
+      "field_provider_product",
+      "shortName",
+      "paramId",
+      "units",
+      "typeOfLevel",
+      "level",
+      "stepType",
+      "startStep",
+      "endStep",
+      "stepUnits",
+      "stepRange",
+      "source_sha256",
+      "source_url",
+      "run_time_utc",
+      "valid_time_utc",
+      "forecast_lead_seconds",
+      "grid_identity"
+    ]
+  },
+  "operational_boundary": {
+    "routine_wiring_enabled": false,
+    "shadow_controls_changed": false,
+    "operational_v2_path_changed": false,
+    "archive_v6_write_enabled": false,
+    "l4_l5_cutover_authorized": false,
+    "operational_authority": "v16-c3-v9"
+  },
+  "next_step_after_i04": "WP03-I05"
+}
