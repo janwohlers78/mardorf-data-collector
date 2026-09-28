@@ -312,6 +312,70 @@ class IntegrityAuditTests(unittest.TestCase):
         self.assertEqual(len(errors),1,r["issues"])
         self.assertFalse(r["sources"]["GEFS-control"]["gefs_mature_archive_exception_applied"])
 
+    def _aged_icon_eu_with_mature_selection_evidence(self,now,newer_status="not_published"):
+        d=self.model_bundle()
+        latest_due=now.replace(minute=0,second=0,microsecond=0)
+        latest_due-=timedelta(hours=latest_due.hour%6)
+        selected=latest_due-timedelta(hours=12)
+        for rec in d["models"]["ICON-EU"]:
+            lead=int(rec["forecast_lead_hours"])
+            rec["run_time_utc"]=selected.isoformat()
+            rec["valid_time_utc"]=(selected+timedelta(hours=lead)).isoformat()
+        attempts=[{
+            "cycle_run_time_utc":selected.isoformat(),
+            "required_lead_hours":120,
+            "status":"published",
+            "missing_required_fields":[],
+            "max_available_lead_by_field":{"u_10m":120,"v_10m":120,"vmax_10m":120},
+            "listing_errors":[],
+        }]
+        cycle=selected+timedelta(hours=6)
+        while cycle<=now:
+            attempts.append({
+                "cycle_run_time_utc":cycle.isoformat(),
+                "required_lead_hours":120,
+                "status":newer_status,
+                "missing_required_fields":["u_10m"] if newer_status=="not_published" else ["u_10m"],
+                "max_available_lead_by_field":{"u_10m":48,"v_10m":48,"vmax_10m":48},
+                "listing_errors":[] if newer_status=="not_published" else [{"hour":cycle.strftime("%H"),"parameter":"u_10m","error_type":"Timeout"}],
+            })
+            cycle+=timedelta(hours=6)
+        d.setdefault("provider_selection_evidence",{})["ICON-EU"]={
+            "method_version":"dwd-newest-mature-cycle-selection-v1",
+            "model":"icon-eu",
+            "full_horizon_publication_required":True,
+            "required_lead_hours":120,
+            "selection_checked_at_utc":now.isoformat(),
+            "selected_cycle_run_time_utc":selected.isoformat(),
+            "cycle_cadence_hours":6,
+            "attempts":attempts,
+        }
+        return d,selected
+
+    def test_icon_eu_newest_mature_120h_cycle_age_excess_is_warning_not_current(self):
+        now=datetime.now(timezone.utc)
+        d,selected=self._aged_icon_eu_with_mature_selection_evidence(now)
+        with tempfile.TemporaryDirectory() as td, patch.dict("os.environ",{"FULL_VALIDATION":"true"}):
+            p=Path(td)/"m.json";p.write_text(json.dumps(d))
+            r=audit_models(p,POLICY,now)
+        self.assertFalse(any(x["code"]=="MODEL_RUN_OLDER_THAN_CURRENTNESS_POLICY" and x["source"]=="ICON-EU" for x in r["issues"]),r["issues"])
+        warnings=[x for x in r["issues"] if x["code"]=="ICON_EU_NEWEST_MATURE_CYCLE_EXCEEDS_NOMINAL_CURRENTNESS"]
+        self.assertEqual(len(warnings),1,r["issues"])
+        src=r["sources"]["ICON-EU"]
+        self.assertTrue(src["icon_eu_mature_archive_exception_applied"])
+        self.assertFalse(src["currentness_policy_pass"])
+        self.assertEqual(src["selected_run_time_utc"],selected.isoformat())
+
+    def test_icon_eu_mature_cycle_exception_rejects_probe_error(self):
+        now=datetime.now(timezone.utc)
+        d,_=self._aged_icon_eu_with_mature_selection_evidence(now,newer_status="probe_error")
+        with tempfile.TemporaryDirectory() as td, patch.dict("os.environ",{"FULL_VALIDATION":"true"}):
+            p=Path(td)/"m.json";p.write_text(json.dumps(d))
+            r=audit_models(p,POLICY,now)
+        errors=[x for x in r["issues"] if x["code"]=="MODEL_RUN_OLDER_THAN_CURRENTNESS_POLICY" and x["source"]=="ICON-EU"]
+        self.assertEqual(len(errors),1,r["issues"])
+        self.assertFalse(r["sources"]["ICON-EU"]["icon_eu_mature_archive_exception_applied"])
+
     def test_missing_model_lead_is_exact(self):
         now=datetime.now(timezone.utc);d=self.model_bundle()
         d["models"]["GFS"]=[x for x in d["models"]["GFS"] if x["forecast_lead_hours"]!=24]

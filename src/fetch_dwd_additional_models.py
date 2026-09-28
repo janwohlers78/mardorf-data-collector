@@ -103,8 +103,13 @@ def directory_hrefs(model,hh,param):
     return directory,[urljoin(directory,h) for h in hrefs]
 
 
-def discover_cycle(model,required_lead=0):
-    """Newest DWD cycle with all wind-critical fields at the requested lead."""
+def discover_cycle(model,required_lead=0,return_evidence=False):
+    """Newest DWD cycle with all wind-critical fields at the requested lead.
+
+    Optional evidence is fail-closed and is used only to explain nominal-age
+    excess during deliberate FULL_VALIDATION; it never makes an old run current.
+    """
+    checked_at=datetime.now(timezone.utc)
     critical=('u_10m','v_10m','vmax_10m');coverage={};diagnostics=[]
     for hh in ['00','03','06','09','12','15','18','21']:
         for param in critical:
@@ -123,8 +128,47 @@ def discover_cycle(model,required_lead=0):
     if not eligible:
         summary={cycle:{p:max(v) if v else -1 for p,v in fields.items()} for cycle,fields in sorted(coverage.items())[-20:]}
         raise RuntimeError(f'No {model} cycle with all critical fields at lead {required_lead}; cycles={summary}; errors={diagnostics}')
-    return max(eligible)
+    selected=max(eligible)
+    if not return_evidence:
+        return selected
 
+    selected_dt=datetime.strptime(selected,'%Y%m%d%H').replace(tzinfo=timezone.utc)
+    cadence_hours=6 if model=='icon-eu' and int(required_lead)>51 else 3
+    attempts=[]
+    cycle=selected_dt
+    while cycle<=checked_at:
+        token=cycle.strftime('%Y%m%d%H'); fields=coverage.get(token,{})
+        hour=cycle.strftime('%H')
+        listing_errors=[
+            {'hour':hh,'parameter':param,'error_type':etype}
+            for hh,param,etype in diagnostics if hh==hour
+        ]
+        missing=[p for p in critical if int(required_lead) not in fields.get(p,set())]
+        complete=not missing
+        status='published' if complete else ('probe_error' if listing_errors else 'not_published')
+        attempts.append({
+            'cycle_run_time_utc':cycle.isoformat(),
+            'required_lead_hours':int(required_lead),
+            'status':status,
+            'missing_required_fields':missing,
+            'max_available_lead_by_field':{
+                p:(max(fields.get(p,set())) if fields.get(p) else None) for p in critical
+            },
+            'listing_errors':listing_errors,
+        })
+        cycle+=timedelta(hours=cadence_hours)
+
+    evidence={
+        'method_version':'dwd-newest-mature-cycle-selection-v1',
+        'model':model,
+        'full_horizon_publication_required':bool(model=='icon-eu' and int(required_lead)>=120),
+        'required_lead_hours':int(required_lead),
+        'selection_checked_at_utc':checked_at.isoformat(),
+        'selected_cycle_run_time_utc':selected_dt.isoformat(),
+        'cycle_cadence_hours':cadence_hours,
+        'attempts':attempts,
+    }
+    return selected,evidence
 
 def find_dwd_file(model,cycle,lead,param):
     directory,hrefs=directory_hrefs(model,cycle[-2:],param)
@@ -215,19 +259,32 @@ def verify_dwd_spatial_provenance(eps_url,regular_url,base,valid,returned):
     }
 
 
-def fetch_icon_eu(leads,required_cycle_lead=None):
+def fetch_icon_eu(leads,required_cycle_lead=None,return_selection_evidence=False):
     model='icon-eu'
     requested=max(leads) if leads else 0
     selector=requested if required_cycle_lead is None else max(requested,int(required_cycle_lead))
     try:
-        cycle=discover_cycle(model,selector)
+        selected=discover_cycle(model,selector,return_evidence=return_selection_evidence)
+        if return_selection_evidence:
+            cycle,evidence=selected
+        else:
+            cycle=selected;evidence=None
         selection={'requested_cycle_lead_hours':selector,'fallback_used':False}
     except Exception as primary:
         if selector<=requested: raise
-        cycle=discover_cycle(model,requested)
+        selected=discover_cycle(model,requested,return_evidence=return_selection_evidence)
+        if return_selection_evidence:
+            cycle,evidence=selected
+        else:
+            cycle=selected;evidence=None
         selection={'requested_cycle_lead_hours':selector,'fallback_used':True,
                    'fallback_required_lead_hours':requested,
                    'primary_selection_error':f'{type(primary).__name__}: {primary}'}
+        if isinstance(evidence,dict):
+            evidence['full_horizon_publication_required']=False
+            evidence['fallback_used']=True
+            evidence['fallback_required_lead_hours']=requested
+            evidence['primary_selection_error']=selection['primary_selection_error']
     base=datetime.strptime(cycle,'%Y%m%d%H').replace(tzinfo=timezone.utc); out=[]
     params=['u_10m','v_10m','vmax_10m']
     with tempfile.TemporaryDirectory() as td:
@@ -245,7 +302,7 @@ def fetch_icon_eu(leads,required_cycle_lead=None):
             rec={'model':'ICON-EU','run_time_utc':base.isoformat(),'forecast_lead_hours':lead,'valid_time_utc':(base+timedelta(hours=lead)).isoformat(),'source':'DWD Open Data raw GRIB2','source_urls':urls,'values':vals,'cycle_selection':selection,'forecast_coordinate_or_grid_point':point}
             if one('u_10m') is not None and one('v_10m') is not None: rec['derived']=derived(one('u_10m'),one('v_10m'),one('vmax_10m'))
             out.append(rec)
-    return out
+    return (out,evidence) if return_selection_evidence else out
 
 
 def percentile(values,p):

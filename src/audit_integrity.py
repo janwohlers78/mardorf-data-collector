@@ -126,6 +126,92 @@ def gefs_mature_cycle_archive_exception(payload,run,now):
         "newer_due_cycles":newer_evidence,
     }
 
+
+def icon_eu_mature_cycle_archive_exception(payload,run,now):
+    """Validate that an over-age ICON-EU run is the newest fully published 120 h main cycle.
+
+    This is a FULL_VALIDATION-only archival exception. It suppresses only the
+    nominal-age error; currentness_policy_pass remains false.
+    """
+    if os.getenv("FULL_VALIDATION","").lower()!="true" or run is None:
+        return False,{"reason":"not_full_validation"}
+    evidence=(payload.get("provider_selection_evidence") or {}).get("ICON-EU")
+    if not isinstance(evidence,dict):
+        return False,{"reason":"selection_evidence_missing"}
+    if evidence.get("method_version")!="dwd-newest-mature-cycle-selection-v1":
+        return False,{"reason":"selection_evidence_version_invalid"}
+    if evidence.get("full_horizon_publication_required") is not True:
+        return False,{"reason":"full_horizon_publication_not_required"}
+    if int(evidence.get("required_lead_hours",-1))!=120:
+        return False,{"reason":"required_lead_not_120"}
+    selected=dt(evidence.get("selected_cycle_run_time_utc"))
+    if run.hour not in (0,6,12,18):
+        return False,{"reason":"selected_cycle_is_not_icon_eu_main_cycle","run_hour":run.hour}
+    if selected!=run:
+        return False,{"reason":"selected_cycle_mismatch",
+                      "evidence_cycle":selected.isoformat() if selected else None,
+                      "record_cycle":run.isoformat()}
+    attempts=evidence.get("attempts")
+    if not isinstance(attempts,list):
+        return False,{"reason":"selection_attempts_missing"}
+    by_cycle={}
+    for item in attempts:
+        if not isinstance(item,dict):
+            continue
+        cyc=dt(item.get("cycle_run_time_utc"))
+        if cyc is not None:
+            by_cycle[cyc]=item
+    selected_attempt=by_cycle.get(run)
+    if not selected_attempt or selected_attempt.get("status")!="published":
+        return False,{"reason":"selected_cycle_not_proven_published"}
+    if int(selected_attempt.get("required_lead_hours",-1))!=120:
+        return False,{"reason":"selected_cycle_not_probed_at_120h"}
+
+    # ICON-EU full 120 h products are main 6-hourly cycles.
+    newer_due=[]
+    cycle=run+timedelta(hours=6)
+    while cycle<=now:
+        newer_due.append(cycle)
+        cycle+=timedelta(hours=6)
+    if not newer_due:
+        return False,{"reason":"no_newer_due_cycle_to_explain_age_excess"}
+
+    newer_evidence=[]
+    for cyc in newer_due:
+        item=by_cycle.get(cyc)
+        if not item:
+            return False,{"reason":"newer_due_cycle_not_probed",
+                          "cycle_run_time_utc":cyc.isoformat()}
+        if int(item.get("required_lead_hours",-1))!=120:
+            return False,{"reason":"newer_cycle_not_probed_at_120h",
+                          "cycle_run_time_utc":cyc.isoformat()}
+        if item.get("status")!="not_published":
+            return False,{"reason":"newer_cycle_not_proven_immature",
+                          "cycle_run_time_utc":cyc.isoformat(),
+                          "status":item.get("status")}
+        if item.get("listing_errors"):
+            return False,{"reason":"newer_cycle_probe_error",
+                          "cycle_run_time_utc":cyc.isoformat(),
+                          "listing_errors":item.get("listing_errors")}
+        missing=item.get("missing_required_fields")
+        if not isinstance(missing,list) or not missing:
+            return False,{"reason":"newer_cycle_missingness_evidence_invalid",
+                          "cycle_run_time_utc":cyc.isoformat()}
+        newer_evidence.append({
+            "cycle_run_time_utc":cyc.isoformat(),
+            "required_lead_hours":120,
+            "status":"not_published",
+            "missing_required_fields":missing,
+            "max_available_lead_by_field":item.get("max_available_lead_by_field"),
+        })
+    return True,{
+        "reason":"newest_mature_icon_eu_120h_cycle_proven",
+        "selection_method_version":evidence.get("method_version"),
+        "selected_cycle_run_time_utc":run.isoformat(),
+        "selected_required_lead_hours":120,
+        "newer_due_cycles":newer_evidence,
+    }
+
 def audit_eps_hourly_source(source,run,expected_members=20):
     failures=[];summary=None
     if not isinstance(source,dict):
@@ -814,9 +900,16 @@ def audit_models(path,cfg,now):
             elif run_age>age_limit:
                 if model=="GEFS-control":
                     mature_archive_exception,mature_archive_evidence=gefs_mature_cycle_archive_exception(d,run,now)
+                elif model=="ICON-EU":
+                    mature_archive_exception,mature_archive_evidence=icon_eu_mature_cycle_archive_exception(d,run,now)
                 if mature_archive_exception:
-                    issues.append(issue("GEFS_NEWEST_MATURE_CYCLE_EXCEEDS_NOMINAL_CURRENTNESS","WARN",model,"currentness",
-                        "The GEFS cycle exceeds nominal forecast freshness but is proven to be the newest cycle whose cycle-specific full native horizon is published. It is retained for full-horizon archive validation but does not count as current forecast-family evidence.",
+                    if model=="GEFS-control":
+                        code="GEFS_NEWEST_MATURE_CYCLE_EXCEEDS_NOMINAL_CURRENTNESS"
+                        message="The GEFS cycle exceeds nominal forecast freshness but is proven to be the newest cycle whose cycle-specific full native horizon is published. It is retained for full-horizon archive validation but does not count as current forecast-family evidence."
+                    else:
+                        code="ICON_EU_NEWEST_MATURE_CYCLE_EXCEEDS_NOMINAL_CURRENTNESS"
+                        message="The ICON-EU cycle exceeds nominal forecast freshness but is proven to be the newest main cycle with the complete 120 h wind-critical horizon published. It is retained for deliberate full-horizon validation but does not count as current forecast-family evidence."
+                    issues.append(issue(code,"WARN",model,"currentness",message,
                         run_time_utc=run.isoformat(),checked_at_utc=now.isoformat(),run_age_hours=round(run_age,3),
                         maximum_run_age_hours=age_limit,excess_age_hours=round(run_age-age_limit,3),
                         mature_cycle_selection=mature_archive_evidence))
@@ -831,9 +924,11 @@ def audit_models(path,cfg,now):
             "family":FAMILY[model],"record_count":len(recs),
             "selected_run_time_utc":run.isoformat() if run else None,"selected_cycle_hour_utc":run_hour,
             "run_age_hours":round(run_age,3) if run_age is not None else None,"maximum_run_age_hours":age_limit,
-            "currentness_policy_mode":"nominal_age_gate_with_gefs_mature_archive_exception",
+            "currentness_policy_mode":"nominal_age_gate_with_full_validation_maturity_exception",
             "gefs_mature_archive_exception_applied":bool(mature_archive_exception) if model=="GEFS-control" else False,
             "gefs_mature_archive_evidence":mature_archive_evidence if model=="GEFS-control" else None,
+            "icon_eu_mature_archive_exception_applied":bool(mature_archive_exception) if model=="ICON-EU" else False,
+            "icon_eu_mature_archive_evidence":mature_archive_evidence if model=="ICON-EU" else None,
             "provider_expected_max_horizon_hours":pmax,"project_desired_max_horizon_hours":max(desired_leads(model,cfg)),
             "expected_collection_leads_hours":expected,"received_leads_hours":got,"missing_expected_leads_hours":missing,
             "extra_received_leads_hours":extra,"project_desired_but_cycle_unavailable_leads_hours":project_gap,

@@ -262,6 +262,17 @@
         "gust_parameter_semantics": "Open Data maximum 10 m gust is 10fg; GRIB/index data may expose the 3-hour product as 10fg3 (paramId 228028) for steps 3-144, so the collector requests and accepts both aliases.",
         "horizon_source_note": "The technical Open Data file-layout documentation currently lists deterministic 06/18 UTC oper/fc through 90 h; the overview catalogue page lists 144 h. The collector conservatively gates 06/18 UTC at 90 h until the technical documentation/provider files converge."
       },
+      "ICON-EU": {
+        "policy_version": "icon-eu-mature-main-cycle-currentness-v1",
+        "nominal_currentness_limit_hours": 9,
+        "full_validation_rule": "If the selected ICON-EU cycle exceeds nominal age during FULL_VALIDATION, the collector may downgrade only that age violation to WARN when it proves the selected run is the newest 6-hourly main cycle with the complete 120 h wind-critical horizon published and every newer due main cycle is explicitly shown not yet published at 120 h.",
+        "proof_requirements": [
+          "selected main cycle has u_10m, v_10m and vmax_10m published at lead 120",
+          "every newer due 6-hour ICON-EU main cycle is checked at lead 120 for all wind-critical fields",
+          "every newer due main cycle is proven not_published; directory/probe errors do not qualify as maturity evidence"
+        ],
+        "safety_property": "The exception never changes currentness_policy_pass to true and never relaxes full-horizon completeness."
+      },
       "GEFS-control": {
         "policy_version": "gefs-mature-cycle-currentness-v1",
         "nominal_currentness_limit_hours": 12,
