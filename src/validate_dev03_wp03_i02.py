@@ -74,10 +74,22 @@ def validate_repository(root=ROOT):
         except Exception as exc:
             problems.append(f"runtime state {status} rejected: {exc}")
 
-    # No static Registry v3 field may claim runtime reception.
-    registry_text = json.dumps(v3, sort_keys=True)
-    check('"native_received"' not in registry_text, "Registry v3 must not encode runtime native_received status")
-    check('"received"' not in json.dumps(v3.get("providers"), sort_keys=True), "provider matrix must not encode received")
+    # Active Registry-v3 capability/policy fields must never claim runtime reception.
+    # predecessor_v2_coverage intentionally preserves immutable historical v2 evidence,
+    # including the old label native_received, and is not part of the active v3 matrix.
+    active_capability_values = {
+        value
+        for provider in (v3.get("providers") or {}).values()
+        for value in (provider.get("capability") or {}).values()
+    }
+    active_policy_values = {
+        value
+        for provider in (v3.get("providers") or {}).values()
+        for value in (provider.get("acquisition_policy") or {}).values()
+    }
+    check("native_received" not in active_capability_values, "active Registry v3 capability must not encode legacy native_received")
+    check("received" not in active_capability_values, "active Registry v3 capability must not encode runtime received")
+    check("received" not in active_policy_values, "active Registry v3 policy must not encode runtime received")
 
     if problems:
         raise AssertionError("DEV03-WP03-I02 gate failed:\n- " + "\n- ".join(problems))
