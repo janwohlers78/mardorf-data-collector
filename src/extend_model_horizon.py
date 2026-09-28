@@ -165,7 +165,7 @@ def fetch_icon_eu(data):
                 except Exception as e:vals[param]={'error':f'{type(e).__name__}: {e}'}
             def one(name):
                 x=vals.get(name);return x[0]['value'] if isinstance(x,list) and x else None
-            rec={'model':'ICON-EU','run_time_utc':base.isoformat(),'forecast_lead_hours':lead,'valid_time_utc':(base+timedelta(hours=lead)).isoformat(),'provider_product':'icon-eu_regular-lat-lon','source':'DWD Open Data raw GRIB2','source_urls':urls,'values':vals,'forecast_coordinate_or_grid_point':point}
+            rec={'model':'ICON-EU','run_time_utc':base.isoformat(),'forecast_lead_hours':lead,'valid_time_utc':(base+timedelta(hours=lead)).isoformat(),'source':'DWD Open Data raw GRIB2','source_urls':urls,'values':vals,'forecast_coordinate_or_grid_point':point}
             if one('u_10m') is not None and one('v_10m') is not None:rec['derived']=derived(one('u_10m'),one('v_10m'),one('vmax_10m'))
             out.append(rec)
     return out

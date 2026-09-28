@@ -26,6 +26,7 @@ def main():
     check(methods.get("v3_attempt_id") == "dev03-v3-attempt-id-v2", "attempt method drift", problems)
     check(methods.get("pointer_ordering") == "dev03-v3-pointer-ordering-v2", "pointer method drift", problems)
     check(methods.get("transfer_readback") == "private-transfer-readback-v2", "readback method drift", problems)
+    check(methods.get("parent_provider_product_evidence") == "parent-source-product-evidence-v1", "parent product evidence method drift", problems)
     required = set(contract.get("parent_v2_binding_required_fields") or [])
     check(required == {
         "parent_v2_payload_sha256",
@@ -46,6 +47,7 @@ def main():
     check(not any(token in transfer for token in forbidden_imports), "transfer shell acquired network dependency", problems)
     check("data/inbox/public_collector_v3" in source, "isolated v3 namespace missing", problems)
     check("_registry_provider_product" not in source, "parent provider_product must not be inferred from Registry v3", problems)
+    check("PARENT_PRODUCT_EVIDENCE_METHOD" in source and "source_urls" in source, "frozen DWD source-evidence product resolver missing", problems)
     check("duplicate parent retained occurrence identity is not allowed" in source, "duplicate parent identity fail-closed rule missing", problems)
     check("collection_transaction_id contradicts exact parent binding" in source, "parent transaction recomputation guard missing", problems)
     check("payload_bytes do not exactly match canonical collector-model-bundle-v3 bytes" in transfer, "transfer payload/bundle byte-binding guard missing", problems)

@@ -35,6 +35,20 @@ IMMUTABLE_V2_MODEL_RECEIPT_RE = re.compile(
     r"\d{4}/\d{2}/\d{2}/receipt_[A-Za-z0-9._-]+\.json$"
 )
 
+PARENT_PRODUCT_EVIDENCE_METHOD = "parent-source-product-evidence-v1"
+_DWD_PARENT_PRODUCT_SPECS = {
+    "ICON-D2": {
+        "product": "icon-d2_regular-lat-lon",
+        "model_slug": "icon-d2",
+        "filename_prefix": "icon-d2_germany_regular-lat-lon_single-level",
+    },
+    "ICON-EU": {
+        "product": "icon-eu_regular-lat-lon",
+        "model_slug": "icon-eu",
+        "filename_prefix": "icon-eu_europe_regular-lat-lon_single-level",
+    },
+}
+
 
 class Dev03ParentBindingError(ValueError):
     pass
@@ -204,6 +218,52 @@ def _grid_identity(row: dict) -> dict:
     return {"extraction_coordinate": identity}
 
 
+def resolve_parent_provider_product(
+    row: dict, model: str, run_time_utc: str, lead_seconds: int
+) -> str:
+    """Resolve exact parent product without Registry inference.
+
+    Explicit parent provider_product is authoritative.  For the frozen DWD
+    predecessor only, a missing product may be proven from every immutable
+    source_urls entry when each URL exactly binds the same model, run and lead.
+    Any absent, malformed or contradictory source evidence fails closed.
+    """
+    explicit = row.get("provider_product")
+    if isinstance(explicit, str) and explicit:
+        return explicit
+
+    spec = _DWD_PARENT_PRODUCT_SPECS.get(model)
+    if spec is None:
+        raise Dev03ParentBindingError(
+            f"parent occurrence provider_product is missing for {model}; exact product evidence is unavailable"
+        )
+    urls = row.get("source_urls")
+    if not isinstance(urls, list) or not urls:
+        raise Dev03ParentBindingError(
+            f"parent occurrence provider_product is missing for {model}; exact source_urls evidence is required"
+        )
+    if isinstance(lead_seconds, bool) or not isinstance(lead_seconds, int) or lead_seconds < 0 or lead_seconds % 3600:
+        raise Dev03ParentBindingError("parent product evidence requires integral-hour lead_seconds")
+
+    run = datetime.fromisoformat(run_time_utc.replace("Z", "+00:00"))
+    cycle = run.strftime("%Y%m%d%H")
+    hour = run.strftime("%H")
+    lead = lead_seconds // 3600
+    model_slug = re.escape(spec["model_slug"])
+    prefix = re.escape(spec["filename_prefix"])
+    pattern = re.compile(
+        rf"^https://opendata\.dwd\.de/weather/nwp/{model_slug}/grib/{hour}/"
+        rf"[A-Za-z0-9_]+/{prefix}_{cycle}_{lead:03d}_[A-Za-z0-9_.-]+\.grib2\.bz2$",
+        re.IGNORECASE,
+    )
+    for url in urls:
+        if not isinstance(url, str) or not pattern.fullmatch(url):
+            raise Dev03ParentBindingError(
+                f"parent source URL does not prove exact {model} product/run/lead identity"
+            )
+    return spec["product"]
+
+
 def build_parent_cycle_inventory(parent_payload: dict, registry: dict) -> tuple[list[dict], str]:
     """Build the exact F02 retained-occurrence inventory, failing closed."""
     models = parent_payload.get("models") if isinstance(parent_payload, dict) else None
@@ -233,11 +293,9 @@ def build_parent_cycle_inventory(parent_payload: dict, registry: dict) -> tuple[
                 raise Dev03ParentBindingError(
                     f"invalid parent lead identity for {model}: {exc}"
                 ) from exc
-            product = row.get("provider_product")
-            if not isinstance(product, str) or not product:
-                raise Dev03ParentBindingError(
-                    f"parent occurrence provider_product is missing for {model}; exact parent identity may not be inferred from Registry v3"
-                )
+            product = resolve_parent_provider_product(
+                row, model, lead["run_time_utc"], lead["lead_seconds"]
+            )
             inventory.append(
                 {
                     "model": model,
