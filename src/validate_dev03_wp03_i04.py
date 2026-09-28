@@ -109,10 +109,13 @@ def main():
 
     d2 = (ROOT / "src" / "fetch_model_data.py").read_text()
     eu = (ROOT / "src" / "fetch_dwd_additional_models.py").read_text()
+    eu_ext = (ROOT / "src" / "extend_model_horizon.py").read_text()
     check("'provider_product':'icon-d2_regular-lat-lon'" in d2,
           "I04-BLK01 ICON-D2 parent product identity missing at producer", problems)
     check("'provider_product':'icon-eu_regular-lat-lon'" in eu,
-          "I04-BLK01 ICON-EU parent product identity missing at producer", problems)
+          "I04-BLK01 ICON-EU parent product identity missing at base producer", problems)
+    check("'provider_product':'icon-eu_regular-lat-lon'" in eu_ext,
+          "I04-BLK01 ICON-EU parent product identity missing at extension producer", problems)
 
     controls = json.loads((ROOT / "config" / "dev03_shadow_channels_v1.json").read_text())
     control_map = controls.get("controls") or controls.get("shadow_controls") or {}
