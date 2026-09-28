@@ -392,17 +392,58 @@ def _failure_evidence(job: dict, *, status: str, observed_at_utc: str, reason: s
     }
 
 
+def _read_budgeted_response(response, ledger: BudgetLedger) -> bytes:
+    """Read at most the remaining hard byte budget and fail closed on overflow."""
+    remaining = ledger.byte_hard_max - ledger.response_bytes_used
+    if remaining <= 0:
+        ledger.hard_breach = True
+        response.close()
+        raise BudgetExceeded("daily deterministic-network byte budget exhausted")
+
+    header = response.headers.get("Content-Length") if hasattr(response, "headers") else None
+    if header not in (None, ""):
+        try:
+            declared = int(header)
+        except (TypeError, ValueError) as exc:
+            response.close()
+            raise Dev03I04Error("provider Content-Length is not an integer") from exc
+        if declared < 0:
+            response.close()
+            raise Dev03I04Error("provider Content-Length is negative")
+        if declared > remaining:
+            ledger.hard_breach = True
+            response.close()
+            raise BudgetExceeded(
+                "provider Content-Length exceeds remaining deterministic-network byte budget"
+            )
+
+    raw = bytearray()
+    try:
+        for chunk in response.iter_content(chunk_size=65536):
+            if not chunk:
+                continue
+            room = ledger.byte_hard_max - ledger.response_bytes_used - len(raw)
+            if room <= 0 or len(chunk) > room:
+                ledger.hard_breach = True
+                raise BudgetExceeded(
+                    "provider response body would exceed deterministic-network hard byte budget"
+                )
+            raw.extend(chunk)
+    finally:
+        response.close()
+    ledger.record_response_bytes(len(raw))
+    return bytes(raw)
+
+
 def _request_once(session, job: dict, ledger: BudgetLedger, *, attempt_kind: str, timeout: int):
     ledger.reserve_request(attempt_kind=attempt_kind)
     try:
-        response = session.get(job["source_url"], timeout=timeout, allow_redirects=False)
+        response = session.get(
+            job["source_url"], timeout=timeout, allow_redirects=False, stream=True
+        )
     except Exception as exc:
         return None, "fetch_error", f"{type(exc).__name__}: {exc}"
-    raw = bytes(response.content)
-    try:
-        ledger.record_response_bytes(len(raw))
-    except BudgetExceeded as exc:
-        return raw, "fetch_error", f"hard_budget_breach_after_response: {exc}"
+    raw = _read_budgeted_response(response, ledger)
     if response.status_code == 200:
         return raw, None, None
     if response.status_code in {404, 410}:
