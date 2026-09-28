@@ -13,7 +13,8 @@
     "parent_cycle_binding": "dev03-parent-cycle-binding-v1",
     "v3_attempt_id": "dev03-v3-attempt-id-v2",
     "pointer_ordering": "dev03-v3-pointer-ordering-v2",
-    "transfer_readback": "private-transfer-readback-v2"
+    "transfer_readback": "private-transfer-readback-v2",
+    "parent_provider_product_evidence": "parent-source-product-evidence-v1"
   },
   "parent_v2_binding_required_fields": [
     "parent_v2_payload_sha256",
@@ -63,9 +64,9 @@
   "fail_closed": [
     "No exact verified parent receipt means no v3 shell is valid.",
     "Every retained parent occurrence must have exact provider-cycle identity.",
-    "Ambiguous provider product or grid identity rejects the parent-cycle binding.",
     "A retry of an older parent never rolls the current-parent pointer backwards.",
-    "No I03 component performs provider acquisition or enables any shadow control."
+    "No I03 component performs provider acquisition or enables any shadow control.",
+    "Ambiguous provider product, or frozen-DWD product without exact source URL evidence, rejects the parent-cycle binding."
   ],
   "shadow_controls_expected_false": [
     "public_v3_generation_enabled",
@@ -73,5 +74,11 @@
     "private_v3_promotion_enabled",
     "archive_v6_write_enabled"
   ],
-  "next_step": "WP03-I04"
+  "next_step": "WP03-I04",
+  "parent_provider_product_rule": {
+    "explicit_parent_field_authoritative": true,
+    "frozen_dwd_predecessor_fallback": "When provider_product is absent only on frozen ICON-D2/ICON-EU rows, every immutable source_urls entry must exactly prove the same DWD regular-lat-lon model, run and lead.",
+    "registry_inference_allowed": false,
+    "ambiguous_or_missing_source_evidence": "fail_closed"
+  }
 }
