@@ -1,0 +1,21 @@
+name: H2 one-shot live-proof trigger
+
+on:
+  push:
+    branches:
+      - h2-live-proof-trigger-20260928
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Dispatch full successor live proof on main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh workflow run collect-models.yml --repo "$GH_REPO" --ref main -f full_validation=true
