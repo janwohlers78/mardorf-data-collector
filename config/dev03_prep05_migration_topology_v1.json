@@ -1,0 +1,322 @@
+{
+  "schema_version": 1,
+  "topology_version": "dev03-prep05-migration-topology-v1",
+  "status": "complete",
+  "date": "2026-09-28",
+  "development_phase": "DEV-03",
+  "preparation_step": "DEV03-PREP05",
+  "name": "MIGRATION_AND_COMPATIBILITY_TOPOLOGY",
+  "depends_on": {
+    "work_package": "DEV03-WP02",
+    "artifact": "config/dev03_wp02_l1_l2_successor_design_v1.json",
+    "required_status": "complete",
+    "required_shared_blob": "b30438fbfbb0122609edc0cb79a99f4d9b1247a0"
+  },
+  "scope": {
+    "purpose": "Freeze exact namespace, trigger, dual-path, adapter precedence, causal read, rollback and no-cutover boundaries before DEV03-WP03 implementation.",
+    "target_layers": [
+      "L1",
+      "L2",
+      "L2->L3 compatibility"
+    ],
+    "not_implementation": true,
+    "out_of_scope": [
+      "Provider fetch implementation",
+      "Archive-v6 code",
+      "Feature Broker API/result schema",
+      "resource-budget acceptance",
+      "L4 decision-policy changes",
+      "L5 delivery changes"
+    ]
+  },
+  "invariants": [
+    "The operational v2->Archive-v5->v16-c3-v9 path remains unchanged throughout DEV-03.",
+    "V3/v6 uses physically separate inbox, promotion and archive namespaces.",
+    "V3 generation starts only after the same invocation's legacy v2 transfer has completed successfully.",
+    "Existing provider downloads are reused where possible; only Registry-v3-only fields may add provider traffic.",
+    "V1-v5 archive history is never rewritten, copied wholesale into v6, or first_seen-backdated.",
+    "One L2->L3 historical request uses one as_of timestamp across legacy and successor sources.",
+    "No mixed v5/v6 field composition is allowed for one linked collector occurrence once v6 is visible.",
+    "Immutable evidence is retained across rollback."
+  ],
+  "existing_operational_path": {
+    "public_work_file": "work/model_snapshot.json",
+    "private_inbox_root": "data/inbox/public_collector",
+    "private_models_payload_pattern": "data/inbox/public_collector/models/YYYY/MM/DD/models_<stamp>.json.gz",
+    "integrity_latest": "data/inbox/public_collector/integrity/models/latest.json",
+    "integrity_latest_success": "data/inbox/public_collector/integrity/models/latest_success.json",
+    "receipt_latest": "data/inbox/public_collector/transfer_receipts/models/latest.json",
+    "private_trigger_path": "data/inbox/public_collector/integrity/models/latest_success.json",
+    "promoter": "src/promote_public_collector.py models",
+    "canonical_latest": "data/raw/model_snapshots/latest.json",
+    "ensemble_latest": "data/raw/ensemble_hourly/latest.json",
+    "archive_root": "data/weather_archive",
+    "archive_version": "mardorf-weather-archive-v5",
+    "operational_authority": "v16-c3-v9",
+    "mutation_policy": "unchanged"
+  },
+  "public_v3_sidecar": {
+    "creation_order": [
+      "Complete existing v2 acquisition, audit and verified transfer.",
+      "Deep-copy the already collected v2 evidence into the v3 sidecar builder.",
+      "Fetch only Registry-v3-only provider fields not already present in the v2 evidence.",
+      "Finalize model-field-availability-v3 and forecast-lead-identity-v1.",
+      "Run v3 structural/identity audit.",
+      "Transfer only through the isolated v3 channel."
+    ],
+    "work_bundle": "work/model_bundle_v3.json",
+    "work_integrity_json": "work/model_v3_integrity.json",
+    "work_integrity_md": "work/model_v3_integrity.md",
+    "legacy_bundle_must_not_be_mutated": true,
+    "linkage_required": [
+      "parent_v2_payload_sha256",
+      "collection_transaction_id",
+      "collector_generated_at_utc",
+      "collector_model_bundle_version"
+    ],
+    "collection_transaction_id_contract": {
+      "method_version": "dev03-collection-transaction-id-v1",
+      "required_inputs": [
+        "collector_generated_at_utc",
+        "parent_v2_payload_sha256"
+      ],
+      "purpose": "Cross-channel correlation only; not a meteorological record identity."
+    },
+    "additional_provider_request_rule": "Only fields absent from the completed v2 retrieval and required solely by Registry v3 may generate additional requests.",
+    "v2_transfer_dependency": "A v3 sidecar is never transferred for an invocation whose v2 transfer did not complete successfully."
+  },
+  "v3_transfer_namespace": {
+    "channel_id": "dev03-v3-shadow",
+    "private_root": "data/inbox/public_collector_v3",
+    "immutable_payload_pattern": "data/inbox/public_collector_v3/models/YYYY/MM/DD/models_v3_<stamp>.json.gz",
+    "immutable_integrity_pattern": "data/inbox/public_collector_v3/integrity/models/YYYY/MM/DD/integrity_<stamp>.json",
+    "integrity_latest": "data/inbox/public_collector_v3/integrity/models/latest.json",
+    "integrity_latest_success": "data/inbox/public_collector_v3/integrity/models/latest_success.json",
+    "immutable_receipt_pattern": "data/inbox/public_collector_v3/transfer_receipts/models/YYYY/MM/DD/receipt_<stamp>.json",
+    "receipt_latest": "data/inbox/public_collector_v3/transfer_receipts/models/latest.json",
+    "report_root": "reports/collector-health-v3/models",
+    "readback_method_reused": "private-transfer-readback-v2",
+    "legacy_trigger_collision_prohibited": true,
+    "latest_pointer_rule": "Monotonic within the v3 channel only; never update any public_collector v2 pointer.",
+    "latest_success_semantics": "Structurally valid/readback-verified v3 evidence may be promotable even when an explicitly typed provider field has availability_status=fetch_error; completeness/received-field acceptance is assessed separately."
+  },
+  "private_v3_shadow_promotion": {
+    "workflow_path": ".github/workflows/dev03-v3-shadow-promotion.yml",
+    "trigger_path": "data/inbox/public_collector_v3/integrity/models/latest_success.json",
+    "concurrency_group": "mardorf-dev03-v3-shadow-promotion-${{ github.ref }}",
+    "promoter_script": "src/promote_dev03_v3_shadow.py",
+    "network_access": false,
+    "canonical_immutable_pattern": "data/shadow/dev03/model_bundle_v3/YYYY/MM/DD/bundle_<stamp>_canonical_v3.json",
+    "canonical_latest": "data/shadow/dev03/model_bundle_v3/latest.json",
+    "promotion_state": "data/shadow/dev03/model_bundle_v3/promotion_state.json",
+    "immutable_promotion_receipt_pattern": "data/shadow/dev03/model_bundle_v3/promotion_receipts/YYYY/MM/DD/receipt_<stamp>.json",
+    "required_source_evidence": [
+      "readback-verified v3 transfer receipt",
+      "matching immutable v3 integrity report",
+      "matching payload source SHA-256",
+      "collector-model-bundle-v3",
+      "forecast-lead-identity-v1",
+      "model-field-availability-v3"
+    ],
+    "forbidden_writes": [
+      "data/raw/model_snapshots",
+      "data/raw/ensemble_hourly",
+      "data/weather_archive",
+      "data/forecasts",
+      "data/skill/v16*",
+      "notification state"
+    ]
+  },
+  "archive_v6": {
+    "root": "data/weather_archive_v6",
+    "version": "mardorf-weather-archive-v6",
+    "source": "verified complete v3 input bundle, not the reduced shadow canonical snapshot",
+    "private_first_seen_rule": "Use the first verified private v3 visibility time. Never use provider/source time and never copy/backdate v5 first_seen.",
+    "manifest_boundary": "Every v6 manifest path must resolve beneath data/weather_archive_v6.",
+    "no_write_to_v5": true,
+    "no_bulk_historical_copy": true,
+    "prospective_start_only": true,
+    "causal_core_reused": [
+      "logical-forecast-identity-v2",
+      "phase2-revision-event-shared-core-v2",
+      "ensemble-source-revision-set-v2",
+      "ensemble-source-event-chronology-v2"
+    ],
+    "new_identity_fields": [
+      "lead_seconds",
+      "interval_seconds",
+      "identity_completeness_status",
+      "source_archive_version",
+      "parent_v2_payload_sha256",
+      "migration_source_occurrence_id"
+    ]
+  },
+  "cross_archive_link": {
+    "method_version": "dev03-v5-v6-occurrence-link-v1",
+    "purpose": "Recognize the same public collector occurrence across schema/content versions without asserting identical content revisions.",
+    "v6_required_parent_field": "parent_v2_payload_sha256",
+    "v5_source_field": "event_source_payload_sha256",
+    "key_formula": "sha256(method_version + '|' + logical_record_id + '|' + parent_or_v5_payload_sha256)",
+    "output_field": "migration_source_occurrence_id",
+    "excluded_from_meteorological_identity": true,
+    "reason_revision_event_id_not_used": "v3 may contain additional native fields and therefore legitimately has a different content_revision_id/revision_event_id from v5."
+  },
+  "l2_l3_dual_read": {
+    "adapter_method_version": "legacy-archive-v5-adapter-v1",
+    "sources": [
+      {
+        "id": "legacy",
+        "root": "data/weather_archive",
+        "versions": "v1-v5",
+        "mode": "read_only"
+      },
+      {
+        "id": "successor",
+        "root": "data/weather_archive_v6",
+        "versions": "v6",
+        "mode": "read_only_for_L3"
+      }
+    ],
+    "one_as_of_rule": "Open/filter both sources with the exact same as_of=T for one historical issue state.",
+    "selection_algorithm": [
+      "Build causal legacy candidates at as_of=T.",
+      "Build causal v6 candidates at the same as_of=T.",
+      "Compute migration_source_occurrence_id where a v6 parent_v2_payload_sha256 link exists.",
+      "If linked v6 is not privately visible at T, retain the legacy occurrence.",
+      "If linked v6 is privately visible at T and passes v6 transaction/identity gates, suppress the linked legacy occurrence and expose v6.",
+      "Never compose v5 and v6 fields for the same linked occurrence.",
+      "Unlinked historical legacy occurrences remain exposed through legacy-archive-v5-adapter-v1.",
+      "Apply normal causal revision ordering after duplicate-link suppression."
+    ],
+    "v6_replacement_precondition": "For each model/valid occurrence, v6 must materialize either a value or an explicit availability state for every Registry-v3 semantic applicable to that source path.",
+    "legacy_identity_states": [
+      "legacy_exactly_reconstructable",
+      "legacy_partial",
+      "invalid"
+    ],
+    "legacy_partial_policy": "An analyzer requiring a missing native identity dimension must reject the row; the adapter must not infer the missing value.",
+    "historical_convective_precipitation_projection": {
+      "provider_capable_but_not_acquired": [
+        "ICON-D2",
+        "ICON-EU",
+        "GFS"
+      ],
+      "status_for_capable_history": "not_requested_by_policy",
+      "currently_unsupported": [
+        "ECMWF-IFS",
+        "GEFS-control",
+        "NOAA_GEFS_FULL"
+      ],
+      "status_for_unsupported_history": "unsupported_by_provider_or_product",
+      "value_backfill_forbidden": true,
+      "cape_or_total_precip_substitution_forbidden": true
+    },
+    "successor_health_states": [
+      "successor_native",
+      "legacy_only",
+      "degraded_fallback_legacy",
+      "invalid_no_safe_input"
+    ],
+    "corrupted_v6_rule": "Do not silently select invalid v6 evidence. Legacy causal evidence may remain readable, but result health must explicitly be degraded_fallback_legacy."
+  },
+  "write_atomicity": {
+    "public_v3": "Immutable payload/integrity/receipt and mutable v3 pointers are channel-local. A failed v3 transaction cannot mutate v2 latest/latest_success/receipt pointers.",
+    "private_v3": "Archive-v6 persistence, immutable shadow snapshot and promotion receipt must validate before canonical latest/promotion_state advance.",
+    "unpublished_partial_worktree": "If a shadow promotion process fails before publication, partial local work is not committed.",
+    "no_cross_namespace_atomic_commit": "Never include operational v2/v5/v16 outputs in the same commit as v3/v6 shadow promotion products."
+  },
+  "failure_domains": {
+    "v2_collection_failure": "Skip v3 sidecar for that invocation.",
+    "v3_additional_provider_fetch_failure": "Preserve explicit fetch_error in structurally valid v3 evidence; v2 remains successful and unchanged.",
+    "v3_identity_or_schema_failure": "Do not publish v3 latest_success; no private shadow trigger.",
+    "private_v3_revalidation_failure": "Do not advance shadow canonical pointers or write/publish Archive-v6 transaction.",
+    "archive_v6_persistence_failure": "Shadow promotion transaction fails before latest/promotion_state advancement.",
+    "l2_l3_v6_validation_failure": "Expose explicit degraded_fallback_legacy only when causal legacy evidence is valid; otherwise invalid_no_safe_input.",
+    "operational_effect": "none"
+  },
+  "control_plane": {
+    "planned_contract_location": "config/dev03_shadow_channels_v1.json",
+    "switches": [
+      "public_v3_generation_enabled",
+      "public_v3_transfer_enabled",
+      "private_v3_promotion_enabled",
+      "archive_v6_write_enabled"
+    ],
+    "default_before_WP03_activation": false,
+    "semantics": "Shadow enable/disable only; these switches cannot authorize operational cutover."
+  },
+  "rollback": {
+    "principle": "Stop future writes; do not erase immutable evidence.",
+    "preferred_disable_order": [
+      "private_v3_promotion_enabled=false",
+      "archive_v6_write_enabled=false",
+      "public_v3_transfer_enabled=false",
+      "public_v3_generation_enabled=false"
+    ],
+    "preserve": [
+      "immutable v3 inbox payloads",
+      "immutable integrity reports",
+      "transfer receipts",
+      "promotion receipts",
+      "published Archive-v6 manifests/fragments for diagnosis"
+    ],
+    "prohibited": [
+      "delete or rewrite v1-v5 history",
+      "backdate first_seen",
+      "reverse-sync v6 into v5",
+      "silently rewrite v3/v6 immutable evidence",
+      "advance an operational v2 pointer as part of rollback"
+    ],
+    "adapter_emergency_mode": "legacy_only_degraded",
+    "quarantine_semantics": "Invalid v6 transactions are excluded from selection and surfaced diagnostically; automatic destructive cleanup is forbidden."
+  },
+  "cutover_boundary": {
+    "dev03_operational_cutover_allowed": false,
+    "forbidden_targets": [
+      "data/raw/model_snapshots/latest.json",
+      "data/raw/ensemble_hourly/latest.json",
+      "data/weather_archive as a v6 target",
+      "v16/C3 decision authority",
+      "notification eligibility/dispatch"
+    ],
+    "no_pointer_switch_cutover": true,
+    "future_requirement": "Any operational v3/v6 adoption requires a separate explicitly scoped development/acceptance step after DEV-03 shadow evidence, not PREP05 or WP03 alone."
+  },
+  "wp03_implementation_mapping": {
+    "public_repository": [
+      "Add dev03_shadow_channels_v1 control contract.",
+      "Implement v3 sidecar builder after successful v2 transfer.",
+      "Implement isolated v3 integrity and public transfer channel.",
+      "Preserve exact parent_v2_payload_sha256 and collection_transaction_id linkage."
+    ],
+    "private_repository": [
+      "Implement isolated v3 inbox consumer/workflow.",
+      "Implement promote_dev03_v3_shadow.py.",
+      "Implement Archive-v6 writer under data/weather_archive_v6.",
+      "Implement occurrence-link metadata needed by the later L2->L3 dual reader.",
+      "Prove forbidden operational paths are untouched."
+    ],
+    "deferred_to_PREP06_WP04": [
+      "Final L3 Broker API",
+      "final six-view read adapter API/result schema"
+    ]
+  },
+  "prep05_exit_gate": {
+    "required_checks": [
+      "Legacy v2 trigger and all operational latest paths are enumerated and unchanged.",
+      "V3 inbox root and trigger cannot collide with legacy paths.",
+      "Archive v5 and v6 roots are distinct.",
+      "A cross-archive occurrence key independent of content revision is defined.",
+      "One-as_of selection and v6-over-linked-v5 precedence are explicit.",
+      "No mixed-field v5/v6 composition is allowed.",
+      "Historical F02 missingness is typed without fabricated values.",
+      "Failure domains cannot block or mutate operational v2/v5/v16 state.",
+      "Rollback preserves immutable evidence.",
+      "DEV-03 cutover is explicitly prohibited."
+    ],
+    "next_preparation_step": "DEV03-PREP06",
+    "wp03_still_blocked_until": "DEV03-PREP08 complete"
+  },
+  "completed_utc_date": "2026-09-28",
+  "acceptance_metadata_policy": "Repository-specific CI run IDs are recorded in private project state/handoff; this shared topology contract remains byte-identical across repositories."
+}
