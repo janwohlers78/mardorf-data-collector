@@ -64,6 +64,14 @@ class Dev03Wp03I01Tests(unittest.TestCase):
                 lead_seconds=3600,
             )
 
+    def test_declared_rfc3339_format_is_enforced(self):
+        with self.assertRaises(ForecastLeadIdentityError):
+            validate_forecast_lead_identity(
+                run_time_utc="2026-09-28 00:00:00+00:00",
+                valid_time_utc="2026-09-28T01:00:00Z",
+                lead_seconds=3600,
+            )
+
     def test_non_utc_and_fractional_duration_fail_closed(self):
         with self.assertRaises(ForecastLeadIdentityError):
             validate_forecast_lead_identity(
