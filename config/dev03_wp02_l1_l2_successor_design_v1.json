@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "contract_version": "dev03-wp02-l1-l2-successor-design-v1",
-  "status": "candidate",
+  "status": "complete",
   "date": "2026-09-28",
   "development_phase": "DEV-03",
   "work_package": "DEV03-WP02",
@@ -531,5 +531,7 @@
       "Historical dual-read never invents missing identity or first_seen chronology.",
       "Operational L4/L5 authority is unchanged."
     ]
-  }
+  },
+  "completed_utc_date": "2026-09-28",
+  "acceptance_metadata_policy": "Repository-specific CI run IDs are recorded in PROJECT_STATE/PROJECT_HANDOFF, not in this byte-identical shared contract."
 }
