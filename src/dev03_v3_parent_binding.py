@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -151,20 +152,6 @@ def collection_transaction_id(binding: dict) -> str:
     )
 
 
-def _registry_provider_product(model: str, registry: dict) -> str | None:
-    providers = registry.get("providers") if isinstance(registry, dict) else None
-    entry = providers.get(model) if isinstance(providers, dict) else None
-    if not isinstance(entry, dict):
-        return None
-    cp = entry.get("convective_precipitation_native_identity")
-    if isinstance(cp, dict) and isinstance(cp.get("provider_product"), str):
-        return cp["provider_product"]
-    products = entry.get("products")
-    if isinstance(products, list) and len(products) == 1 and isinstance(products[0], str):
-        return products[0]
-    return None
-
-
 def _grid_identity(row: dict) -> dict:
     grid_id = row.get("grid_id")
     if isinstance(grid_id, str) and grid_id:
@@ -176,7 +163,13 @@ def _grid_identity(row: dict) -> dict:
     lon = point.get("longitude")
     if isinstance(lat, bool) or isinstance(lon, bool) or not isinstance(lat, (int, float)) or not isinstance(lon, (int, float)):
         raise Dev03ParentBindingError("parent extraction coordinate is not numeric")
-    identity = {"latitude": float(lat), "longitude": float(lon)}
+    lat = float(lat)
+    lon = float(lon)
+    if not math.isfinite(lat) or not math.isfinite(lon):
+        raise Dev03ParentBindingError("parent extraction coordinate must be finite")
+    if not -90.0 <= lat <= 90.0 or not -180.0 <= lon <= 180.0:
+        raise Dev03ParentBindingError("parent extraction coordinate is outside geographic bounds")
+    identity = {"latitude": lat, "longitude": lon}
     if isinstance(point.get("selection"), str) and point["selection"]:
         identity["selection"] = point["selection"]
     return {"extraction_coordinate": identity}
@@ -213,10 +206,8 @@ def build_parent_cycle_inventory(parent_payload: dict, registry: dict) -> tuple[
                 ) from exc
             product = row.get("provider_product")
             if not isinstance(product, str) or not product:
-                product = _registry_provider_product(model, registry)
-            if not isinstance(product, str) or not product:
                 raise Dev03ParentBindingError(
-                    f"parent occurrence provider_product is ambiguous for {model}"
+                    f"parent occurrence provider_product is missing for {model}; exact parent identity may not be inferred from Registry v3"
                 )
             inventory.append(
                 {
@@ -229,12 +220,12 @@ def build_parent_cycle_inventory(parent_payload: dict, registry: dict) -> tuple[
                 }
             )
 
-    # Exact duplicates do not change the cycle binding; conflicting variants do.
-    unique = {
-        canonical_json_bytes(item).decode("utf-8"): item
-        for item in inventory
-    }
-    ordered = [unique[key] for key in sorted(unique)]
+    canonical_items = [canonical_json_bytes(item).decode("utf-8") for item in inventory]
+    if len(set(canonical_items)) != len(canonical_items):
+        raise Dev03ParentBindingError(
+            "duplicate parent retained occurrence identity is not allowed"
+        )
+    ordered = [item for _, item in sorted(zip(canonical_items, inventory), key=lambda pair: pair[0])]
     binding_id = sha256_hex(canonical_json_bytes(ordered))
     return ordered, binding_id
 
@@ -266,7 +257,11 @@ def build_bundle_v3_shell(
     attempt_nonce: str,
 ) -> dict:
     generated = _utc(v3_generated_at_utc, "v3_generated_at_utc")
-    tx = parent_binding.get("collection_transaction_id") or collection_transaction_id(parent_binding)
+    expected_tx = collection_transaction_id(parent_binding)
+    supplied_tx = parent_binding.get("collection_transaction_id")
+    if supplied_tx is not None and _hex64(supplied_tx, "collection_transaction_id") != expected_tx:
+        raise Dev03ParentBindingError("collection_transaction_id contradicts exact parent binding")
+    tx = expected_tx
     attempt = v3_attempt_id(tx, generated, attempt_nonce)
     return {
         "schema_version": 3,
