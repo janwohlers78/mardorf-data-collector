@@ -107,15 +107,21 @@ def main():
         problems,
     )
 
-    d2 = (ROOT / "src" / "fetch_model_data.py").read_text()
-    eu = (ROOT / "src" / "fetch_dwd_additional_models.py").read_text()
-    eu_ext = (ROOT / "src" / "extend_model_horizon.py").read_text()
-    check("'provider_product':'icon-d2_regular-lat-lon'" in d2,
-          "I04-BLK01 ICON-D2 parent product identity missing at producer", problems)
-    check("'provider_product':'icon-eu_regular-lat-lon'" in eu,
-          "I04-BLK01 ICON-EU parent product identity missing at base producer", problems)
-    check("'provider_product':'icon-eu_regular-lat-lon'" in eu_ext,
-          "I04-BLK01 ICON-EU parent product identity missing at extension producer", problems)
+    frozen_code = plan.get("frozen_predecessor_code_blobs") or {}
+    expected_frozen = {
+        "src/fetch_model_data.py": "a34c81eebbf67220fd8feb40e790434b33547f05",
+        "src/fetch_dwd_additional_models.py": "9535b2ad049e9d66519e6d8c76501110f37784f4",
+        "src/extend_model_horizon.py": "f95d3598eac9479b7d58a1d53417923eddd1c7dd",
+    }
+    check(frozen_code == expected_frozen, "frozen predecessor producer blob inventory drift", problems)
+    for rel, expected_sha in expected_frozen.items():
+        candidate = ROOT / rel
+        check(candidate.exists(), f"frozen predecessor producer missing: {rel}", problems)
+        if candidate.exists():
+            check(git_blob_sha(candidate) == expected_sha,
+                  f"frozen predecessor producer mutated: {rel}", problems)
+    check(parent.get("parent_provider_product_evidence_method") == "parent-source-product-evidence-v1",
+          "source-evidence parent product method missing", problems)
 
     controls = json.loads((ROOT / "config" / "dev03_shadow_channels_v1.json").read_text())
     control_map = controls.get("controls") or controls.get("shadow_controls") or {}
