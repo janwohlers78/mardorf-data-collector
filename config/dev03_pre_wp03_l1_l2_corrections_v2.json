@@ -1,0 +1,634 @@
+{
+  "schema_version": 2,
+  "contract_version": "dev03-pre-wp03-l1-l2-corrections-v2",
+  "status": "binding_pre_wp03",
+  "date": "2026-09-28",
+  "development_phase": "DEV-03",
+  "audit_id": "AUD-20260928-02",
+  "purpose": "Binding correction overlay v2 for every P1/P2 finding discovered by AUD-20260928-02 before DEV03-WP03. It preserves the accepted historical WP02/PREP05/PREP06/PREP07/PREP08 artifacts as immutable evidence and supersedes correction-v1 where more specific.",
+  "applies_to": [
+    "DEV03-WP03",
+    "DEV03-WP04 dual-read prerequisites"
+  ],
+  "base_contracts": [
+    "dev03-wp02-l1-l2-successor-design-v1",
+    "dev03-prep05-migration-topology-v1",
+    "dev03-prep07-acceptance-resource-budget-v1",
+    "dev03-prep08-wp03-scope-approval-v1",
+    "dev03-prep06-l3-broker-api-contract-v1",
+    "dev03-pre-wp03-l1-l2-corrections-v1"
+  ],
+  "operational_boundary": {
+    "implementation_activation_authorized": false,
+    "l4_l5_cutover_authorized": false,
+    "frozen_v2_v5_predecessors_unchanged": true,
+    "operational_authority": "v16-c3-v9",
+    "wp03_start_condition": "VAL-20260928-02 complete with zero open P0/P1/P2"
+  },
+  "fixes": {
+    "AUD-20260928-02-F01": {
+      "fix_id": "FIX-20260928-02-F01",
+      "severity": "P1",
+      "title": "Exact parent v2 verified-transfer binding",
+      "parent_v2_binding_required_fields": [
+        "parent_v2_payload_sha256",
+        "parent_v2_collector_generated_at_utc",
+        "parent_v2_transfer_receipt_path",
+        "parent_v2_transfer_receipt_sha256",
+        "parent_v2_verified_data_commit_sha"
+      ],
+      "parent_receipt_requirements": [
+        "receipt readback_verified == true",
+        "receipt payload_source_sha256 == parent_v2_payload_sha256",
+        "receipt audit_input_payload_sha256 == parent_v2_payload_sha256",
+        "receipt source_generated_at_utc == parent_v2_collector_generated_at_utc",
+        "receipt immutable bytes SHA-256 == parent_v2_transfer_receipt_sha256",
+        "receipt verified_data_commit_sha == parent_v2_verified_data_commit_sha"
+      ],
+      "collection_transaction_id_contract": {
+        "method_version": "dev03-collection-transaction-id-v2",
+        "canonical_inputs": [
+          "parent_v2_collector_generated_at_utc",
+          "parent_v2_payload_sha256",
+          "parent_v2_transfer_receipt_sha256",
+          "parent_v2_verified_data_commit_sha"
+        ],
+        "formula": "sha256(method_version + canonical_json(canonical_inputs))",
+        "purpose": "Stable identity of the successfully verified parent v2 transfer; not a meteorological record identity and not a v3 retry identity."
+      },
+      "public_workflow_requirement": "The successful v2 transfer step must expose a machine-readable local result containing the immutable receipt path/SHA and verified_data_commit_sha, or the v3 builder must independently resolve and verify the immutable receipt from the private repository before any v3 network request.",
+      "fail_closed": "No exact verified parent receipt => do not generate or transfer v3."
+    },
+    "AUD-20260928-02-F02": {
+      "fix_id": "FIX-20260928-02-F02",
+      "severity": "P1",
+      "title": "Exact parent provider-cycle pinning",
+      "binding_dimensions": [
+        "model",
+        "run_time_utc",
+        "valid_time_utc",
+        "forecast_lead_seconds",
+        "provider_product",
+        "grid_id or exact extraction-coordinate identity"
+      ],
+      "parent_cycle_binding_id": {
+        "method_version": "dev03-parent-cycle-binding-v1",
+        "formula": "sha256(canonical sorted inventory of the binding dimensions for all parent retained occurrences)"
+      },
+      "rules": [
+        "V3-only acquisition must use the exact run/cycle represented by each parent occurrence.",
+        "Do not invoke newest-cycle or mature-cycle selection for the v3-only field fetch.",
+        "Do not attach a field whose provider run/valid/product/grid identity differs from the parent occurrence.",
+        "If the exact parent-cycle field is no longer available, persist typed not_yet_published or fetch_error evidence according to actual failure; never substitute a newer cycle."
+      ]
+    },
+    "AUD-20260928-02-F03": {
+      "fix_id": "FIX-20260928-02-F03",
+      "severity": "P1",
+      "title": "Lossless parent native-field inventory before whole-occurrence replacement",
+      "inventory_contract": {
+        "method_version": "dev03-parent-field-inventory-v1",
+        "inventory_entry_fields": [
+          "logical_record_id",
+          "namespace",
+          "semantic_id",
+          "parameter_native",
+          "param_id_native",
+          "field_provider_product",
+          "type_of_level_native",
+          "level_native",
+          "step_type_native",
+          "step_range_native",
+          "start_step_native",
+          "end_step_native",
+          "step_units_native",
+          "unit_native",
+          "availability_subject_status"
+        ],
+        "field_identity_algorithm": "Use the same canonical native-field identity algorithm used by Archive-v6; registry version itself is not a field-identity dimension.",
+        "parent_field_inventory_sha256": "sha256(canonical sorted inventory entries)"
+      },
+      "replacement_precondition": [
+        "Every parent received native field identity/variant is present in v6 as received evidence with the same native identity.",
+        "Every explicit parent availability subject is preserved in v6 with a causally valid status/evidence trail.",
+        "Registry-v3-only fields may add evidence but may not replace or collapse parent identities.",
+        "parent_field_inventory_sha256 is persisted and verified before linked v5 whole-occurrence suppression."
+      ],
+      "failure_behavior": "If parent inventory cannot be reconstructed exactly or v6 is not a lossless superset, v6 is not replacement-eligible; retain causal v5 and report degraded/invalid successor diagnostics."
+    },
+    "AUD-20260928-02-F04": {
+      "fix_id": "FIX-20260928-02-F04",
+      "severity": "P1",
+      "title": "Archive-v6 immutable publication transaction",
+      "immutable_root": "data/weather_archive_v6/",
+      "publisher_rules": [
+        "All dated Archive-v6 Parquet fragments, manifests and publication receipts are immutable and conflicting bytes at an existing path are fatal.",
+        "Any publisher used by WP03 must explicitly classify data/weather_archive_v6/ immutable; the existing publish_products.py rule for data/weather_archive/ is not sufficient.",
+        "Archive-v6 fragments/manifests, shadow immutable snapshot and archive publication receipt must be committed in one shadow-only Git publication transaction or an equivalent CAS-safe atomic publication."
+      ],
+      "publication_receipt": {
+        "method_version": "dev03-archive-v6-publication-receipt-v1",
+        "path_pattern": "data/weather_archive_v6/published_transactions/year=YYYY/month=MM/day=DD/receipt_<v3_attempt_id>.json",
+        "required_fields": [
+          "archive_v6_transaction_id",
+          "v3_attempt_id",
+          "v3_payload_sha256",
+          "parent_v2_payload_sha256",
+          "manifest_paths",
+          "manifest_sha256_set",
+          "published_commit_sha_or_candidate_tree_sha",
+          "published_at_utc"
+        ]
+      },
+      "reader_rule": "Archive-v6 readers may enumerate only manifests authorized by a valid publication receipt. Unreceipted/orphan fragments or manifests are invisible and diagnostic-only.",
+      "fail_closed": "Publication failure never advances shadow latest/promotion_state and never creates reader-visible v6 evidence.",
+      "superseded_by_detail": "FIX-20260928-02-F12 defines the implementable two-phase publication protocol; F04 immutability/reader-gating intent remains binding."
+    },
+    "AUD-20260928-02-F05": {
+      "fix_id": "FIX-20260928-02-F05",
+      "severity": "P2",
+      "title": "Shared Availability-v3 state family and precedence",
+      "status_family": [
+        "received",
+        "unsupported_by_provider_or_product",
+        "intentionally_not_applicable",
+        "not_requested_by_policy",
+        "not_yet_published",
+        "fetch_error",
+        "unknown_or_ambiguous"
+      ],
+      "mapping_precedence": [
+        "If provider capability is unsupported for the exact provider product, use unsupported_by_provider_or_product even if acquisition policy is also disabled.",
+        "If the provider capability is native/available but policy deliberately disables retrieval, use not_requested_by_policy.",
+        "Use intentionally_not_applicable only for a semantically inapplicable provider representation, never as a generic missing state.",
+        "Use not_yet_published only when the exact pinned provider cycle/field is expected but not yet published.",
+        "Use fetch_error only for an attempted exact pinned retrieval that failed.",
+        "Use unknown_or_ambiguous only when available evidence cannot safely distinguish supported states; include explicit reason/evidence."
+      ],
+      "invariants": [
+        "Only received may carry a value.",
+        "Every status has availability_observed_at_utc.",
+        "Only received has field_available_at_utc.",
+        "Unknown states outside this family are rejected."
+      ]
+    },
+    "AUD-20260928-02-F06": {
+      "fix_id": "FIX-20260928-02-F06",
+      "severity": "P1",
+      "title": "Complete Ensemble-v3 native field identity",
+      "field_identity_dimensions": [
+        "ensemble_system_id",
+        "semantic_id",
+        "parameter_native",
+        "param_id_native",
+        "field_provider_product",
+        "type_of_level_native",
+        "level_native",
+        "step_type_native",
+        "step_range_native",
+        "start_step_native",
+        "end_step_native",
+        "step_units_native",
+        "unit_native"
+      ],
+      "rules": [
+        "Compute field_identity_id after the valid-time-specific native interval metadata is known.",
+        "Different complete native step identities must produce different field_identity_id values.",
+        "interval_seconds is normalized interval authority but is not a substitute for preserving native step identity.",
+        "Registry version is provenance and must not by itself change an otherwise identical native field identity."
+      ]
+    },
+    "AUD-20260928-02-F07": {
+      "fix_id": "FIX-20260928-02-F07",
+      "severity": "P1",
+      "title": "V3 attempt/retry identity",
+      "fields": [
+        "collection_transaction_id",
+        "v3_attempt_id",
+        "v3_generated_at_utc",
+        "v3_payload_sha256"
+      ],
+      "v3_attempt_id_contract": {
+        "method_version": "dev03-v3-attempt-id-v1",
+        "formula": "sha256(method_version + '|' + collection_transaction_id + '|' + canonical v3_generated_at_utc)",
+        "rule": "collection_transaction_id stays stable for all attempts of one verified parent; v3_attempt_id is unique per causal attempt."
+      },
+      "immutable_path_rule": "Public v3 payload/integrity/receipt and private shadow snapshot/promotion receipt paths must include v3 attempt timestamp and/or v3_attempt_id so two legitimate attempts for one parent never collide.",
+      "retry_rule": "A later retry may improve fetch_error/not_yet_published into received evidence as a new causal v3 attempt; it never rewrites an earlier attempt.",
+      "superseded_attempt_identity_detail": {
+        "method_version": "dev03-v3-attempt-id-v2",
+        "canonical_inputs": [
+          "collection_transaction_id",
+          "v3_generated_at_utc",
+          "attempt_nonce"
+        ],
+        "attempt_nonce": "collision-safe per-attempt UUID/128-bit nonce generated before any v3-only network activity and persisted through payload/integrity/receipt",
+        "rule": "Do not rely on wall-clock timestamp uniqueness alone."
+      }
+    },
+    "AUD-20260928-02-F08": {
+      "fix_id": "FIX-20260928-02-F08",
+      "severity": "P1",
+      "title": "Cross-archive ensemble source-set deduplication",
+      "v6_required_fields_on_ensemble_rows": [
+        "parent_v2_payload_sha256",
+        "v3_attempt_id",
+        "source_archive_version"
+      ],
+      "unchanged_set_rule": "Copied unchanged ensemble source evidence must retain the same ensemble_source_revision_set_id used by v5.",
+      "set_key": [
+        "ensemble_system_id",
+        "run_time_utc",
+        "valid_time_utc",
+        "field_identity_id",
+        "ensemble_source_revision_set_id"
+      ],
+      "v6_over_v5_precondition": [
+        "v6 publication receipt is valid and visible at as_of",
+        "all member values for the represented received-member set reference the same source set",
+        "matching member availability exists",
+        "matching field status exists",
+        "any member-derived aggregate references the same member_set/source_member_revision_set identity",
+        "no v5/v6 rows are composed into one source set"
+      ],
+      "provider_summary_rule": "QA-only provider summaries without ensemble_source_revision_set_id receive a deterministic archive adapter summary identity plus parent_v2_payload_sha256; exact linked duplicates are exposed once, never counted as a model-family contribution.",
+      "failure_behavior": "If v6 set atomicity/preservation fails, keep the complete causal v5 set and mark successor degraded; do not partially prefer v6."
+    },
+    "AUD-20260928-02-F09": {
+      "fix_id": "FIX-20260928-02-F09",
+      "severity": "P2",
+      "title": "Byte-identical shared WP03 execution authority",
+      "shared_contract_rule": "This correction contract is the byte-identical shared authority in public and private repositories for all cross-repository clauses discovered by AUD-20260928-02.",
+      "required_cross_repo_gate": true,
+      "public_enforcement_subset": {
+        "approved_v3_only_semantic": "convective_precipitation",
+        "allowed_initial_provider_paths": [
+          "ICON-D2",
+          "ICON-EU",
+          "GFS"
+        ],
+        "zero_extra_provider_paths": [
+          "ECMWF-IFS",
+          "GEFS-control",
+          "NOAA_GEFS_FULL",
+          "ICON-D2-EPS"
+        ],
+        "hard_incremental_provider_requests_per_day": 500,
+        "deterministic_network_target_incremental_ratio_max": 0.15,
+        "deterministic_network_hard_incremental_ratio_max": 0.25,
+        "full_gefs_hard_requests": 800,
+        "full_gefs_hard_filtered_bytes": 2097152,
+        "dev03_extra_full_gefs_requests": 0,
+        "public_runtime_delta_rule": "delta_seconds <= max(120, 0.35 * matched_v2_wall_seconds)",
+        "public_workflow_timeout_minutes": 65,
+        "timeout_increase_allowed": false,
+        "compressed_v3_to_v2_ratio_hard_max": 1.5
+      }
+    },
+    "AUD-20260928-02-F10": {
+      "fix_id": "FIX-20260928-02-F10",
+      "severity": "P1",
+      "title": "Separate parent and v3 temporal provenance",
+      "required_bundle_times": [
+        "parent_v2_collector_generated_at_utc",
+        "v3_generated_at_utc"
+      ],
+      "rules": [
+        "parent_v2_collector_generated_at_utc is immutable parent correlation metadata and never represents v3 evidence creation time.",
+        "v3_generated_at_utc is the v3 attempt creation/finalization time and orders v3 latest pointers.",
+        "Each newly fetched v3 field preserves availability_observed_at_utc and, when received, field_available_at_utc from the actual v3 fetch observation.",
+        "Private v3 first_seen is the first verified private visibility of that exact v3_attempt_id and is never copied from parent v2.",
+        "Archive-v6 revision/source chronology uses actual v3 evidence and private first-seen times; parent time is retained only as lineage."
+      ],
+      "pointer_ordering_superseded_by": "FIX-20260928-02-F14"
+    },
+    "AUD-20260928-02-F11": {
+      "fix_id": "FIX-20260928-02-F11",
+      "severity": "P1",
+      "title": "Verified parent binding must precede every v3-only provider request",
+      "defect": "PREP08 I03 placed v3-only native acquisition before I04 established exact verified-parent transfer binding, while F01 requires the verified parent receipt before any v3 network request.",
+      "rules": [
+        "WP03 may implement Registry/Availability definitions before transfer binding, but no v3-only provider network request may execute until the exact parent v2 immutable receipt and verified_data_commit_sha have passed FIX-F01 and the exact parent-cycle inventory has passed FIX-F02.",
+        "The historical PREP08 sequence remains immutable evidence; the corrected execution order in this contract is authoritative for WP03.",
+        "All shadow controls remain disabled until the I03 parent-binding infrastructure and PREP07 resource instrumentation are validated."
+      ]
+    },
+    "AUD-20260928-02-F12": {
+      "fix_id": "FIX-20260928-02-F12",
+      "severity": "P1",
+      "title": "Non-self-referential Archive-v6 publication transaction",
+      "defect": "Correction-v1 F04 required a publication receipt to contain published_commit_sha_or_candidate_tree_sha while being committed atomically with the same receipt, creating a cryptographic self-reference.",
+      "publication_protocol": {
+        "method_version": "dev03-archive-v6-publication-protocol-v2",
+        "phase_1": "Create a data commit containing only immutable v6 fragments/manifests and the immutable shadow snapshot. Exact-byte read back that unpublished/published data commit using the existing CAS-safe pattern.",
+        "phase_2": "Create a child receipt commit containing the immutable publication receipt plus channel-local mutable latest/promotion pointers. The receipt binds verified_data_commit_sha and artifact hashes; it never contains its own receipt commit/tree SHA.",
+        "reader_visibility": "Only a valid receipt in phase 2 makes phase-1 manifests reader-visible. Orphan phase-1 artifacts are diagnostic-only and can be safely finalized idempotently.",
+        "receipt_commit_identity": "The phase-2 receipt commit SHA may be returned/logged or stored in a later mutable diagnostic pointer, but must not be a field inside the immutable receipt that creates that same commit."
+      },
+      "publication_receipt_v2": {
+        "method_version": "dev03-archive-v6-publication-receipt-v2",
+        "required_fields": [
+          "archive_v6_transaction_id",
+          "v3_attempt_id",
+          "v3_payload_sha256",
+          "parent_v2_payload_sha256",
+          "verified_data_commit_sha",
+          "data_artifact_set_sha256",
+          "manifest_paths",
+          "manifest_sha256_set",
+          "data_commit_readback_verified_at_utc"
+        ],
+        "data_artifact_set_sha256": "sha256(canonical sorted path+sha256 inventory of all phase-1 immutable artifacts, excluding the publication receipt itself)"
+      },
+      "fail_closed": "No valid phase-2 receipt => no reader-visible v6 transaction and no advancement of shadow current/promotion state."
+    },
+    "AUD-20260928-02-F13": {
+      "fix_id": "FIX-20260928-02-F13",
+      "severity": "P2",
+      "title": "Retry traffic must remain inside PREP07 hard resource budgets",
+      "defect": "F07 permits later v3 retries, while PREP07 derives the 500/day request ceiling from one request per retained opportunity. Unbounded or exempt retry requests could violate the accepted budget.",
+      "rules": [
+        "The PREP07 hard limit of 500 incremental v3-only provider requests/day includes initial attempts and all retries combined.",
+        "Retry bytes count toward the same matched deterministic-network 25% hard ceiling; retry traffic is additionally reported as a separate attribution dimension, not excluded from the hard total.",
+        "A retry may execute only while both request-count and network-byte budgets have remaining capacity.",
+        "If budget is exhausted, defer the retry and preserve the current typed availability state; never exceed a hard budget to improve missing evidence."
+      ],
+      "required_metrics": [
+        "v3_initial_requests",
+        "v3_retry_requests",
+        "v3_total_requests",
+        "v3_initial_bytes",
+        "v3_retry_bytes",
+        "v3_total_bytes",
+        "retry_deferred_budget_exhausted"
+      ]
+    },
+    "AUD-20260928-02-F14": {
+      "fix_id": "FIX-20260928-02-F14",
+      "severity": "P1",
+      "title": "Separate current-parent high-water ordering from v3 attempt-event ordering",
+      "defect": "Correction-v1 F10 said v3_generated_at_utc orders v3 latest pointers. A late retry of an older parent could therefore roll the global current-parent pointer backwards.",
+      "pointer_contract": {
+        "method_version": "dev03-v3-pointer-ordering-v2",
+        "current_parent_pointer": {
+          "path": "data/inbox/public_collector_v3/integrity/models/latest_success.json",
+          "primary_order": "parent_v2_collector_generated_at_utc",
+          "tie_break_same_parent": "v3_generated_at_utc then v3_attempt_id",
+          "rule": "An attempt for an older parent may never replace a pointer whose parent_v2_collector_generated_at_utc is newer."
+        },
+        "attempt_event_pointer": {
+          "path": "data/inbox/public_collector_v3/transfer_receipts/models/latest_attempt.json",
+          "order": "v3_generated_at_utc then v3_attempt_id",
+          "rule": "Advance for every newly verified immutable v3 attempt, including retries of older parents; this pointer is a drain trigger, never current-model authority."
+        }
+      },
+      "retry_rule": "A later retry of an older parent is archived as a new causal v3 event but cannot make that old parent the current model bundle."
+    },
+    "AUD-20260928-02-F15": {
+      "fix_id": "FIX-20260928-02-F15",
+      "severity": "P1",
+      "title": "Receipt-drain promotion prevents v3 event loss under workflow concurrency",
+      "defect": "PREP05 used latest_success as the private trigger and did not require draining all immutable receipts. With cancel-in-progress or rapid transfers, successful intermediate attempts could be skipped, breaking revision/first-seen history.",
+      "promotion_contract": {
+        "method_version": "dev03-v3-receipt-drain-v1",
+        "trigger": "data/inbox/public_collector_v3/transfer_receipts/models/latest_attempt.json (or an equivalent trigger that changes for every verified v3 attempt)",
+        "inventory": "Enumerate immutable successful v3 transfer receipts after the persisted promotion high-water mark.",
+        "order": "v3_generated_at_utc, then v3_attempt_id, with exact receipt SHA as deterministic final tie-break",
+        "high_water_fields": [
+          "v3_generated_at_utc",
+          "v3_attempt_id",
+          "transfer_receipt_sha256"
+        ],
+        "transaction_rule": "Advance promotion high-water only after the attempt's receipt-gated Archive-v6 publication and shadow immutable products are successfully published.",
+        "recovery_rule": "Every invocation drains all pending receipts; therefore concurrency cancellation may only be enabled if the surviving invocation deterministically drains the complete backlog."
+      },
+      "failure_behavior": "A failed/cancelled promoter run leaves high-water unchanged for uncommitted attempts so the next invocation replays them idempotently."
+    },
+    "AUD-20260928-02-F16": {
+      "fix_id": "FIX-20260928-02-F16",
+      "severity": "P1",
+      "title": "Whole-occurrence replacement must preserve parent source-availability chronology",
+      "defect": "F03 inventory-v1 bound native identities and status but did not hash all parent source-availability timestamps/provenance. A rebuilt v3 copy could shift parent evidence times yet still appear lossless enough to suppress v5.",
+      "parent_source_chronology_contract": {
+        "method_version": "dev03-parent-source-chronology-v1",
+        "exact_parent_fields": [
+          "availability_status",
+          "availability_observed_at_utc",
+          "field_available_at_utc",
+          "source_provenance",
+          "provider/retrieval source timestamp when present"
+        ],
+        "intentionally_not_equal": "Private v6 field/record first_seen timestamps are new v3 private-visibility times under F10 and must not be copied from v5.",
+        "parent_source_chronology_sha256": "sha256(canonical sorted parent field/availability-subject chronology records)"
+      },
+      "replacement_precondition": [
+        "Every copied parent field/availability subject preserves exact parent public/source availability chronology and provenance.",
+        "parent_source_chronology_sha256 is persisted in v6 and verified before v5 whole-occurrence suppression.",
+        "Only Registry-v3-only newly fetched fields receive v3-attempt availability observation times.",
+        "A chronology mismatch makes v6 ineligible to suppress the linked v5 occurrence."
+      ]
+    }
+  },
+  "shared_native_field_identity_v1": {
+    "canonicalization": "UTF-8 canonical JSON; object keys sorted; no NaN; native numeric step values normalized losslessly before hashing",
+    "deterministic_field_dimensions": [
+      "semantic_id",
+      "namespace",
+      "parameter_native",
+      "param_id_native",
+      "field_provider_product",
+      "type_of_level_native",
+      "level_native",
+      "step_type_native",
+      "step_range_native",
+      "start_step_native",
+      "end_step_native",
+      "step_units_native",
+      "unit_native"
+    ],
+    "ensemble_additional_dimension": "ensemble_system_id",
+    "registry_version_excluded_from_identity": true
+  },
+  "archive_v6_replacement_v2": {
+    "method_version": "dev03-v5-v6-replacement-v2",
+    "deterministic_occurrence_link": "migration_source_occurrence_id remains based on logical_record_id + verified parent_v2_payload_sha256",
+    "required_before_deterministic_replacement": [
+      "valid v6 publication receipt",
+      "causal v3 private first_seen at as_of",
+      "exact parent verified-transfer binding",
+      "exact parent-cycle binding",
+      "verified parent_field_inventory_sha256 preservation"
+    ],
+    "ensemble_rule": "Apply FIX-F08 source-set-level precedence separately from deterministic occurrence precedence.",
+    "no_cross_archive_field_mix": true
+  },
+  "validation_requirements": {
+    "required_fix_ids": [
+      "FIX-20260928-02-F01",
+      "FIX-20260928-02-F02",
+      "FIX-20260928-02-F03",
+      "FIX-20260928-02-F04",
+      "FIX-20260928-02-F05",
+      "FIX-20260928-02-F06",
+      "FIX-20260928-02-F07",
+      "FIX-20260928-02-F08",
+      "FIX-20260928-02-F09",
+      "FIX-20260928-02-F10",
+      "FIX-20260928-02-F11",
+      "FIX-20260928-02-F12",
+      "FIX-20260928-02-F13",
+      "FIX-20260928-02-F14",
+      "FIX-20260928-02-F15",
+      "FIX-20260928-02-F16"
+    ],
+    "required_adversarial_regressions": [
+      "correct parent payload hash but wrong/unverified parent receipt",
+      "provider publishes newer cycle between v2 transfer and v3-only fetch",
+      "parent has two native variants under one semantic and v3 drops one",
+      "orphan v6 manifest exists without publication receipt",
+      "unsupported capability plus not-requested policy maps to unsupported",
+      "two ensemble fields differ only by native step range",
+      "fetch_error v3 attempt followed by received retry for same parent",
+      "same ensemble source set exists in v5 and v6",
+      "public/private correction contract byte mismatch",
+      "v3 new field time occurs after parent generation time",
+      "attempted v3 provider request before exact parent receipt/cycle binding",
+      "publication receipt attempts to bind its own commit/tree identity",
+      "retry would exceed 500/day or 25% network hard budget",
+      "older-parent retry occurs after a newer parent is current",
+      "two verified v3 receipts arrive while first promotion run is cancelled",
+      "copied parent field has altered availability_observed_at_utc or source provenance"
+    ],
+    "wp03_start_condition": "VAL-20260928-02 complete with zero open P0/P1/P2"
+  },
+  "supersedes": "dev03-pre-wp03-l1-l2-corrections-v1",
+  "corrected_wp03_execution_order_v2": [
+    {
+      "step_id": "WP03-I01",
+      "title": "Shared identity, correction authority and disabled control plane",
+      "outputs": [
+        "forecast-lead-identity-v1",
+        "config/dev03_shadow_channels_v1.json",
+        "dev03-pre-wp03-l1-l2-corrections-v2"
+      ],
+      "network_requests_allowed": false
+    },
+    {
+      "step_id": "WP03-I02",
+      "title": "Registry v3 and Availability-v3 definitions",
+      "outputs": [
+        "relevant-meteorology-v3",
+        "model-field-availability-v3"
+      ],
+      "network_requests_allowed": false
+    },
+    {
+      "step_id": "WP03-I03",
+      "title": "Verified parent binding, v3 attempt identity and isolated transfer shell",
+      "outputs": [
+        "collector-model-bundle-v3 shell",
+        "dev03-collection-transaction-id-v2",
+        "dev03-parent-cycle-binding-v1",
+        "dev03-v3-attempt-id-v2",
+        "isolated v3 transfer/readback infrastructure"
+      ],
+      "network_requests_allowed": false,
+      "exit_gate": "Exact parent receipt/cycle binding and attempt/event pointer semantics pass before I04."
+    },
+    {
+      "step_id": "WP03-I04",
+      "title": "Acquisition Plan v2 and exact pinned v3-only convective fetch",
+      "outputs": [
+        "weather-acquisition-plan-v2",
+        "native convective_precipitation acquisition for ICON-D2/ICON-EU/GFS only"
+      ],
+      "network_requests_allowed": true,
+      "precondition": "WP03-I03 PASS and daily/network retry budgets have remaining capacity"
+    },
+    {
+      "step_id": "WP03-I05",
+      "title": "Private v3 receipt-drain shadow promotion",
+      "outputs": [
+        "isolated v3 trigger/readback",
+        "src/promote_dev03_v3_shadow.py",
+        "shadow canonical/receipts"
+      ],
+      "network_requests_allowed": false
+    },
+    {
+      "step_id": "WP03-I06",
+      "title": "Central native interval resolver",
+      "outputs": [
+        "native-interval-resolution-v1"
+      ],
+      "network_requests_allowed": false
+    },
+    {
+      "step_id": "WP03-I07",
+      "title": "Canonical record v3 and private Availability-v3",
+      "outputs": [
+        "canonical-model-record-v3",
+        "field-availability-v3"
+      ],
+      "network_requests_allowed": false
+    },
+    {
+      "step_id": "WP03-I08",
+      "title": "Ensemble storage v3",
+      "outputs": [
+        "ensemble-member-storage-contract-v3"
+      ],
+      "network_requests_allowed": false
+    },
+    {
+      "step_id": "WP03-I09",
+      "title": "Receipt-gated Archive-v6 persistence and occurrence linkage",
+      "outputs": [
+        "mardorf-weather-archive-v6",
+        "migration_source_occurrence_id",
+        "v6 publication receipts/manifests"
+      ],
+      "network_requests_allowed": false
+    },
+    {
+      "step_id": "WP03-I10",
+      "title": "WP03 hard-gate/live acceptance",
+      "outputs": [
+        "A03-01..A03-15 evidence",
+        "LP03-01..LP03-04 evidence"
+      ],
+      "network_requests_allowed": false
+    }
+  ],
+  "archive_v6_replacement_v3": {
+    "method_version": "dev03-v5-v6-replacement-v3",
+    "deterministic_occurrence_link": "migration_source_occurrence_id remains based on logical_record_id + verified parent_v2_payload_sha256",
+    "required_before_deterministic_replacement": [
+      "valid v2-style two-phase v6 publication receipt per FIX-F12",
+      "causal exact v3 attempt private first_seen at as_of",
+      "exact parent verified-transfer binding per F01",
+      "exact parent-cycle binding per F02",
+      "verified parent_field_inventory_sha256 preservation per F03",
+      "verified parent_source_chronology_sha256 preservation per F16"
+    ],
+    "ensemble_rule": "Apply F08 source-set-level precedence separately from deterministic occurrence precedence.",
+    "no_cross_archive_field_mix": true
+  },
+  "audit_summary": {
+    "finding_count": 16,
+    "severities": {
+      "P0": 0,
+      "P1": 13,
+      "P2": 3,
+      "P3": 0
+    },
+    "newly_added_in_v2": [
+      "AUD-20260928-02-F11",
+      "AUD-20260928-02-F12",
+      "AUD-20260928-02-F13",
+      "AUD-20260928-02-F14",
+      "AUD-20260928-02-F15",
+      "AUD-20260928-02-F16"
+    ]
+  }
+}
