@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "topology_version": "dev03-prep05-migration-topology-v1",
-  "status": "candidate",
+  "status": "complete",
   "date": "2026-09-28",
   "development_phase": "DEV-03",
   "preparation_step": "DEV03-PREP05",
@@ -316,5 +316,7 @@
     ],
     "next_preparation_step": "DEV03-PREP06",
     "wp03_still_blocked_until": "DEV03-PREP08 complete"
-  }
+  },
+  "completed_utc_date": "2026-09-28",
+  "acceptance_metadata_policy": "Repository-specific CI run IDs are recorded in private project state/handoff; this shared topology contract remains byte-identical across repositories."
 }
