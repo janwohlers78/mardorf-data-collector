@@ -1,0 +1,40 @@
+name: DEV03 WP03 I10 public live proof
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dev03-wp03-i10-public-live-proof
+  cancel-in-progress: false
+
+jobs:
+  live-proof:
+    if: github.repository == 'janwohlers78/mardorf-data-collector'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Install ecCodes
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libeccodes-tools
+          grib_ls -V
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Install pinned runtime dependencies
+        run: python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-runtime.txt
+      - name: Validate I10 isolated wiring
+        run: PYTHONPATH=src python src/validate_dev03_wp03_i10_public.py
+      - name: Execute naturally sourced I10 successor attempt
+        env:
+          PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
+        run: |
+          test -n "$PRIVATE_REPO_TOKEN"
+          PYTHONPATH=src python src/run_dev03_wp03_i10_public.py --result-out work/dev03_i10_public_result.json
+          cat work/dev03_i10_public_result.json >> "$GITHUB_STEP_SUMMARY"
