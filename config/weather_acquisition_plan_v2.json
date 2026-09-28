@@ -84,7 +84,10 @@
     "unknown_measurement_fails_closed": true,
     "request_and_byte_budget_checked_before_every_request": true,
     "response_bytes_attributed_after_every_request": true,
-    "hard_breach_stops_further_requests": true
+    "hard_breach_stops_further_requests": true,
+    "response_body_requires_content_length": true,
+    "declared_response_must_fit_remaining_hard_byte_budget_before_body_read": true,
+    "missing_or_invalid_content_length": "fetch_error_fail_closed"
   },
   "output_contract": {
     "bundle_method_version": "collector-model-bundle-v3-shell",
