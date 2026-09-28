@@ -399,7 +399,10 @@ def _request_once(session, job: dict, ledger: BudgetLedger, *, attempt_kind: str
     except Exception as exc:
         return None, "fetch_error", f"{type(exc).__name__}: {exc}"
     raw = bytes(response.content)
-    ledger.record_response_bytes(len(raw))
+    try:
+        ledger.record_response_bytes(len(raw))
+    except BudgetExceeded as exc:
+        return raw, "fetch_error", f"hard_budget_breach_after_response: {exc}"
     if response.status_code == 200:
         return raw, None, None
     if response.status_code in {404, 410}:
