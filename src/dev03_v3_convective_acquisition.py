@@ -393,7 +393,7 @@ def _failure_evidence(job: dict, *, status: str, observed_at_utc: str, reason: s
 
 
 def _read_budgeted_response(response, ledger: BudgetLedger) -> bytes:
-    """Read at most the remaining hard byte budget and fail closed on overflow."""
+    """Read a measured 200 response only when its declared body fits the hard budget."""
     remaining = ledger.byte_hard_max - ledger.response_bytes_used
     if remaining <= 0:
         ledger.hard_breach = True
@@ -401,39 +401,41 @@ def _read_budgeted_response(response, ledger: BudgetLedger) -> bytes:
         raise BudgetExceeded("daily deterministic-network byte budget exhausted")
 
     header = response.headers.get("Content-Length") if hasattr(response, "headers") else None
-    if header not in (None, ""):
-        try:
-            declared = int(header)
-        except (TypeError, ValueError) as exc:
-            response.close()
-            raise Dev03I04Error("provider Content-Length is not an integer") from exc
-        if declared < 0:
-            response.close()
-            raise Dev03I04Error("provider Content-Length is negative")
-        if declared > remaining:
-            ledger.hard_breach = True
-            response.close()
-            raise BudgetExceeded(
-                "provider Content-Length exceeds remaining deterministic-network byte budget"
-            )
+    if header in (None, ""):
+        response.close()
+        raise Dev03I04Error(
+            "provider response lacks Content-Length required for fail-closed byte budgeting"
+        )
+    try:
+        declared = int(header)
+    except (TypeError, ValueError) as exc:
+        response.close()
+        raise Dev03I04Error("provider Content-Length is not an integer") from exc
+    if declared < 0:
+        response.close()
+        raise Dev03I04Error("provider Content-Length is negative")
+    if declared > remaining:
+        ledger.hard_breach = True
+        response.close()
+        raise BudgetExceeded(
+            "provider Content-Length exceeds remaining deterministic-network byte budget"
+        )
 
     raw = bytearray()
     try:
-        for chunk in response.iter_content(chunk_size=65536):
-            if not chunk:
-                continue
-            room = ledger.byte_hard_max - ledger.response_bytes_used - len(raw)
-            if room <= 0 or len(chunk) > room:
-                ledger.hard_breach = True
-                raise BudgetExceeded(
-                    "provider response body would exceed deterministic-network hard byte budget"
-                )
-            raw.extend(chunk)
+        for chunk in response.iter_content(chunk_size=min(65536, max(1, declared or 1))):
+            if chunk:
+                raw.extend(chunk)
+                if len(raw) > declared:
+                    raise Dev03I04Error("provider response exceeds declared Content-Length")
     finally:
         response.close()
+    if len(raw) != declared:
+        raise Dev03I04Error(
+            f"provider response length mismatch: declared={declared} received={len(raw)}"
+        )
     ledger.record_response_bytes(len(raw))
     return bytes(raw)
-
 
 def _request_once(session, job: dict, ledger: BudgetLedger, *, attempt_kind: str, timeout: int):
     ledger.reserve_request(attempt_kind=attempt_kind)
@@ -443,12 +445,19 @@ def _request_once(session, job: dict, ledger: BudgetLedger, *, attempt_kind: str
         )
     except Exception as exc:
         return None, "fetch_error", f"{type(exc).__name__}: {exc}"
-    raw = _read_budgeted_response(response, ledger)
-    if response.status_code == 200:
-        return raw, None, None
     if response.status_code in {404, 410}:
-        return raw, "not_yet_published", f"HTTP {response.status_code} exact parent-cycle field unavailable"
-    return raw, "fetch_error", f"HTTP {response.status_code} from exact parent-cycle field request"
+        response.close()
+        return b"", "not_yet_published", f"HTTP {response.status_code} exact parent-cycle field unavailable"
+    if response.status_code != 200:
+        response.close()
+        return b"", "fetch_error", f"HTTP {response.status_code} from exact parent-cycle field request"
+    try:
+        raw = _read_budgeted_response(response, ledger)
+    except Dev03I04Error as exc:
+        if isinstance(exc, BudgetExceeded):
+            raise
+        return b"", "fetch_error", f"budget_measurement_failed: {exc}"
+    return raw, None, None
 
 
 def acquire_convective_successor(
