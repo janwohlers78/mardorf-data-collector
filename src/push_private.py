@@ -261,12 +261,26 @@ def pointer_item(path,content,guard_path,field,incoming_time):
     return {"path":path,"content":content,"immutable":False,
             "monotonic_guard":{"path":guard_path,"field":field,"incoming_time":incoming_time}}
 
+def emit_result(result,path=None):
+    text=json.dumps(result,indent=2,ensure_ascii=False,allow_nan=False)+"\\n"
+    if path:
+        target=Path(path);target.parent.mkdir(parents=True,exist_ok=True)
+        target.write_text(text,encoding="utf-8")
+    print(text,end="")
+
+def write_bytes_optional(path,raw):
+    if path:
+        target=Path(path);target.parent.mkdir(parents=True,exist_ok=True)
+        target.write_bytes(raw)
+
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument("--kind",required=True,choices=("models","svg","skm","wunstorf","etnw"))
     ap.add_argument("--file")
     ap.add_argument("--integrity-json",required=True)
     ap.add_argument("--integrity-md",required=True)
+    ap.add_argument("--result-json")
+    ap.add_argument("--receipt-copy")
     args=ap.parse_args()
 
     # Phase 2E-2 defense in depth: a provider-cycle no-op must never consume
@@ -281,12 +295,12 @@ def main():
                 and gate.get("method_version")=="provider-cycle-gate-v1"
                 and gate.get("any_work") is False
                 and gate.get("delta_prediction")=="zero"):
-            print(json.dumps({
+            emit_result({
                 "kind":"models",
                 "status":"suppressed_noop",
                 "reason":"provider_cycle_gate_predicted_zero_delta",
                 "private_api_writes":0,
-            },indent=2))
+            },args.result_json)
             return
 
     token=os.getenv("PRIVATE_REPO_TOKEN")
@@ -395,7 +409,12 @@ def main():
 
     # Fully completed reruns validate immutable evidence and then repair/finalize
     # mutable pointers if a previous invocation stopped after the receipt commit.
-    existing_receipt=decoded_json_content(content_meta(repo,receipt_path,h))
+    existing_receipt_meta=content_meta(repo,receipt_path,h)
+    existing_receipt_raw=decoded_bytes(existing_receipt_meta)
+    try:
+        existing_receipt=json.loads(existing_receipt_raw.decode("utf-8")) if existing_receipt_raw else None
+    except Exception:
+        existing_receipt=None
     if existing_receipt is not None:
         expected_payload_sha=(report.get("private_payload") or {}).get("source_sha256")
         if (existing_receipt.get("kind")!=args.kind
@@ -418,7 +437,10 @@ def main():
             if item.get("gzip") and item.get("source_sha256") and proof.get("decompressed_sha256")!=item["source_sha256"]:
                 raise RuntimeError(f"receipt decompressed SHA-256 mismatch for immutable payload: {item['path']}")
 
-        receipt_raw=(json.dumps(existing_receipt,indent=2,ensure_ascii=False,allow_nan=False)+"\n").encode()
+        receipt_raw=existing_receipt_raw
+        if receipt_raw is None:
+            raise RuntimeError(f"existing transfer receipt bytes are unavailable: {receipt_path}")
+        write_bytes_optional(args.receipt_copy,receipt_raw)
         finalize=[
             pointer_item(receipt_latest_path,receipt_raw,receipt_latest_path,
                          "source_generated_at_utc",when.isoformat())
@@ -431,14 +453,17 @@ def main():
                              latest_success_path,"generated_at_utc",when.isoformat()),
             ]
         repaired=atomic_commit(repo,finalize,f"collector: finalize verified {args.kind} transfer {stamp}",h)
-        print(json.dumps({
+        emit_result({
             "idempotent":True,"kind":args.kind,"stamp":stamp,
             "transfer_receipt_path":receipt_path,
+            "transfer_receipt_sha256":hashlib.sha256(receipt_raw).hexdigest(),
             "verified_data_commit_sha":existing_receipt.get("verified_data_commit_sha"),
+            "payload_source_sha256":existing_receipt.get("payload_source_sha256"),
+            "source_generated_at_utc":existing_receipt.get("source_generated_at_utc"),
             "readback_verified":True,
             "finalization":repaired,
             "reason":"existing_receipt_and_immutable_bytes_reverified",
-        },indent=2))
+        },args.result_json)
         return
 
     data_files=immutable_files+attempt_pointer_files
@@ -465,6 +490,7 @@ def main():
             "publication_semantics":"The data commit was read back before publication; latest_success is finalized only in this receipt-bearing child commit.",
         }
         receipt_raw=(json.dumps(receipt,indent=2,ensure_ascii=False,allow_nan=False)+"\n").encode()
+        write_bytes_optional(args.receipt_copy,receipt_raw)
         receipt_files=[
             {"path":receipt_path,"content":receipt_raw,"immutable":True},
             pointer_item(receipt_latest_path,receipt_raw,receipt_latest_path,
@@ -479,11 +505,15 @@ def main():
             ]
         rr=atomic_commit(repo,receipt_files,f"collector: record verified {args.kind} transfer {stamp}",h)
         result["transfer_receipt_path"]=receipt_path
+        result["transfer_receipt_sha256"]=hashlib.sha256(receipt_raw).hexdigest()
+        result["verified_data_commit_sha"]=receipt.get("verified_data_commit_sha")
+        result["payload_source_sha256"]=receipt.get("payload_source_sha256")
+        result["source_generated_at_utc"]=receipt.get("source_generated_at_utc")
         result["transfer_receipt_commit_sha"]=rr.get("commit_sha")
         result["transfer_receipt_commit_readback_verified"]=rr.get("readback_verified",False)
         result["success_pointer_finalized"]=bool(report.get("bundle_ready_for_private_revalidation"))
         result["receipt_finalization"]=rr
-    print(json.dumps(result,indent=2))
+    emit_result(result,args.result_json)
 
 if __name__=="__main__":
     main()

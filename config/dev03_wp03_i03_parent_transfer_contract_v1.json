@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "contract_version": "dev03-wp03-i03-parent-transfer-v1",
+  "status": "implementation_contract",
+  "date": "2026-09-28",
+  "development_phase": "DEV-03",
+  "work_package": "DEV03-WP03",
+  "implementation_step": "WP03-I03",
+  "network_requests_allowed": false,
+  "operational_authority": "v16-c3-v9",
+  "methods": {
+    "collection_transaction_id": "dev03-collection-transaction-id-v2",
+    "parent_cycle_binding": "dev03-parent-cycle-binding-v1",
+    "v3_attempt_id": "dev03-v3-attempt-id-v2",
+    "pointer_ordering": "dev03-v3-pointer-ordering-v2",
+    "transfer_readback": "private-transfer-readback-v2"
+  },
+  "parent_v2_binding_required_fields": [
+    "parent_v2_payload_sha256",
+    "parent_v2_collector_generated_at_utc",
+    "parent_v2_transfer_receipt_path",
+    "parent_v2_transfer_receipt_sha256",
+    "parent_v2_verified_data_commit_sha"
+  ],
+  "collection_transaction_canonical_inputs": [
+    "parent_v2_collector_generated_at_utc",
+    "parent_v2_payload_sha256",
+    "parent_v2_transfer_receipt_sha256",
+    "parent_v2_verified_data_commit_sha"
+  ],
+  "parent_cycle_binding_dimensions": [
+    "model",
+    "run_time_utc",
+    "valid_time_utc",
+    "forecast_lead_seconds",
+    "provider_product",
+    "grid_id_or_exact_extraction_coordinate_identity"
+  ],
+  "v3_attempt_canonical_inputs": [
+    "collection_transaction_id",
+    "v3_generated_at_utc",
+    "attempt_nonce"
+  ],
+  "attempt_nonce_rule": "UUIDv4/128-bit collision-safe nonce generated before any future v3-only provider activity.",
+  "transfer_namespace": "data/inbox/public_collector_v3",
+  "immutable_paths": {
+    "payload": "data/inbox/public_collector_v3/models/YYYY/MM/DD/models_<stamp>_<v3_attempt_id>.json.gz",
+    "integrity": "data/inbox/public_collector_v3/integrity/models/YYYY/MM/DD/integrity_<stamp>_<v3_attempt_id>.json",
+    "receipt": "data/inbox/public_collector_v3/transfer_receipts/models/YYYY/MM/DD/receipt_<stamp>_<v3_attempt_id>.json"
+  },
+  "mutable_pointers": {
+    "current_parent": {
+      "path": "data/inbox/public_collector_v3/integrity/models/latest_success.json",
+      "order": "parent_v2_collector_generated_at_utc; tie v3_generated_at_utc; tie v3_attempt_id",
+      "older_parent_may_replace": false
+    },
+    "attempt_event": {
+      "path": "data/inbox/public_collector_v3/transfer_receipts/models/latest_attempt.json",
+      "order": "v3_generated_at_utc; tie v3_attempt_id",
+      "purpose": "receipt-drain trigger only"
+    }
+  },
+  "fail_closed": [
+    "No exact verified parent receipt means no v3 shell is valid.",
+    "Every retained parent occurrence must have exact provider-cycle identity.",
+    "Ambiguous provider product or grid identity rejects the parent-cycle binding.",
+    "A retry of an older parent never rolls the current-parent pointer backwards.",
+    "No I03 component performs provider acquisition or enables any shadow control."
+  ],
+  "shadow_controls_expected_false": [
+    "public_v3_generation_enabled",
+    "public_v3_transfer_enabled",
+    "private_v3_promotion_enabled",
+    "archive_v6_write_enabled"
+  ],
+  "next_step": "WP03-I04"
+}

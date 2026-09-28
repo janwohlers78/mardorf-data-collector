@@ -321,6 +321,7 @@ jobs:
           fi
           args=(--kind models --integrity-json work/model_integrity.json --integrity-md work/model_integrity.md)
           if [ -f work/model_snapshot.json ]; then args+=(--file work/model_snapshot.json); fi
+          args+=(--result-json work/model_transfer_result.json --receipt-copy work/model_transfer_receipt.json)
           python src/push_private.py "${args[@]}"
 
       - name: Fail workflow when granular integrity audit found errors
