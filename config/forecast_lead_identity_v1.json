@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "artifact_version": "forecast-lead-identity-v1",
+  "status": "implemented_shadow_only",
+  "date": "2026-09-28",
+  "development_phase": "DEV-03",
+  "work_package": "DEV03-WP03",
+  "implementation_step": "WP03-I01",
+  "purpose": "Define lossless forecast lead identity shared by L1 acquisition and L2 persistence without truncation, guessing, or silent coercion.",
+  "authority": {
+    "l1_acquisition_lead_hours": {
+      "type": "int64",
+      "minimum": 0,
+      "integral_hours_only": true,
+      "bool_forbidden": true,
+      "string_coercion_forbidden": true,
+      "rule": "Acquisition lead input is a strict non-negative integer number of hours."
+    },
+    "l2_lead_seconds": {
+      "type": "int64",
+      "minimum": 0,
+      "authoritative": true,
+      "bool_forbidden": true,
+      "float_coercion_forbidden": true,
+      "string_coercion_forbidden": true,
+      "rule": "Persisted successor lead identity is exact non-negative integer seconds."
+    },
+    "timestamp_identity": {
+      "run_time_utc": "timezone-aware RFC3339 UTC",
+      "valid_time_utc": "timezone-aware RFC3339 UTC",
+      "equation": "valid_time_utc - run_time_utc == lead_seconds seconds",
+      "fractional_second_duration_allowed": false
+    }
+  },
+  "invariants": [
+    "Never use int(), round(), floor(), ceil() or string parsing to coerce a fractional or malformed lead into validity.",
+    "When acquisition_lead_hours is present, lead_seconds must equal acquisition_lead_hours * 3600 exactly.",
+    "When run_time_utc and valid_time_utc are present, their exact whole-second difference must equal lead_seconds.",
+    "valid_time_utc must not precede run_time_utc.",
+    "Boolean values are not integers for this contract even though Python bool subclasses int.",
+    "Missing, contradictory, fractional, naive-time or non-UTC lead identity fails closed."
+  ],
+  "fail_closed_reasons": [
+    "missing_lead_seconds",
+    "lead_seconds_not_strict_integer",
+    "lead_seconds_negative",
+    "acquisition_lead_hours_not_strict_integer",
+    "timestamp_not_utc",
+    "timestamp_fractional_duration",
+    "valid_before_run",
+    "timestamp_lead_mismatch",
+    "hours_seconds_mismatch"
+  ],
+  "predecessor_policy": {
+    "frozen_v2_v5_mutation_allowed": false,
+    "legacy_behavior_rewrite_allowed": false,
+    "successor_only": true
+  },
+  "operational_boundary": {
+    "authorizes_network_requests": false,
+    "authorizes_archive_v6_write": false,
+    "authorizes_l4_l5_cutover": false,
+    "operational_authority_unchanged": "v16-c3-v9"
+  }
+}
