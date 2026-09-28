@@ -111,7 +111,8 @@ def validate_contract(c):
 
     failures=c.get("failure_domains") or {}
     check(failures.get("operational_effect")=="none","v3 failures must have no operational effect")
-    identity_failure=str(failures.get("v3_identity_or_schema_failure") or "")\n    check("v3 latest_success" in identity_failure and ("Do not publish" in identity_failure or "no " in identity_failure.lower()),"identity failure boundary missing")
+    identity_failure=str(failures.get("v3_identity_or_schema_failure") or "")
+    check("v3 latest_success" in identity_failure and ("Do not publish" in identity_failure or "no " in identity_failure.lower()),"identity failure boundary missing")
     check("degraded_fallback_legacy" in str(failures.get("l2_l3_v6_validation_failure")),"explicit degraded fallback missing")
 
     controls=c.get("control_plane") or {}
