@@ -11,7 +11,7 @@ class ForecastLeadIdentityError(ValueError):
 
 INT64_MAX = (1 << 63) - 1
 RFC3339_UTC_RE = re.compile(
-    r"^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$"
+    r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|\+00:00)$"
 )
 
 
