@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "contract_version": "phase2-acquisition-storage-successor-v2",
-  "status": "active_repair_contract_not_refrozen",
+  "status": "complete_frozen",
   "created_utc_date": "2026-09-27",
   "supersedes_for_repairs": "phase2-acquisition-storage-freeze-v1",
   "audit_basis": {
@@ -149,7 +149,7 @@
     "v1_immutable": true,
     "v2_shared_core_mutation_rule": "Any change to shared_core requires a new shared_core_sha256, matching byte-identical contract update in both repositories, and an explicit audit-plan reason.",
     "implementation_rule": "Implementation steps C1 onward may satisfy this contract but may not weaken these invariants without a new contract version.",
-    "refreeze_rule": "Status may become complete_frozen only after H1 and H2 acceptance gates and H3 explicit refreeze."
+    "refreeze_rule": "Status is complete_frozen after H1/H2 acceptance and H3 explicit refreeze. Any later semantic or implementation-version change requires a new explicit successor contract version and renewed regression/live acceptance."
   },
   "semantic_extensions": {
     "cape_native_identity": {
@@ -221,5 +221,27 @@
       "collision_rule": "Multiple provider-native fields may share a semantic_id only if their native field_identity_id remains distinct; ECMWF 10fg/10fg3/10fg6 and CAPE/CIN level variants must not collapse.",
       "acceptance_gate": "No silent omission, semantic collision, unit/level/interval loss, zero-fill, or meteorologically invalid substitution across Collector -> semantic registry -> Archive -> query view."
     }
+  },
+  "refrozen_on_utc_date": "2026-09-28",
+  "refreeze": {
+    "refreeze_version": "phase2-h3-successor-refreeze-v1",
+    "status": "complete_frozen",
+    "frozen_on_utc_date": "2026-09-28",
+    "acceptance_artifact_path": "config/phase2_h3_successor_refreeze_v1.json",
+    "acceptance_artifact_git_blob_sha": "ac5aa563dc86b31e131d90ac2fba33a7f9c692ad",
+    "shared_core_sha256": "284a29013089c7d835d5c8a0866403442ec6991222d2177c1b7b5f41e77874f7",
+    "closed_findings": [
+      "P2-AUDIT-008",
+      "P3-AUDIT-011"
+    ],
+    "active_findings_after_H3": {
+      "P0": 0,
+      "P1": 0,
+      "P2": 0,
+      "P3": 0,
+      "total": 0
+    },
+    "feature_broker_implemented_by_H3": false,
+    "phase3_feature_broker_may_begin": true
   }
 }

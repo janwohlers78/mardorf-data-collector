@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "acceptance_version": "phase2-h3-successor-refreeze-v1",
+  "status": "complete_frozen",
+  "frozen_on_utc_date": "2026-09-28",
+  "purpose": "Final Phase-2 successor refreeze after H1 full E2E acceptance and H2 live successor canary. Freeze accepted successor versions and evidence IDs/hashes without mutating historical phase2-acquisition-storage-freeze-v1 evidence.",
+  "successor_contract": {
+    "contract_version": "phase2-acquisition-storage-successor-v2",
+    "shared_core_version": "phase2-revision-event-shared-core-v2",
+    "shared_core_sha256": "284a29013089c7d835d5c8a0866403442ec6991222d2177c1b7b5f41e77874f7",
+    "accepted_implementation_versions": {
+      "archive_successor": "mardorf-weather-archive-v5",
+      "availability_successor": "field-availability-v2",
+      "ensemble_successor": "ensemble-member-storage-contract-v2",
+      "registry_successor": "relevant-meteorology-v2",
+      "canonical_record_successor": "canonical-model-record-v2",
+      "gefs_cycle_evidence_successor": "gefs-cycle-evidence-event-stream-index-v2"
+    }
+  },
+  "immutable_predecessor_v1": {
+    "contract_version": "phase2-acquisition-storage-freeze-v1",
+    "status": "complete_frozen",
+    "mutation_permitted": false,
+    "repository_git_blob_sha": {
+      "janwohlers78/mardorf-kitevorhersage": "9b8af1f0df6ed8c6972fbb0aea7f074bcc4e2c73",
+      "janwohlers78/mardorf-data-collector": "6ebb2b500d3e79c02c3cbdd0e98bd7913de99ece"
+    }
+  },
+  "acceptance_evidence": {
+    "H1": {
+      "public": {
+        "repository": "janwohlers78/mardorf-data-collector",
+        "accepted_main_commit": "4d037525b601ba5a6d09fd4d79cbe71fbc8d7048",
+        "artifact_path": "config/phase2_h1_public_e2e_matrix_v1.json",
+        "artifact_version": "phase2-h1-public-e2e-matrix-v1",
+        "artifact_git_blob_sha": "3a8d556874bc6c5a5679106b4a640414cee97d38",
+        "post_merge_validation_run_id": 36371386025,
+        "post_merge_codeql_run_id": 36371385489
+      },
+      "private": {
+        "repository": "janwohlers78/mardorf-kitevorhersage",
+        "accepted_main_commit": "ed1e5ff8a362aaac1f001b664d8ba1ea57e424a6",
+        "artifact_path": "config/phase2_h1_e2e_matrix_v1.json",
+        "artifact_version": "phase2-h1-full-e2e-matrix-v1",
+        "artifact_git_blob_sha": "4b007bf0a13defcf46f1f0b0b92d9a1fbb187763",
+        "post_merge_quality_run_id": 36371759538
+      }
+    },
+    "H2": {
+      "public": {
+        "repository": "janwohlers78/mardorf-data-collector",
+        "accepted_main_commit": "88fa6144db9e3c3ddae06537d6f810c6eb4277c9",
+        "accepted_full_validation_run_id": 36374719325,
+        "post_repair_validation_run_id": 36374681114,
+        "integrity": "PASS_0_ERRORS_0_WARNINGS"
+      },
+      "verified_transfer": {
+        "receipt_stamp": "20260928T035524727131Z",
+        "verified_data_commit_sha": "1c0ed9fa50cd5239503ce7ba3a9ffce47efce781",
+        "payload_decompressed_sha256": "c10b8dee4135909b64272cb969d12ff70d0a2c2f645971a160717f04ab5cbbc3",
+        "readback_verified": true
+      },
+      "private": {
+        "repository": "janwohlers78/mardorf-kitevorhersage",
+        "h2_state_main_commit": "596f903e451ac6c1f8039ed868980cdd793b19e8",
+        "acceptance_artifact_path": "config/phase2_h2_live_acceptance_v1.json",
+        "acceptance_artifact_version": "phase2-h2-live-successor-canary-v1",
+        "acceptance_artifact_git_blob_sha": "5b3159b98daaf626b5ec4ce9d13d3e36fb4cc092",
+        "promotion_run_id": 36375613143,
+        "h2_post_merge_quality_run_id": 36376181304,
+        "promoted_snapshot_sha256": "b00cf8980c1a3c3e0c774f38b003b13675fcbf5d9d9ad6590f0a7cd5f0497781",
+        "issue_chain_proof_status": "verified",
+        "c3_numeric_input_parity": true
+      }
+    }
+  },
+  "final_audit_closure": {
+    "closed_findings": [
+      "P2-AUDIT-008",
+      "P3-AUDIT-011"
+    ],
+    "active_findings_after_H3": {
+      "P0": 0,
+      "P1": 0,
+      "P2": 0,
+      "P3": 0,
+      "total": 0
+    },
+    "all_H1_H2_acceptance_gates_green": true,
+    "shared_core_unchanged_during_H3": true,
+    "predecessor_v1_history_unchanged": true
+  },
+  "phase3_handoff": {
+    "feature_broker_implemented_by_H3": false,
+    "phase2_complete": true,
+    "phase3_feature_broker_may_begin": true,
+    "next_action": "Phase 3 - Meteorology Feature Broker"
+  },
+  "change_control": {
+    "successor_v2_frozen": true,
+    "rule": "Any future change to successor semantics, shared core, implementation-version ownership or frozen H3 acceptance evidence requires a new explicit contract version and new regression/live acceptance; do not mutate this frozen H3 acceptance in place."
+  }
+}

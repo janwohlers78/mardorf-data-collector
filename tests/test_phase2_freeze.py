@@ -49,7 +49,7 @@ class Phase2FrozenContractTests(unittest.TestCase):
     def test_successor_v2_shared_core_hash_and_revision_invariants(self):
         c=self.successor
         self.assertEqual(c["contract_version"],"phase2-acquisition-storage-successor-v2")
-        self.assertEqual(c["status"],"active_repair_contract_not_refrozen")
+        self.assertEqual(c["status"],"complete_frozen")
         self.assertTrue(c["change_control"]["v1_immutable"])
         canonical=json.dumps(c["shared_core"],sort_keys=True,separators=(",",":"),ensure_ascii=False)
         self.assertEqual(

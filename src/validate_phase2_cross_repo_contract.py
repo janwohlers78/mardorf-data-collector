@@ -12,7 +12,9 @@ from pathlib import Path
 SUCCESSOR_PATH = "config/phase2_successor_contract_v2.json"
 FROZEN_V1_PATH = "config/phase2_frozen_contract_v1.json"
 CAPE_IDENTITY_PATH = "config/cape_native_identity_contract_v1.json"
+H3_REFREEZE_PATH = "config/phase2_h3_successor_refreeze_v1.json"
 EXPECTED_SUCCESSOR = "phase2-acquisition-storage-successor-v2"
+EXPECTED_H3_REFREEZE = "phase2-h3-successor-refreeze-v1"
 
 
 def canonical_hash(value):
@@ -20,7 +22,30 @@ def canonical_hash(value):
     return hashlib.sha256(raw).hexdigest()
 
 
+def git_blob_sha(data):
+    header=f"blob {len(data)}\\0".encode("ascii")
+    return hashlib.sha1(header+data).hexdigest()
+
+
 def fetch_contents(repo,path,ref,token=""):
+    # The paired collector is public. Avoid unauthenticated GitHub Contents API
+    # rate-limit coupling in CI by using raw content whenever no explicit
+    # cross-repository token is configured. Tokenized/private use keeps the API.
+    if not token:
+        url=(
+            "https://raw.githubusercontent.com/"
+            + urllib.parse.quote(repo,safe="/")
+            + "/"
+            + urllib.parse.quote(ref,safe="")
+            + "/"
+            + urllib.parse.quote(path,safe="/")
+        )
+        req=urllib.request.Request(
+            url,headers={"User-Agent":"mardorf-phase2-cross-repo-contract-gate"}
+        )
+        with urllib.request.urlopen(req,timeout=30) as response:
+            return response.read()
+
     url=(
         "https://api.github.com/repos/"
         + repo
@@ -33,9 +58,8 @@ def fetch_contents(repo,path,ref,token=""):
         "Accept":"application/vnd.github+json",
         "X-GitHub-Api-Version":"2022-11-28",
         "User-Agent":"mardorf-phase2-cross-repo-contract-gate",
+        "Authorization":"Bearer "+token,
     }
-    if token:
-        headers["Authorization"]="Bearer "+token
     req=urllib.request.Request(url,headers=headers)
     with urllib.request.urlopen(req,timeout=30) as response:
         payload=json.load(response)
@@ -47,8 +71,8 @@ def fetch_contents(repo,path,ref,token=""):
 def require_successor_invariants(contract,label):
     if contract.get("contract_version")!=EXPECTED_SUCCESSOR:
         raise AssertionError(f"{label}: wrong successor contract version")
-    if contract.get("status")!="active_repair_contract_not_refrozen":
-        raise AssertionError(f"{label}: successor contract status unexpectedly changed")
+    if contract.get("status")!="complete_frozen":
+        raise AssertionError(f"{label}: successor contract is not H3 complete_frozen")
     core=contract.get("shared_core")
     if not isinstance(core,dict):
         raise AssertionError(f"{label}: shared_core missing")
@@ -106,6 +130,61 @@ def require_successor_invariants(contract,label):
         raise AssertionError(f"{label}: B2 CAPE identity version drift")
     if "MUST NOT" not in cape_extension.get("ambiguity_rule",""):
         raise AssertionError(f"{label}: B2 ambiguous CAPE fail-safe rule missing")
+
+
+    refreeze=contract.get("refreeze")
+    if not isinstance(refreeze,dict):
+        raise AssertionError(f"{label}: H3 refreeze block missing")
+    if refreeze.get("refreeze_version")!=EXPECTED_H3_REFREEZE:
+        raise AssertionError(f"{label}: wrong H3 refreeze version")
+    if refreeze.get("status")!="complete_frozen":
+        raise AssertionError(f"{label}: H3 refreeze status not complete_frozen")
+    if refreeze.get("acceptance_artifact_path")!=H3_REFREEZE_PATH:
+        raise AssertionError(f"{label}: H3 acceptance artifact path drift")
+    if refreeze.get("shared_core_sha256")!=contract.get("shared_core_sha256"):
+        raise AssertionError(f"{label}: H3 refreeze shared-core pin drift")
+    if refreeze.get("active_findings_after_H3")!={"P0":0,"P1":0,"P2":0,"P3":0,"total":0}:
+        raise AssertionError(f"{label}: H3 final finding closure drift")
+    if refreeze.get("feature_broker_implemented_by_H3") is not False:
+        raise AssertionError(f"{label}: H3 must not implement Feature Broker")
+    if refreeze.get("phase3_feature_broker_may_begin") is not True:
+        raise AssertionError(f"{label}: Phase 3 handoff not authorized after H3")
+
+def require_h3_refreeze_invariants(data,contract,label):
+    try:
+        evidence=json.loads(data)
+    except Exception as exc:
+        raise AssertionError(f"{label}: H3 acceptance JSON invalid: {exc}")
+    if evidence.get("acceptance_version")!=EXPECTED_H3_REFREEZE:
+        raise AssertionError(f"{label}: wrong H3 acceptance version")
+    if evidence.get("status")!="complete_frozen":
+        raise AssertionError(f"{label}: H3 acceptance not complete_frozen")
+    successor=evidence.get("successor_contract") or {}
+    if successor.get("contract_version")!=EXPECTED_SUCCESSOR:
+        raise AssertionError(f"{label}: H3 successor contract version drift")
+    if successor.get("shared_core_sha256")!=contract.get("shared_core_sha256"):
+        raise AssertionError(f"{label}: H3 shared-core acceptance pin drift")
+    if successor.get("accepted_implementation_versions")!=contract.get("implementation_versions"):
+        raise AssertionError(f"{label}: H3 implementation-version pin drift")
+    closure=evidence.get("final_audit_closure") or {}
+    if closure.get("active_findings_after_H3")!={"P0":0,"P1":0,"P2":0,"P3":0,"total":0}:
+        raise AssertionError(f"{label}: H3 active-finding closure drift")
+    if closure.get("closed_findings")!=["P2-AUDIT-008","P3-AUDIT-011"]:
+        raise AssertionError(f"{label}: H3 finding IDs drift")
+    predecessor=evidence.get("immutable_predecessor_v1") or {}
+    if predecessor.get("contract_version")!="phase2-acquisition-storage-freeze-v1":
+        raise AssertionError(f"{label}: predecessor contract pin drift")
+    if predecessor.get("mutation_permitted") is not False:
+        raise AssertionError(f"{label}: frozen v1 mutation unexpectedly permitted")
+    handoff=evidence.get("phase3_handoff") or {}
+    if handoff.get("feature_broker_implemented_by_H3") is not False:
+        raise AssertionError(f"{label}: H3 must remain governance-only")
+    if handoff.get("phase2_complete") is not True or handoff.get("phase3_feature_broker_may_begin") is not True:
+        raise AssertionError(f"{label}: Phase 3 handoff state invalid")
+    pinned_blob=(contract.get("refreeze") or {}).get("acceptance_artifact_git_blob_sha")
+    actual_blob=git_blob_sha(data)
+    if actual_blob!=pinned_blob:
+        raise AssertionError(f"{label}: H3 acceptance Git blob mismatch: {actual_blob}")
 
 
 def require_cape_identity_invariants(contract,label):
@@ -201,6 +280,16 @@ def main():
             f"{args.remote_repo}:{SUCCESSOR_PATH}@{args.remote_ref}"
         )
 
+    local_h3_bytes=Path(H3_REFREEZE_PATH).read_bytes()
+    remote_h3_bytes=fetch_contents(args.remote_repo,H3_REFREEZE_PATH,args.remote_ref,token)
+    if local_h3_bytes!=remote_h3_bytes:
+        raise AssertionError(
+            "H3 successor refreeze acceptance drift: local bytes differ from "
+            f"{args.remote_repo}:{H3_REFREEZE_PATH}@{args.remote_ref}"
+        )
+    require_h3_refreeze_invariants(local_h3_bytes,local,"local H3")
+    require_h3_refreeze_invariants(remote_h3_bytes,remote,"remote H3")
+
     local_cape_bytes=Path(CAPE_IDENTITY_PATH).read_bytes()
     remote_cape_bytes=fetch_contents(args.remote_repo,CAPE_IDENTITY_PATH,args.remote_ref,token)
     if local_cape_bytes!=remote_cape_bytes:
@@ -213,8 +302,16 @@ def main():
     require_cape_identity_invariants(local_cape,"local CAPE")
     require_cape_identity_invariants(remote_cape,"remote CAPE")
 
-    local_v1=json.loads(Path(args.local_v1).read_text(encoding="utf-8"))
-    remote_v1=json.loads(fetch_contents(args.remote_repo,FROZEN_V1_PATH,args.remote_ref,token))
+    local_v1_bytes=Path(args.local_v1).read_bytes()
+    remote_v1_bytes=fetch_contents(args.remote_repo,FROZEN_V1_PATH,args.remote_ref,token)
+    local_v1=json.loads(local_v1_bytes)
+    remote_v1=json.loads(remote_v1_bytes)
+    predecessor_pins=json.loads(local_h3_bytes)["immutable_predecessor_v1"]["repository_git_blob_sha"]
+    if predecessor_pins.get(args.remote_repo)!=git_blob_sha(remote_v1_bytes):
+        raise AssertionError("H3 remote predecessor-v1 Git blob pin mismatch")
+    local_repo_candidates=[name for name in predecessor_pins if name!=args.remote_repo]
+    if len(local_repo_candidates)!=1 or predecessor_pins[local_repo_candidates[0]]!=git_blob_sha(local_v1_bytes):
+        raise AssertionError("H3 local predecessor-v1 Git blob pin mismatch")
     local_pins=compatibility_pins(local_v1)
     remote_pins=compatibility_pins(remote_v1)
     if local_pins!=remote_pins:
@@ -230,6 +327,8 @@ def main():
         "contract_version":local["contract_version"],
         "contract_bytes_sha256":hashlib.sha256(local_bytes).hexdigest(),
         "shared_core_sha256":local["shared_core_sha256"],
+        "h3_refreeze_version":json.loads(local_h3_bytes)["acceptance_version"],
+        "h3_refreeze_git_blob_sha":git_blob_sha(local_h3_bytes),
         "cape_native_identity_contract_version":local_cape["method_version"],
         "cape_native_identity_contract_sha256":hashlib.sha256(local_cape_bytes).hexdigest(),
         "predecessor_compatibility_pins":local_pins,
