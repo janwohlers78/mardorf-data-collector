@@ -59,13 +59,22 @@ class Dev03Wp03I04Tests(unittest.TestCase):
             "run_time_utc": "2026-09-28T12:00:00+00:00",
             "valid_time_utc": f"2026-09-28T{12 + lead:02d}:00:00+00:00",
             "forecast_lead_hours": lead,
-            "provider_product": product,
             "forecast_coordinate_or_grid_point": {
                 "latitude": 52.5,
                 "longitude": 9.3,
                 "selection": "ecCodes_nearest_grid_point",
             },
         }
+        if product is not None:
+            row["provider_product"] = product
+        if model == "ICON-D2":
+            row["source_urls"] = [
+                f"https://opendata.dwd.de/weather/nwp/icon-d2/grib/12/u_10m/icon-d2_germany_regular-lat-lon_single-level_2026092812_{lead:03d}_2d_u_10m.grib2.bz2"
+            ]
+        elif model == "ICON-EU":
+            row["source_urls"] = [
+                f"https://opendata.dwd.de/weather/nwp/icon-eu/grib/12/u_10m/icon-eu_europe_regular-lat-lon_single-level_2026092812_{lead:03d}_0_u_10m.grib2.bz2"
+            ]
         payload = {"models": {model: [row]}}
         raw = (json.dumps(payload, separators=(",", ":")) + "\n").encode()
         binding = {
@@ -120,6 +129,19 @@ class Dev03Wp03I04Tests(unittest.TestCase):
                 self.assertEqual(len(jobs), 1)
                 self.assertIn(token, jobs[0]["source_url"])
                 self.assertIn("/rain_con/", jobs[0]["source_url"])
+
+    def test_frozen_dwd_parent_without_provider_product_uses_exact_source_evidence(self):
+        for model, token in (
+            ("ICON-D2", "2026092812_003_2d_rain_con"),
+            ("ICON-EU", "2026092812_003_RAIN_CON"),
+        ):
+            with self.subTest(model=model):
+                raw, binding, _ = self.fixture(model=model, product=None)
+                jobs, _ = plan_parent_pinned_requests(
+                    raw, binding, plan=self.plan, registry=self.registry
+                )
+                self.assertEqual(len(jobs), 1)
+                self.assertIn(token, jobs[0]["source_url"])
 
     def test_tampered_parent_payload_fails_before_network(self):
         raw, binding, shell = self.fixture()
