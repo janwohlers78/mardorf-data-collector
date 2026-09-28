@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "artifact_version": "dev03-shadow-channels-v1",
+  "status": "implemented_disabled",
+  "date": "2026-09-28",
+  "development_phase": "DEV-03",
+  "work_package": "DEV03-WP03",
+  "implementation_step": "WP03-I01",
+  "purpose": "Provide independently exercisable fail-closed controls for DEV03 successor generation, transfer, private promotion and Archive-v6 persistence.",
+  "controls": {
+    "public_v3_generation_enabled": false,
+    "public_v3_transfer_enabled": false,
+    "private_v3_promotion_enabled": false,
+    "archive_v6_write_enabled": false
+  },
+  "defaults_are_binding": true,
+  "independent_controls_required": true,
+  "activation_policy": {
+    "automatic_activation_forbidden": true,
+    "minimum_prerequisites": [
+      "WP03-I03 PASS",
+      "PREP07 resource instrumentation PASS",
+      "Explicit versioned control change"
+    ],
+    "rule": "All four controls remain false until the I03 parent-binding infrastructure and PREP07 resource instrumentation are validated."
+  },
+  "preferred_disable_order": [
+    "private_v3_promotion_enabled=false",
+    "archive_v6_write_enabled=false",
+    "public_v3_transfer_enabled=false",
+    "public_v3_generation_enabled=false"
+  ],
+  "hard_breach_behavior": [
+    "Do not advance the affected successor latest/promotion pointer.",
+    "Disable the affected shadow stage when safe to do so.",
+    "Retain immutable evidence and diagnostics.",
+    "Do not mutate or disable operational v2/v5/v16.",
+    "Require an explicit FIX or versioned budget/design change before re-enablement."
+  ],
+  "cutover_authority": {
+    "can_authorize_operational_cutover": false,
+    "can_change_v16_c3_v9_authority": false,
+    "operational_authority_unchanged": "v16-c3-v9"
+  },
+  "network_boundary": {
+    "wp03_i01_network_requests_allowed": false,
+    "first_network_step": "WP03-I04",
+    "wp03_i04_precondition": "WP03-I03 PASS and daily/network retry budgets have remaining capacity"
+  }
+}
