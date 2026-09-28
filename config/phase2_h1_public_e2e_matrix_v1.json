@@ -23,7 +23,7 @@
   ],
   "regression_refs": {
     "P1-AUDIT-001": [
-      "tests/test_phase2_e3_semantic_roundtrip.py::test_noaa_runtime_native_mapping_covers_every_registry_native_semantic",
+      "tests/test_phase2_e3_semantic_roundtrip.py::test_noaa_runtime_mapping_covers_every_registry_native_semantic",
       "tests/test_phase2_e3_semantic_roundtrip.py::test_runtime_metadata_contract_preserves_unit_level_and_interval_evidence"
     ],
     "P1-AUDIT-003": [
