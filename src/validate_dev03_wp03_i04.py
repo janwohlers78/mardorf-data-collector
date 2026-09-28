@@ -99,8 +99,13 @@ def main():
           "GFS ACPCP/CPRAT explicit guard missing", problems)
     check("retry_deferred_budget_exhausted" in source,
           "retry budget exhaustion metric missing", problems)
-    check("hard_budget_breach_after_response" in source,
-          "response byte hard-stop evidence missing", problems)
+    check(
+        "_read_budgeted_response" in source
+        and "stream=True" in source
+        and "Content-Length exceeds remaining deterministic-network byte budget" in source,
+        "streaming response byte hard-stop missing",
+        problems,
+    )
 
     d2 = (ROOT / "src" / "fetch_model_data.py").read_text()
     eu = (ROOT / "src" / "fetch_dwd_additional_models.py").read_text()
