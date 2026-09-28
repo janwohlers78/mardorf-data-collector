@@ -11,12 +11,14 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import re
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 
 from forecast_lead_identity import (
     ForecastLeadIdentityError,
+    canonical_utc_timestamp,
     lead_seconds_from_hours,
     validate_forecast_lead_identity,
 )
@@ -28,6 +30,10 @@ POINTER_METHOD = "dev03-v3-pointer-ordering-v2"
 TRANSFER_METHOD = "private-transfer-readback-v2"
 BUNDLE_METHOD = "collector-model-bundle-v3-shell"
 V3_ROOT = "data/inbox/public_collector_v3"
+IMMUTABLE_V2_MODEL_RECEIPT_RE = re.compile(
+    r"^data/inbox/public_collector/transfer_receipts/models/"
+    r"\d{4}/\d{2}/\d{2}/receipt_[A-Za-z0-9._-]+\.json$"
+)
 
 
 class Dev03ParentBindingError(ValueError):
@@ -49,16 +55,26 @@ def sha256_hex(raw: bytes) -> str:
 
 
 def _utc(value, field: str) -> str:
-    if not isinstance(value, str) or not value:
-        raise Dev03ParentBindingError(f"{field} must be a non-empty UTC timestamp")
-    raw = value[:-1] + "+00:00" if value.endswith("Z") else value
     try:
-        dt = datetime.fromisoformat(raw)
-    except ValueError as exc:
-        raise Dev03ParentBindingError(f"{field} is not ISO/RFC3339") from exc
-    if dt.tzinfo is None or dt.utcoffset() != timezone.utc.utcoffset(dt):
-        raise Dev03ParentBindingError(f"{field} must be explicitly UTC")
-    return dt.astimezone(timezone.utc).isoformat()
+        return canonical_utc_timestamp(value, field)
+    except ForecastLeadIdentityError as exc:
+        raise Dev03ParentBindingError(str(exc)) from exc
+
+
+def _loads_unique_json(raw: bytes, field: str):
+    def reject_duplicate_keys(pairs):
+        out = {}
+        for key, value in pairs:
+            if key in out:
+                raise Dev03ParentBindingError(f"{field} contains duplicate JSON key {key!r}")
+            out[key] = value
+        return out
+    try:
+        return json.loads(raw.decode("utf-8"), object_pairs_hook=reject_duplicate_keys)
+    except Dev03ParentBindingError:
+        raise
+    except Exception as exc:
+        raise Dev03ParentBindingError(f"{field} is not valid UTF-8 JSON") from exc
 
 
 def _hex64(value, field: str) -> str:
@@ -77,10 +93,9 @@ def verify_parent_transfer_receipt(receipt_bytes: bytes, transfer_result: dict) 
         raise Dev03ParentBindingError("parent transfer receipt bytes are required")
     if not isinstance(transfer_result, dict):
         raise Dev03ParentBindingError("transfer_result must be an object")
-    try:
-        receipt = json.loads(bytes(receipt_bytes).decode("utf-8"))
-    except Exception as exc:
-        raise Dev03ParentBindingError("parent transfer receipt is not valid UTF-8 JSON") from exc
+    receipt = _loads_unique_json(bytes(receipt_bytes), "parent transfer receipt")
+    if not isinstance(receipt, dict):
+        raise Dev03ParentBindingError("parent transfer receipt must be a JSON object")
 
     if receipt.get("method_version") != TRANSFER_METHOD:
         raise Dev03ParentBindingError("parent receipt method_version mismatch")
@@ -104,10 +119,8 @@ def verify_parent_transfer_receipt(receipt_bytes: bytes, transfer_result: dict) 
         transfer_result.get("source_generated_at_utc"), "source_generated_at_utc"
     )
     receipt_path = transfer_result.get("transfer_receipt_path")
-    if not isinstance(receipt_path, str) or not receipt_path.startswith(
-        "data/inbox/public_collector/transfer_receipts/models/"
-    ):
-        raise Dev03ParentBindingError("parent transfer receipt path is not the models namespace")
+    if not isinstance(receipt_path, str) or not IMMUTABLE_V2_MODEL_RECEIPT_RE.fullmatch(receipt_path):
+        raise Dev03ParentBindingError("parent transfer receipt path is not an immutable dated models receipt")
 
     checks = {
         "readback_verified": receipt.get("readback_verified") is True,
@@ -135,6 +148,22 @@ def verify_parent_transfer_receipt(receipt_bytes: bytes, transfer_result: dict) 
     }
     binding["collection_transaction_id"] = collection_transaction_id(binding)
     return binding
+
+
+def load_verified_parent_payload(payload_bytes: bytes, parent_binding: dict) -> dict:
+    """Parse only the exact source bytes bound by the verified parent receipt."""
+    if not isinstance(payload_bytes, (bytes, bytearray)) or not payload_bytes:
+        raise Dev03ParentBindingError("parent payload bytes are required")
+    expected = _hex64(
+        parent_binding.get("parent_v2_payload_sha256"), "parent_v2_payload_sha256"
+    )
+    actual = sha256_hex(bytes(payload_bytes))
+    if actual != expected:
+        raise Dev03ParentBindingError("parent payload bytes do not match verified parent payload SHA-256")
+    payload = _loads_unique_json(bytes(payload_bytes), "parent v2 payload")
+    if not isinstance(payload, dict):
+        raise Dev03ParentBindingError("parent v2 payload must be a JSON object")
+    return payload
 
 
 def collection_transaction_id(binding: dict) -> str:
@@ -294,7 +323,7 @@ def build_bundle_v3_shell(
 def isolated_v3_paths(v3_generated_at_utc: str, attempt_id: str) -> dict:
     generated = _utc(v3_generated_at_utc, "v3_generated_at_utc")
     _hex64(attempt_id, "v3_attempt_id")
-    dt = datetime.fromisoformat(generated)
+    dt = datetime.fromisoformat(generated.replace("Z", "+00:00"))
     stamp = dt.strftime("%Y%m%dT%H%M%S") + f"{dt.microsecond:06d}Z"
     day = dt.strftime("%Y/%m/%d")
     suffix = f"{stamp}_{attempt_id}"

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import re
 
 
 class ForecastLeadIdentityError(ValueError):
@@ -9,6 +10,9 @@ class ForecastLeadIdentityError(ValueError):
 
 
 INT64_MAX = (1 << 63) - 1
+RFC3339_UTC_RE = re.compile(
+    r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|\+00:00)$"
+)
 
 
 def _strict_non_negative_int(value, field: str) -> int:
@@ -37,19 +41,23 @@ def validate_lead_seconds(value) -> int:
     return _strict_non_negative_int(value, "lead_seconds")
 
 
-def _parse_utc(value, field: str) -> datetime:
-    if not isinstance(value, str) or not value:
-        raise ForecastLeadIdentityError(f"{field} must be a non-empty RFC3339 UTC string")
-    raw = value
-    if raw.endswith("Z"):
-        raw = raw[:-1] + "+00:00"
+def parse_utc_timestamp(value, field: str) -> datetime:
+    if not isinstance(value, str) or not RFC3339_UTC_RE.fullmatch(value):
+        raise ForecastLeadIdentityError(
+            f"{field} must be an RFC3339 UTC timestamp using T and Z/+00:00"
+        )
+    raw = value[:-1] + "+00:00" if value.endswith("Z") else value
     try:
         dt = datetime.fromisoformat(raw)
     except ValueError as exc:
-        raise ForecastLeadIdentityError(f"{field} is not valid RFC3339/ISO-8601") from exc
+        raise ForecastLeadIdentityError(f"{field} is not a valid RFC3339 UTC timestamp") from exc
     if dt.tzinfo is None or dt.utcoffset() != timezone.utc.utcoffset(dt):
         raise ForecastLeadIdentityError(f"{field} must be explicitly UTC")
     return dt.astimezone(timezone.utc)
+
+
+def canonical_utc_timestamp(value, field: str = "timestamp") -> str:
+    return parse_utc_timestamp(value, field).isoformat().replace("+00:00", "Z")
 
 
 def validate_forecast_lead_identity(
@@ -60,8 +68,8 @@ def validate_forecast_lead_identity(
     acquisition_lead_hours=None,
 ):
     seconds = validate_lead_seconds(lead_seconds)
-    run = _parse_utc(run_time_utc, "run_time_utc")
-    valid = _parse_utc(valid_time_utc, "valid_time_utc")
+    run = parse_utc_timestamp(run_time_utc, "run_time_utc")
+    valid = parse_utc_timestamp(valid_time_utc, "valid_time_utc")
     delta = valid - run
     if delta.total_seconds() < 0:
         raise ForecastLeadIdentityError("valid_time_utc must not precede run_time_utc")

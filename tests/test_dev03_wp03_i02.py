@@ -90,7 +90,8 @@ class Dev03Wp03I02Tests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     a.make_declaration(
                         model="GFS",semantic_id="convective_precipitation",observed_at_utc=self.observed,
-                        runtime_status=status,value=0.0,evidence_type="provider_fetch_attempt",reason="test")
+                        runtime_status=status,value=0.0,evidence_type="provider_fetch_attempt",reason="test",
+                        parameter_native="ACPCP",field_provider_product="gfs_0p25")
 
     def test_gfs_uses_acpcp_not_cprat(self):
         p=self.registry["providers"]["GFS"]
@@ -108,16 +109,39 @@ class Dev03Wp03I02Tests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     a.make_declaration(
                         model="GFS", semantic_id="convective_precipitation", observed_at_utc=self.observed,
-                        runtime_status=status, evidence_type="provider_fetch_attempt")
+                        runtime_status=status, evidence_type="provider_fetch_attempt",
+                        parameter_native="ACPCP", field_provider_product="gfs_0p25")
+
+    def test_runtime_attempt_requires_exact_native_subject_identity(self):
+        for kwargs in (
+            {"parameter_native":None,"field_provider_product":"gfs_0p25"},
+            {"parameter_native":"ACPCP","field_provider_product":None},
+        ):
+            with self.subTest(kwargs=kwargs):
+                with self.assertRaises(ValueError):
+                    a.make_declaration(
+                        model="GFS",semantic_id="convective_precipitation",observed_at_utc=self.observed,
+                        runtime_status="fetch_error",evidence_type="provider_fetch_attempt",reason="test",**kwargs)
+
+    def test_received_rejects_nonfinite_or_nonnumeric_values(self):
+        for bad in (float("nan"), float("inf"), True, "1.0"):
+            with self.subTest(bad=bad):
+                with self.assertRaises(ValueError):
+                    a.make_declaration(
+                        model="GFS",semantic_id="convective_precipitation",observed_at_utc=self.observed,
+                        runtime_status="received",value=bad,field_available_at_utc=self.observed,
+                        evidence_type="provider_fetch_attempt",parameter_native="ACPCP",field_provider_product="gfs_0p25")
 
     def test_availability_times_are_strict_utc_and_causal(self):
         with self.assertRaises(ValueError):
             a.make_declaration(model="GFS", semantic_id="convective_precipitation", observed_at_utc="not-a-time")
         with self.assertRaises(ValueError):
+            a.make_declaration(model="GFS", semantic_id="convective_precipitation", observed_at_utc="2026-09-28 12:00:00+00:00")
+        with self.assertRaises(ValueError):
             a.make_declaration(
                 model="GFS", semantic_id="convective_precipitation", observed_at_utc="2026-09-28T12:00:00Z",
                 runtime_status="received", value=1.0, field_available_at_utc="2026-09-28T12:00:01Z",
-                evidence_type="provider_fetch_attempt")
+                evidence_type="provider_fetch_attempt",parameter_native="ACPCP",field_provider_product="gfs_0p25")
 
     def test_i02_does_not_activate_runtime(self):
         b=self.registry["operational_boundary"]

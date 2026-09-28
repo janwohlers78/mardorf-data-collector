@@ -70,7 +70,7 @@ def validate_repository(root=ROOT):
             d = availability_v3.make_declaration(
                 model="GFS", semantic_id="convective_precipitation", observed_at_utc=observed,
                 runtime_status=status, reason="synthetic I02 validation",
-                evidence_type="provider_fetch_attempt",
+                evidence_type="provider_fetch_attempt", parameter_native="ACPCP", field_provider_product="gfs_0p25",
             )
             availability_v3.validate_declaration(d)
         except Exception as exc:
@@ -81,9 +81,29 @@ def validate_repository(root=ROOT):
         availability_v3.make_declaration(
             model="GFS", semantic_id="convective_precipitation", observed_at_utc="2026-09-28T12:00:00Z",
             runtime_status="received", value=1.0, field_available_at_utc="2026-09-28T12:00:01Z",
-            evidence_type="provider_fetch_attempt",
+            evidence_type="provider_fetch_attempt", parameter_native="ACPCP", field_provider_product="gfs_0p25",
         )
         problems.append("Availability-v3 accepted field availability later than observation")
+    except ValueError:
+        pass
+
+    try:
+        availability_v3.make_declaration(
+            model="GFS", semantic_id="convective_precipitation", observed_at_utc=observed,
+            runtime_status="fetch_error", reason="test", evidence_type="provider_fetch_attempt",
+            parameter_native=None, field_provider_product="gfs_0p25",
+        )
+        problems.append("Availability-v3 accepted runtime attempt without parameter_native")
+    except ValueError:
+        pass
+    try:
+        availability_v3.make_declaration(
+            model="GFS", semantic_id="convective_precipitation", observed_at_utc=observed,
+            runtime_status="received", value=float("nan"), field_available_at_utc=observed,
+            reason="test", evidence_type="provider_fetch_attempt",
+            parameter_native="ACPCP", field_provider_product="gfs_0p25",
+        )
+        problems.append("Availability-v3 accepted non-finite received value")
     except ValueError:
         pass
 

@@ -11,6 +11,7 @@ from src.dev03_v3_parent_binding import (
     collection_transaction_id,
     current_parent_pointer_allows,
     isolated_v3_paths,
+    load_verified_parent_payload,
     v3_attempt_id,
     verify_parent_transfer_receipt,
 )
@@ -52,6 +53,20 @@ class Dev03Wp03I03Tests(unittest.TestCase):
         mutated[-2] = 32
         with self.assertRaises(Dev03ParentBindingError):
             verify_parent_transfer_receipt(bytes(mutated), result)
+
+    def test_parent_payload_bytes_are_exactly_bound_to_verified_sha(self):
+        payload = {"models":{"ICON-D2":[]}}
+        raw = (json.dumps(payload, separators=(",",":")) + "\n").encode()
+        binding = {"parent_v2_payload_sha256": hashlib.sha256(raw).hexdigest()}
+        self.assertEqual(load_verified_parent_payload(raw,binding), payload)
+        with self.assertRaises(Dev03ParentBindingError):
+            load_verified_parent_payload(raw+b" ",binding)
+
+    def test_parent_receipt_path_must_be_immutable_dated_path(self):
+        result, raw = self.parent_result_and_receipt()
+        result["transfer_receipt_path"] = "data/inbox/public_collector/transfer_receipts/models/latest.json"
+        with self.assertRaises(Dev03ParentBindingError):
+            verify_parent_transfer_receipt(raw,result)
 
     def test_parent_cycle_binding_is_order_independent_and_strict(self):
         registry = {
@@ -121,6 +136,13 @@ class Dev03Wp03I03Tests(unittest.TestCase):
         with self.assertRaises(Dev03ParentBindingError):
             build_parent_cycle_inventory({"models": {"X": [row]}}, registry)
 
+    def test_parent_receipt_rejects_duplicate_json_keys(self):
+        result, _ = self.parent_result_and_receipt()
+        raw = b'{"method_version":"private-transfer-readback-v2","method_version":"private-transfer-readback-v2","kind":"models","readback_verified":true}'
+        result["transfer_receipt_sha256"] = hashlib.sha256(raw).hexdigest()
+        with self.assertRaises(Dev03ParentBindingError):
+            verify_parent_transfer_receipt(raw,result)
+
     def test_attempt_nonce_prevents_same_timestamp_collision(self):
         tx = h("c")
         ts = "2026-09-28T12:00:00+00:00"
@@ -132,7 +154,7 @@ class Dev03Wp03I03Tests(unittest.TestCase):
             + canonical_json_bytes(
                 {
                     "collection_transaction_id": tx,
-                    "v3_generated_at_utc": ts,
+                    "v3_generated_at_utc": "2026-09-28T12:00:00Z",
                     "attempt_nonce": "11111111-1111-4111-8111-111111111111",
                 }
             )
