@@ -2,14 +2,15 @@ import hashlib
 import json
 import unittest
 from unittest.mock import patch
+from urllib.parse import parse_qs, urlparse
 
-from src.dev03_v3_parent_binding import (
+from dev03_v3_parent_binding import (
     Dev03ParentBindingError,
     build_bundle_v3_shell,
     build_parent_cycle_inventory,
     load_registry_v3,
 )
-from src.dev03_v3_convective_acquisition import (
+from dev03_v3_convective_acquisition import (
     BudgetLedger,
     Dev03I04Error,
     acquire_convective_successor,
@@ -23,9 +24,18 @@ def h(ch):
 
 
 class FakeResponse:
-    def __init__(self, status_code=200, content=b"GRIB"):
+    def __init__(self, status_code=200, content=b"GRIB", content_length=True):
         self.status_code = status_code
         self.content = content
+        self.headers = {"Content-Length": str(len(content))} if content_length else {}
+        self.closed = False
+
+    def iter_content(self, chunk_size=65536):
+        for i in range(0, len(self.content), chunk_size):
+            yield self.content[i:i + chunk_size]
+
+    def close(self):
+        self.closed = True
 
 
 class FakeSession:
@@ -91,9 +101,10 @@ class Dev03Wp03I04Tests(unittest.TestCase):
         self.assertEqual(len(jobs), 1)
         url = jobs[0]["source_url"]
         self.assertIn("gfs.t12z.pgrb2.0p25.f003", url)
-        self.assertIn("gfs.20260928/12/atmos", url)
-        self.assertIn("var_ACPCP=on", url)
-        self.assertNotIn("CPRAT", url)
+        query = parse_qs(urlparse(url).query)
+        self.assertEqual(query["dir"], ["/gfs.20260928/12/atmos"])
+        self.assertEqual(query["var_ACPCP"], ["on"])
+        self.assertNotIn("var_CPRAT", query)
         self.assertEqual(jobs[0]["parameter_native"], "ACPCP")
 
     def test_dwd_requests_use_bound_cycle_without_directory_discovery(self):
@@ -149,7 +160,7 @@ class Dev03Wp03I04Tests(unittest.TestCase):
     def test_retry_is_new_counted_attempt_not_hidden_http_retry(self):
         raw, binding, shell = self.fixture()
         session = FakeSession(FakeResponse(200, b"GRIBtiny"))
-        with patch("src.dev03_v3_convective_acquisition._received_evidence", return_value=[{"evidence": "ok"}]):
+        with patch("dev03_v3_convective_acquisition._received_evidence", return_value=[{"evidence": "ok"}]):
             out, state = acquire_convective_successor(
                 parent_payload_bytes=raw,
                 parent_binding=binding,
@@ -179,12 +190,13 @@ class Dev03Wp03I04Tests(unittest.TestCase):
         self.assertEqual(len(session.calls), 1)
         self.assertTrue(state["hard_breach"])
         self.assertEqual(state["response_byte_hard_max"], 25)
-        self.assertEqual(state["response_bytes_used"], 30)
+        self.assertEqual(state["response_bytes_used"], 0)
         self.assertEqual(out["status"], "v3_convective_acquisition_budget_blocked")
-        self.assertEqual(out["provider_evidence"][0]["availability"]["availability_status"], "fetch_error")
+        self.assertEqual(out["provider_evidence"], [])
+        self.assertEqual(out["i04_acquisition"]["deferred"][0]["status"], "request_deferred_budget_exhausted")
         self.assertIn(
-            "hard_budget_breach_after_response",
-            out["provider_evidence"][0]["availability"]["availability_reason"],
+            "Content-Length exceeds remaining",
+            out["i04_acquisition"]["deferred"][0]["reason"],
         )
 
     def test_budget_requires_measured_matched_v2_baseline(self):
