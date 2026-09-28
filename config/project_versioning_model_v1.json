@@ -1,0 +1,181 @@
+{
+  "schema_version": 1,
+  "model_version": "project-versioning-model-v1",
+  "status": "binding",
+  "effective_utc_date": "2026-09-28",
+  "scope": [
+    "janwohlers78/mardorf-kitevorhersage",
+    "janwohlers78/mardorf-data-collector"
+  ],
+  "purpose": "Separate permanent architecture layers, chronological development phases, audit/debug cycles, work packages, and concrete artifact versions so that changing a frozen layer artifact never implies reopening a completed development phase.",
+  "architecture_layers": [
+    {
+      "id": "L1",
+      "name": "Acquisition",
+      "responsibility": "Provider acquisition, provider-native parameter and run/grid identity, availability observation, source evidence and transfer preparation."
+    },
+    {
+      "id": "L2",
+      "name": "Persistence",
+      "responsibility": "Verified transfer, immutable/revision-aware persistence, Parquet/DuckDB schemas, causal as_of views, ensemble atomicity and archive interfaces."
+    },
+    {
+      "id": "L3",
+      "name": "Analysis",
+      "responsibility": "Meteorology Feature Broker, entity-specific meteorological analysis, calibration, uncertainty, derived features and analysis result persistence. No operational go/no-go authority."
+    },
+    {
+      "id": "L4",
+      "name": "Decision",
+      "responsibility": "Hazard, opportunity, evidence and window decision policy, safety gates, decision-state composition and operational authorization semantics."
+    },
+    {
+      "id": "L5",
+      "name": "Delivery",
+      "responsibility": "Notifications, scheduled reports, UI/presentation, deduplication and delivery policy."
+    }
+  ],
+  "layer_rules": [
+    "Layer identifiers are permanent architecture identifiers and are never used as chronological project phases.",
+    "A development phase may create or supersede artifacts in more than one architecture layer when required by its scoped objective.",
+    "A frozen artifact is never edited in place; a change is implemented as a new artifact version with explicit supersedes lineage.",
+    "A downstream discovery may require a new upstream artifact version without reopening the development phase in which the predecessor was created."
+  ],
+  "development_phase_model": {
+    "id_format": "DEV-NN",
+    "meaning": "Chronological project-development interval with explicit scope and exit gate. DEV numbers do not identify architecture layers.",
+    "current_mapping": [
+      {
+        "id": "DEV-01",
+        "status": "completed_legacy_mapped",
+        "scope": "Initial weather acquisition foundation",
+        "primary_layers": [
+          "L1"
+        ],
+        "legacy_aliases": [
+          "Phase 1 weather acquisition",
+          "weather_architecture_phase1"
+        ]
+      },
+      {
+        "id": "DEV-02",
+        "status": "completed_frozen_legacy_mapped",
+        "scope": "Acquisition hardening, causal persistence/storage foundation and freeze",
+        "primary_layers": [
+          "L1",
+          "L2"
+        ],
+        "legacy_aliases": [
+          "Phase 2",
+          "Phase 2 finalization",
+          "Phase 2 audit repair"
+        ]
+      },
+      {
+        "id": "DEV-03",
+        "status": "preparation",
+        "scope": "Build the L3 meteorological analysis layer and its stable input/output contracts. It may introduce versioned L1/L2 successors required by L3, but must not change L4/L5 operational authority.",
+        "primary_layers": [
+          "L3"
+        ],
+        "supporting_layers": [
+          "L1",
+          "L2"
+        ],
+        "legacy_aliases": [
+          "Meteorology Phase 3",
+          "M3C"
+        ]
+      }
+    ],
+    "future_rule": "Assign DEV-04 and later only when their scopes are explicitly approved. Do not infer DEV number from target layer number."
+  },
+  "work_package_model": {
+    "id_format": "DEV03-WP01",
+    "rule": "Work packages belong to exactly one development phase, may list affected architecture layers, and have explicit dependencies, status and exit gate."
+  },
+  "audit_model": {
+    "audit_id_format": "AUD-YYYYMMDD-NN",
+    "finding_id_format": "AUD-YYYYMMDD-NN-FNN",
+    "fix_id_format": "FIX-YYYYMMDD-NN-FNN[-WPnn]",
+    "validation_id_format": "VAL-YYYYMMDD-NN-FNN",
+    "statuses": [
+      "OPEN",
+      "FIX_IMPLEMENTED",
+      "VALIDATED",
+      "ACCEPTED",
+      "SUPERSEDED"
+    ],
+    "rule": "Audit/debug cycles are orthogonal to development phases. Never label a repair sequence as a project phase."
+  },
+  "artifact_version_model": {
+    "naming": "<artifact-name>-vN",
+    "examples": [
+      "relevant-meteorology-v2",
+      "mardorf-weather-archive-v5",
+      "meteorology-feature-broker-v1",
+      "v16-c3-v9"
+    ],
+    "required_metadata": [
+      "artifact_id",
+      "artifact_version",
+      "architecture_layer",
+      "introduced_in_development_phase",
+      "lifecycle",
+      "supersedes_or_null",
+      "compatibility_dependencies",
+      "audit_lineage"
+    ],
+    "lifecycle_states": [
+      "draft",
+      "shadow",
+      "candidate",
+      "operational",
+      "frozen",
+      "superseded",
+      "retired"
+    ],
+    "rule": "Artifact version numbers are local to the artifact and have no relationship to DEV numbers or layer numbers."
+  },
+  "naming_rules": {
+    "forbidden_for_new_work": [
+      "bare 'Phase 1', 'Phase 2' or 'Phase 3' without a legacy/history qualifier",
+      "using audit repair letters/numbers as development phases",
+      "using an artifact major version as a project phase identifier"
+    ],
+    "preferred": [
+      "DEV-03 / L3 Analysis",
+      "DEV03-WP04",
+      "AUD-20260928-01-F03",
+      "mardorf-weather-archive-v6"
+    ]
+  },
+  "legacy_policy": {
+    "rule": "Historical names and evidence paths remain unchanged for reproducibility. New documents must expose a canonical ID and may retain legacy_aliases for searchability.",
+    "known_ambiguous_aliases": [
+      {
+        "legacy": "Storage Phase 3A-F",
+        "canonical_class": "historical storage migration cycle; not DEV-03"
+      },
+      {
+        "legacy": "Meteorology Phase 3 / M3C",
+        "canonical": "DEV-03 / L3 Analysis"
+      },
+      {
+        "legacy": "Phase 2 audit repair B1-H3",
+        "canonical_class": "historical audit/repair cycle within DEV-02"
+      }
+    ]
+  },
+  "current_project_state": {
+    "development_phase": "DEV-03",
+    "development_status": "preparation",
+    "target_layer": "L3",
+    "operational_decision_authority_unchanged": "v16-c3-v9",
+    "frozen_baseline": {
+      "L1_registry": "relevant-meteorology-v2",
+      "L2_archive": "mardorf-weather-archive-v5",
+      "phase2_successor_contract": "phase2-acquisition-storage-successor-v2"
+    }
+  }
+}
