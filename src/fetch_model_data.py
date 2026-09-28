@@ -102,7 +102,7 @@ def fetch_icon(leads):
         td=Path(td)
         for lead in leads:
             base=datetime.strptime(cycle,'%Y%m%d%H').replace(tzinfo=timezone.utc)
-            rec={'model':'ICON-D2','run_time_utc':base.isoformat(),'forecast_lead_hours':lead,'valid_time_utc':(base+timedelta(hours=lead)).isoformat(),'provider_product':'icon-d2_regular-lat-lon','source':'DWD Open Data','values':{},'source_urls':[]}
+            rec={'model':'ICON-D2','run_time_utc':base.isoformat(),'forecast_lead_hours':lead,'valid_time_utc':(base+timedelta(hours=lead)).isoformat(),'source':'DWD Open Data','values':{},'source_urls':[]}
             for param in params:
                 url=dwd_url(cycle,lead,param); rec['source_urls'].append(url)
                 try:
