@@ -299,7 +299,7 @@ def fetch_icon_eu(leads,required_cycle_lead=None,return_selection_evidence=False
                     vals[param]=[{'stepRange':s,'value':v} for _,s,v in rows]
                 except Exception as e: vals[param]={'error':f'{type(e).__name__}: {e}'}
             one=lambda p: vals[p][0]['value'] if isinstance(vals.get(p),list) and vals[p] else None
-            rec={'model':'ICON-EU','run_time_utc':base.isoformat(),'forecast_lead_hours':lead,'valid_time_utc':(base+timedelta(hours=lead)).isoformat(),'source':'DWD Open Data raw GRIB2','source_urls':urls,'values':vals,'cycle_selection':selection,'forecast_coordinate_or_grid_point':point}
+            rec={'model':'ICON-EU','run_time_utc':base.isoformat(),'forecast_lead_hours':lead,'valid_time_utc':(base+timedelta(hours=lead)).isoformat(),'provider_product':'icon-eu_regular-lat-lon','source':'DWD Open Data raw GRIB2','source_urls':urls,'values':vals,'cycle_selection':selection,'forecast_coordinate_or_grid_point':point}
             if one('u_10m') is not None and one('v_10m') is not None: rec['derived']=derived(one('u_10m'),one('v_10m'),one('vmax_10m'))
             out.append(rec)
     return (out,evidence) if return_selection_evidence else out
