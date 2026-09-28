@@ -32,7 +32,7 @@ BUNDLE_METHOD = "collector-model-bundle-v3-shell"
 V3_ROOT = "data/inbox/public_collector_v3"
 IMMUTABLE_V2_MODEL_RECEIPT_RE = re.compile(
     r"^data/inbox/public_collector/transfer_receipts/models/"
-    r"\\d{4}/\\d{2}/\\d{2}/receipt_[A-Za-z0-9._-]+\\.json$"
+    r"\d{4}/\d{2}/\d{2}/receipt_[A-Za-z0-9._-]+\.json$"
 )
 
 
