@@ -1,0 +1,719 @@
+{
+  "schema_version": 3,
+  "registry_version": "relevant-meteorology-v3",
+  "status": "implemented_shadow_definition",
+  "date": "2026-09-28",
+  "development_phase": "DEV-03",
+  "work_package": "DEV03-WP03",
+  "implementation_step": "WP03-I02",
+  "supersedes": "relevant-meteorology-v2",
+  "predecessor": {
+    "registry_version": "relevant-meteorology-v2",
+    "semantic_contract_sha256": "169de0495c8b4b24f8d541ed7d9a829c494d4710bf5383e356c044bff2c7a141",
+    "provider_matrix_sha256": "221529e2533616dd2e6fcf597c4765d6532323899da5a366bf482dd7ae23ffc1",
+    "registry_sha256": "6ffbad0550201b075e1b5f6d527e7e340d95611d23cc193aca5855aec9d3c9a7",
+    "mutation_allowed": false
+  },
+  "capability_status_values": [
+    "native_available",
+    "unsupported_by_provider_or_product",
+    "intentionally_not_applicable",
+    "unknown_or_ambiguous"
+  ],
+  "acquisition_policy_values": [
+    "required",
+    "not_requested_by_policy"
+  ],
+  "availability_status_values": [
+    "received",
+    "unsupported_by_provider_or_product",
+    "intentionally_not_applicable",
+    "not_requested_by_policy",
+    "not_yet_published",
+    "fetch_error",
+    "unknown_or_ambiguous"
+  ],
+  "core_semantics": [
+    {
+      "semantic_id": "wind_u_10m",
+      "time_semantics": "instantaneous"
+    },
+    {
+      "semantic_id": "wind_v_10m",
+      "time_semantics": "instantaneous"
+    },
+    {
+      "semantic_id": "wind_gust_10m",
+      "time_semantics": "provider_native_maximum_window"
+    },
+    {
+      "semantic_id": "air_temperature_2m",
+      "time_semantics": "instantaneous"
+    },
+    {
+      "semantic_id": "dewpoint_temperature_2m",
+      "time_semantics": "instantaneous"
+    },
+    {
+      "semantic_id": "relative_humidity_2m",
+      "time_semantics": "instantaneous"
+    },
+    {
+      "semantic_id": "mean_sea_level_pressure",
+      "time_semantics": "instantaneous"
+    },
+    {
+      "semantic_id": "surface_pressure",
+      "time_semantics": "instantaneous"
+    },
+    {
+      "semantic_id": "total_precipitation",
+      "time_semantics": "provider_native_accumulation"
+    },
+    {
+      "semantic_id": "total_cloud_cover",
+      "time_semantics": "provider_native"
+    },
+    {
+      "semantic_id": "surface_downward_shortwave_direct",
+      "time_semantics": "provider_native_accumulation_or_average"
+    },
+    {
+      "semantic_id": "surface_downward_shortwave_diffuse",
+      "time_semantics": "provider_native_accumulation_or_average"
+    },
+    {
+      "semantic_id": "surface_downward_shortwave",
+      "time_semantics": "provider_native_accumulation_or_average"
+    },
+    {
+      "semantic_id": "cape",
+      "time_semantics": "instantaneous_variant_specific"
+    },
+    {
+      "semantic_id": "cin",
+      "time_semantics": "instantaneous_variant_specific"
+    },
+    {
+      "semantic_id": "convective_precipitation",
+      "time_semantics": "provider_native_accumulation"
+    }
+  ],
+  "semantic_count": 16,
+  "identity_preservation": {
+    "units": "provider_native_no_acquisition_conversion",
+    "vertical": "provider_native_level_identity",
+    "temporal": "provider_native_step_or_named_interval",
+    "product": "provider_product_and_native_parameter_identity",
+    "ensemble": "ensemble_system_member_role_and_representation_identity",
+    "missing": "closed_status_no_zero_fill",
+    "derivation": "downstream_only_never_provider_replacement"
+  },
+  "separation_contract": {
+    "provider_capability": "Static statement about exact provider/product semantic capability; never means a field was received in a run.",
+    "acquisition_policy": "Static DEV03 policy for whether the exact semantic/source path is requested.",
+    "runtime_availability": "Per-attempt evidence emitted by model-field-availability-v3; only explicit runtime evidence may produce received/not_yet_published/fetch_error.",
+    "forbidden_conflation": "Registry capability or acquisition policy must never be rewritten as runtime received evidence."
+  },
+  "providers": {
+    "ICON-D2": {
+      "family": "DWD-ICON",
+      "representation": "deterministic",
+      "capability": {
+        "wind_u_10m": "native_available",
+        "wind_v_10m": "native_available",
+        "wind_gust_10m": "native_available",
+        "air_temperature_2m": "native_available",
+        "dewpoint_temperature_2m": "native_available",
+        "relative_humidity_2m": "native_available",
+        "mean_sea_level_pressure": "native_available",
+        "surface_pressure": "native_available",
+        "total_precipitation": "native_available",
+        "total_cloud_cover": "native_available",
+        "cape": "native_available",
+        "cin": "native_available",
+        "surface_downward_shortwave_direct": "native_available",
+        "surface_downward_shortwave_diffuse": "native_available",
+        "surface_downward_shortwave": "intentionally_not_applicable",
+        "convective_precipitation": "native_available"
+      },
+      "acquisition_policy": {
+        "wind_u_10m": "required",
+        "wind_v_10m": "required",
+        "wind_gust_10m": "required",
+        "air_temperature_2m": "required",
+        "dewpoint_temperature_2m": "required",
+        "relative_humidity_2m": "required",
+        "mean_sea_level_pressure": "required",
+        "surface_pressure": "required",
+        "total_precipitation": "required",
+        "total_cloud_cover": "required",
+        "cape": "required",
+        "cin": "required",
+        "surface_downward_shortwave_direct": "required",
+        "surface_downward_shortwave_diffuse": "required",
+        "surface_downward_shortwave": "not_requested_by_policy",
+        "convective_precipitation": "required"
+      },
+      "native_mapping": {
+        "u_10m": "wind_u_10m",
+        "v_10m": "wind_v_10m",
+        "vmax_10m": "wind_gust_10m",
+        "t_2m": "air_temperature_2m",
+        "td_2m": "dewpoint_temperature_2m",
+        "relhum_2m": "relative_humidity_2m",
+        "pmsl": "mean_sea_level_pressure",
+        "ps": "surface_pressure",
+        "tot_prec": "total_precipitation",
+        "clct": "total_cloud_cover",
+        "aswdir_s": "surface_downward_shortwave_direct",
+        "aswdifd_s": "surface_downward_shortwave_diffuse",
+        "cape_ml": "cape",
+        "cin_ml": "cin",
+        "rain_con": "convective_precipitation"
+      },
+      "exceptions": {
+        "surface_downward_shortwave": "No native total shortwave field is claimed for deterministic DWD ICON in Registry v2; any total requires explicit compatible-interval derivation with provenance."
+      },
+      "predecessor_v2_coverage": {
+        "wind_u_10m": "native_received",
+        "wind_v_10m": "native_received",
+        "wind_gust_10m": "native_received",
+        "air_temperature_2m": "native_received",
+        "dewpoint_temperature_2m": "native_received",
+        "relative_humidity_2m": "native_received",
+        "mean_sea_level_pressure": "native_received",
+        "surface_pressure": "native_received",
+        "total_precipitation": "native_received",
+        "total_cloud_cover": "native_received",
+        "cape": "native_received",
+        "cin": "native_received",
+        "surface_downward_shortwave_direct": "native_received",
+        "surface_downward_shortwave_diffuse": "native_received",
+        "surface_downward_shortwave": "intentionally_not_applicable"
+      },
+      "convective_precipitation_native_identity": {
+        "parameter_native": "rain_con",
+        "provider_product": "DWD ICON-D2 Open Data raw GRIB2",
+        "interval_policy": "preserve provider-native accumulation metadata; resolve only through native-interval-resolution-v1"
+      }
+    },
+    "ICON-EU": {
+      "family": "DWD-ICON",
+      "representation": "deterministic",
+      "capability": {
+        "wind_u_10m": "native_available",
+        "wind_v_10m": "native_available",
+        "wind_gust_10m": "native_available",
+        "air_temperature_2m": "native_available",
+        "dewpoint_temperature_2m": "native_available",
+        "relative_humidity_2m": "native_available",
+        "mean_sea_level_pressure": "native_available",
+        "surface_pressure": "native_available",
+        "total_precipitation": "native_available",
+        "total_cloud_cover": "native_available",
+        "cape": "native_available",
+        "cin": "native_available",
+        "surface_downward_shortwave_direct": "native_available",
+        "surface_downward_shortwave_diffuse": "native_available",
+        "surface_downward_shortwave": "intentionally_not_applicable",
+        "convective_precipitation": "native_available"
+      },
+      "acquisition_policy": {
+        "wind_u_10m": "required",
+        "wind_v_10m": "required",
+        "wind_gust_10m": "required",
+        "air_temperature_2m": "required",
+        "dewpoint_temperature_2m": "required",
+        "relative_humidity_2m": "required",
+        "mean_sea_level_pressure": "required",
+        "surface_pressure": "required",
+        "total_precipitation": "required",
+        "total_cloud_cover": "required",
+        "cape": "required",
+        "cin": "required",
+        "surface_downward_shortwave_direct": "required",
+        "surface_downward_shortwave_diffuse": "required",
+        "surface_downward_shortwave": "not_requested_by_policy",
+        "convective_precipitation": "required"
+      },
+      "native_mapping": {
+        "u_10m": "wind_u_10m",
+        "v_10m": "wind_v_10m",
+        "vmax_10m": "wind_gust_10m",
+        "t_2m": "air_temperature_2m",
+        "td_2m": "dewpoint_temperature_2m",
+        "relhum_2m": "relative_humidity_2m",
+        "pmsl": "mean_sea_level_pressure",
+        "ps": "surface_pressure",
+        "tot_prec": "total_precipitation",
+        "clct": "total_cloud_cover",
+        "aswdir_s": "surface_downward_shortwave_direct",
+        "aswdifd_s": "surface_downward_shortwave_diffuse",
+        "cape_ml": "cape",
+        "cin_ml": "cin",
+        "rain_con": "convective_precipitation"
+      },
+      "exceptions": {
+        "surface_downward_shortwave": "No native total shortwave field is claimed for deterministic DWD ICON in Registry v2; any total requires explicit compatible-interval derivation with provenance."
+      },
+      "predecessor_v2_coverage": {
+        "wind_u_10m": "native_received",
+        "wind_v_10m": "native_received",
+        "wind_gust_10m": "native_received",
+        "air_temperature_2m": "native_received",
+        "dewpoint_temperature_2m": "native_received",
+        "relative_humidity_2m": "native_received",
+        "mean_sea_level_pressure": "native_received",
+        "surface_pressure": "native_received",
+        "total_precipitation": "native_received",
+        "total_cloud_cover": "native_received",
+        "cape": "native_received",
+        "cin": "native_received",
+        "surface_downward_shortwave_direct": "native_received",
+        "surface_downward_shortwave_diffuse": "native_received",
+        "surface_downward_shortwave": "intentionally_not_applicable"
+      },
+      "convective_precipitation_native_identity": {
+        "parameter_native": "rain_con",
+        "provider_product": "DWD ICON-EU Open Data raw GRIB2",
+        "interval_policy": "preserve provider-native accumulation metadata; resolve only through native-interval-resolution-v1"
+      }
+    },
+    "ECMWF-IFS": {
+      "family": "ECMWF",
+      "representation": "deterministic",
+      "capability": {
+        "wind_u_10m": "native_available",
+        "wind_v_10m": "native_available",
+        "wind_gust_10m": "native_available",
+        "air_temperature_2m": "native_available",
+        "dewpoint_temperature_2m": "native_available",
+        "relative_humidity_2m": "unsupported_by_provider_or_product",
+        "mean_sea_level_pressure": "native_available",
+        "surface_pressure": "native_available",
+        "total_precipitation": "native_available",
+        "total_cloud_cover": "native_available",
+        "surface_downward_shortwave": "native_available",
+        "cape": "native_available",
+        "cin": "unsupported_by_provider_or_product",
+        "surface_downward_shortwave_direct": "unsupported_by_provider_or_product",
+        "surface_downward_shortwave_diffuse": "unsupported_by_provider_or_product",
+        "convective_precipitation": "unsupported_by_provider_or_product"
+      },
+      "acquisition_policy": {
+        "wind_u_10m": "required",
+        "wind_v_10m": "required",
+        "wind_gust_10m": "required",
+        "air_temperature_2m": "required",
+        "dewpoint_temperature_2m": "required",
+        "relative_humidity_2m": "not_requested_by_policy",
+        "mean_sea_level_pressure": "required",
+        "surface_pressure": "required",
+        "total_precipitation": "required",
+        "total_cloud_cover": "required",
+        "surface_downward_shortwave": "required",
+        "cape": "required",
+        "cin": "not_requested_by_policy",
+        "surface_downward_shortwave_direct": "not_requested_by_policy",
+        "surface_downward_shortwave_diffuse": "not_requested_by_policy",
+        "convective_precipitation": "not_requested_by_policy"
+      },
+      "native_mapping": {
+        "10u": "wind_u_10m",
+        "10v": "wind_v_10m",
+        "10fg": "wind_gust_10m",
+        "10fg3": "wind_gust_10m",
+        "10fg6": "wind_gust_10m",
+        "2t": "air_temperature_2m",
+        "2d": "dewpoint_temperature_2m",
+        "sp": "surface_pressure",
+        "msl": "mean_sea_level_pressure",
+        "tcc": "total_cloud_cover",
+        "ssrd": "surface_downward_shortwave",
+        "tp": "total_precipitation",
+        "mucape": "cape"
+      },
+      "exceptions": {
+        "relative_humidity_2m": "No unambiguous native 2 m RH in IFS Open Data oper/fc; pressure-level r is not a substitute.",
+        "cin": "No native CIN in the probed IFS Open Data oper/fc product.",
+        "surface_downward_shortwave_direct": "Current Phase-2 provider/product acquisition exposes total downward shortwave, not a separate direct component.",
+        "surface_downward_shortwave_diffuse": "Current Phase-2 provider/product acquisition exposes total downward shortwave, not a separate diffuse component.",
+        "convective_precipitation": "Current IFS Open Data product path used by the project exposes total precipitation but not convective precipitation cp."
+      },
+      "predecessor_v2_coverage": {
+        "wind_u_10m": "native_received",
+        "wind_v_10m": "native_received",
+        "wind_gust_10m": "native_received",
+        "air_temperature_2m": "native_received",
+        "dewpoint_temperature_2m": "native_received",
+        "relative_humidity_2m": "unsupported_by_provider_or_product",
+        "mean_sea_level_pressure": "native_received",
+        "surface_pressure": "native_received",
+        "total_precipitation": "native_received",
+        "total_cloud_cover": "native_received",
+        "surface_downward_shortwave": "native_received",
+        "cape": "native_received",
+        "cin": "unsupported_by_provider_or_product",
+        "surface_downward_shortwave_direct": "unsupported_by_provider_or_product",
+        "surface_downward_shortwave_diffuse": "unsupported_by_provider_or_product"
+      }
+    },
+    "GFS": {
+      "family": "GFS",
+      "representation": "deterministic",
+      "capability": {
+        "wind_u_10m": "native_available",
+        "wind_v_10m": "native_available",
+        "wind_gust_10m": "native_available",
+        "air_temperature_2m": "native_available",
+        "dewpoint_temperature_2m": "native_available",
+        "relative_humidity_2m": "native_available",
+        "mean_sea_level_pressure": "native_available",
+        "surface_pressure": "native_available",
+        "total_precipitation": "native_available",
+        "total_cloud_cover": "native_available",
+        "surface_downward_shortwave": "native_available",
+        "cape": "native_available",
+        "cin": "native_available",
+        "surface_downward_shortwave_direct": "unsupported_by_provider_or_product",
+        "surface_downward_shortwave_diffuse": "unsupported_by_provider_or_product",
+        "convective_precipitation": "native_available"
+      },
+      "acquisition_policy": {
+        "wind_u_10m": "required",
+        "wind_v_10m": "required",
+        "wind_gust_10m": "required",
+        "air_temperature_2m": "required",
+        "dewpoint_temperature_2m": "required",
+        "relative_humidity_2m": "required",
+        "mean_sea_level_pressure": "required",
+        "surface_pressure": "required",
+        "total_precipitation": "required",
+        "total_cloud_cover": "required",
+        "surface_downward_shortwave": "required",
+        "cape": "required",
+        "cin": "required",
+        "surface_downward_shortwave_direct": "not_requested_by_policy",
+        "surface_downward_shortwave_diffuse": "not_requested_by_policy",
+        "convective_precipitation": "required"
+      },
+      "native_mapping": {
+        "ACPCP": "convective_precipitation"
+      },
+      "products": [
+        "gfs_0p25"
+      ],
+      "exceptions": {
+        "surface_downward_shortwave_direct": "Current Phase-2 provider/product acquisition exposes total downward shortwave, not a separate direct component.",
+        "surface_downward_shortwave_diffuse": "Current Phase-2 provider/product acquisition exposes total downward shortwave, not a separate diffuse component."
+      },
+      "predecessor_v2_coverage": {
+        "wind_u_10m": "native_received",
+        "wind_v_10m": "native_received",
+        "wind_gust_10m": "native_received",
+        "air_temperature_2m": "native_received",
+        "dewpoint_temperature_2m": "native_received",
+        "relative_humidity_2m": "native_received",
+        "mean_sea_level_pressure": "native_received",
+        "surface_pressure": "native_received",
+        "total_precipitation": "native_received",
+        "total_cloud_cover": "native_received",
+        "surface_downward_shortwave": "native_received",
+        "cape": "native_received",
+        "cin": "native_received",
+        "surface_downward_shortwave_direct": "unsupported_by_provider_or_product",
+        "surface_downward_shortwave_diffuse": "unsupported_by_provider_or_product"
+      },
+      "convective_precipitation_native_identity": {
+        "parameter_native": "ACPCP",
+        "provider_product": "gfs_0p25",
+        "selector": "ACPCP|surface",
+        "explicitly_excluded_alias": "CPRAT",
+        "interval_policy": "preserve provider-native accumulation metadata; resolve only through native-interval-resolution-v1"
+      }
+    },
+    "GEFS-control": {
+      "family": "GFS",
+      "representation": "control_member_compatibility_view",
+      "ensemble_system_id": "NOAA_GEFS",
+      "capability": {
+        "wind_u_10m": "native_available",
+        "wind_v_10m": "native_available",
+        "wind_gust_10m": "native_available",
+        "air_temperature_2m": "native_available",
+        "dewpoint_temperature_2m": "native_available",
+        "relative_humidity_2m": "native_available",
+        "mean_sea_level_pressure": "native_available",
+        "surface_pressure": "native_available",
+        "total_precipitation": "native_available",
+        "total_cloud_cover": "native_available",
+        "surface_downward_shortwave": "native_available",
+        "cape": "native_available",
+        "cin": "native_available",
+        "surface_downward_shortwave_direct": "unsupported_by_provider_or_product",
+        "surface_downward_shortwave_diffuse": "unsupported_by_provider_or_product",
+        "convective_precipitation": "unsupported_by_provider_or_product"
+      },
+      "acquisition_policy": {
+        "wind_u_10m": "required",
+        "wind_v_10m": "required",
+        "wind_gust_10m": "required",
+        "air_temperature_2m": "required",
+        "dewpoint_temperature_2m": "required",
+        "relative_humidity_2m": "required",
+        "mean_sea_level_pressure": "required",
+        "surface_pressure": "required",
+        "total_precipitation": "required",
+        "total_cloud_cover": "required",
+        "surface_downward_shortwave": "required",
+        "cape": "required",
+        "cin": "required",
+        "surface_downward_shortwave_direct": "not_requested_by_policy",
+        "surface_downward_shortwave_diffuse": "not_requested_by_policy",
+        "convective_precipitation": "not_requested_by_policy"
+      },
+      "native_mapping": {},
+      "products": [
+        "gefs_0p25s",
+        "gefs_0p50a",
+        "gefs_0p50b"
+      ],
+      "limitations": {
+        "wind_gust_10m": {
+          "scope": "through_240h",
+          "outside_scope_status": "unsupported_by_provider_or_product"
+        },
+        "dewpoint_temperature_2m": {
+          "far_source": "gefs_0p50b"
+        },
+        "cape": {
+          "native_variants_preserved": true
+        },
+        "cin": {
+          "native_variants_preserved": true
+        }
+      },
+      "exceptions": {
+        "surface_downward_shortwave_direct": "Current Phase-2 provider/product acquisition exposes total downward shortwave, not a separate direct component.",
+        "surface_downward_shortwave_diffuse": "Current Phase-2 provider/product acquisition exposes total downward shortwave, not a separate diffuse component.",
+        "convective_precipitation": "Current GEFS atmospheric products used by the project expose APCP but not ACPCP."
+      },
+      "predecessor_v2_coverage": {
+        "wind_u_10m": "native_received",
+        "wind_v_10m": "native_received",
+        "wind_gust_10m": "native_received",
+        "air_temperature_2m": "native_received",
+        "dewpoint_temperature_2m": "native_received",
+        "relative_humidity_2m": "native_received",
+        "mean_sea_level_pressure": "native_received",
+        "surface_pressure": "native_received",
+        "total_precipitation": "native_received",
+        "total_cloud_cover": "native_received",
+        "surface_downward_shortwave": "native_received",
+        "cape": "native_received",
+        "cin": "native_received",
+        "surface_downward_shortwave_direct": "unsupported_by_provider_or_product",
+        "surface_downward_shortwave_diffuse": "unsupported_by_provider_or_product"
+      }
+    },
+    "ICON-D2-EPS": {
+      "family": "DWD-ICON",
+      "representation": "ensemble_member",
+      "ensemble_system_id": "DWD_ICON_D2_EPS",
+      "capability": {
+        "wind_u_10m": "intentionally_not_applicable",
+        "wind_v_10m": "intentionally_not_applicable",
+        "wind_gust_10m": "native_available",
+        "air_temperature_2m": "native_available",
+        "dewpoint_temperature_2m": "native_available",
+        "relative_humidity_2m": "native_available",
+        "mean_sea_level_pressure": "native_available",
+        "surface_pressure": "native_available",
+        "total_precipitation": "native_available",
+        "total_cloud_cover": "native_available",
+        "surface_downward_shortwave": "native_available",
+        "cape": "native_available",
+        "cin": "unsupported_by_provider_or_product",
+        "surface_downward_shortwave_direct": "unsupported_by_provider_or_product",
+        "surface_downward_shortwave_diffuse": "unsupported_by_provider_or_product",
+        "convective_precipitation": "native_available"
+      },
+      "acquisition_policy": {
+        "wind_u_10m": "not_requested_by_policy",
+        "wind_v_10m": "not_requested_by_policy",
+        "wind_gust_10m": "required",
+        "air_temperature_2m": "required",
+        "dewpoint_temperature_2m": "required",
+        "relative_humidity_2m": "required",
+        "mean_sea_level_pressure": "required",
+        "surface_pressure": "required",
+        "total_precipitation": "required",
+        "total_cloud_cover": "required",
+        "surface_downward_shortwave": "required",
+        "cape": "required",
+        "cin": "not_requested_by_policy",
+        "surface_downward_shortwave_direct": "not_requested_by_policy",
+        "surface_downward_shortwave_diffuse": "not_requested_by_policy",
+        "convective_precipitation": "not_requested_by_policy"
+      },
+      "native_mapping": {
+        "wind_gusts_10m": "wind_gust_10m",
+        "precipitation": "total_precipitation",
+        "cape": "cape",
+        "temperature_2m": "air_temperature_2m",
+        "relative_humidity_2m": "relative_humidity_2m",
+        "dew_point_2m": "dewpoint_temperature_2m",
+        "pressure_msl": "mean_sea_level_pressure",
+        "surface_pressure": "surface_pressure",
+        "cloud_cover": "total_cloud_cover",
+        "shortwave_radiation": "surface_downward_shortwave",
+        "rain_con": "convective_precipitation"
+      },
+      "exceptions": {
+        "wind_u_10m": "Provider returns polar speed/direction; acquisition must not fabricate Cartesian U.",
+        "wind_v_10m": "Provider returns polar speed/direction; acquisition must not fabricate Cartesian V.",
+        "cin": "Open-Meteo dwd_icon_d2_eps rejected CIN in Phase-2F-4 live probe 36299726251.",
+        "surface_downward_shortwave_direct": "Current Phase-2 provider/product acquisition exposes total downward shortwave, not a separate direct component.",
+        "surface_downward_shortwave_diffuse": "Current Phase-2 provider/product acquisition exposes total downward shortwave, not a separate diffuse component.",
+        "convective_precipitation": "Native DWD raw path is capable, but the current project EPS path does not acquire it; activation requires a later explicit gate."
+      },
+      "predecessor_v2_coverage": {
+        "wind_u_10m": "intentionally_not_applicable",
+        "wind_v_10m": "intentionally_not_applicable",
+        "wind_gust_10m": "native_received",
+        "air_temperature_2m": "native_received",
+        "dewpoint_temperature_2m": "native_received",
+        "relative_humidity_2m": "native_received",
+        "mean_sea_level_pressure": "native_received",
+        "surface_pressure": "native_received",
+        "total_precipitation": "native_received",
+        "total_cloud_cover": "native_received",
+        "surface_downward_shortwave": "native_received",
+        "cape": "native_received",
+        "cin": "unsupported_by_provider_or_product",
+        "surface_downward_shortwave_direct": "unsupported_by_provider_or_product",
+        "surface_downward_shortwave_diffuse": "unsupported_by_provider_or_product"
+      }
+    },
+    "NOAA_GEFS_FULL": {
+      "family": "GFS",
+      "representation": "ensemble_member",
+      "ensemble_system_id": "NOAA_GEFS",
+      "policy_scope": "gefs-sparse-00z-policy-v1",
+      "capability": {
+        "wind_u_10m": "native_available",
+        "wind_v_10m": "native_available",
+        "wind_gust_10m": "native_available",
+        "air_temperature_2m": "unknown_or_ambiguous",
+        "dewpoint_temperature_2m": "unknown_or_ambiguous",
+        "relative_humidity_2m": "unknown_or_ambiguous",
+        "mean_sea_level_pressure": "unknown_or_ambiguous",
+        "surface_pressure": "unknown_or_ambiguous",
+        "total_precipitation": "native_available",
+        "total_cloud_cover": "native_available",
+        "surface_downward_shortwave_direct": "unknown_or_ambiguous",
+        "surface_downward_shortwave_diffuse": "unknown_or_ambiguous",
+        "surface_downward_shortwave": "unknown_or_ambiguous",
+        "cape": "native_available",
+        "cin": "native_available",
+        "convective_precipitation": "unsupported_by_provider_or_product"
+      },
+      "acquisition_policy": {
+        "wind_u_10m": "required",
+        "wind_v_10m": "required",
+        "wind_gust_10m": "required",
+        "air_temperature_2m": "not_requested_by_policy",
+        "dewpoint_temperature_2m": "not_requested_by_policy",
+        "relative_humidity_2m": "not_requested_by_policy",
+        "mean_sea_level_pressure": "not_requested_by_policy",
+        "surface_pressure": "not_requested_by_policy",
+        "total_precipitation": "required",
+        "total_cloud_cover": "required",
+        "surface_downward_shortwave_direct": "not_requested_by_policy",
+        "surface_downward_shortwave_diffuse": "not_requested_by_policy",
+        "surface_downward_shortwave": "not_requested_by_policy",
+        "cape": "required",
+        "cin": "required",
+        "convective_precipitation": "not_requested_by_policy"
+      },
+      "native_mapping": {},
+      "exceptions": {
+        "air_temperature_2m": "Sparse full-member policy does not collect this semantic; current provider capability is not asserted by WP01.",
+        "dewpoint_temperature_2m": "Sparse full-member policy does not collect this semantic; current provider capability is not asserted by WP01.",
+        "relative_humidity_2m": "Sparse full-member policy does not collect this semantic; current provider capability is not asserted by WP01.",
+        "mean_sea_level_pressure": "Sparse full-member policy does not collect this semantic; current provider capability is not asserted by WP01.",
+        "surface_pressure": "Sparse full-member policy does not collect this semantic; current provider capability is not asserted by WP01.",
+        "surface_downward_shortwave_direct": "WP01 records not_collected_or_unsupported; Registry v3 refuses to guess capability.",
+        "surface_downward_shortwave_diffuse": "WP01 records not_collected_or_unsupported; Registry v3 refuses to guess capability.",
+        "surface_downward_shortwave": "Sparse full-member policy does not collect this semantic; current provider capability is not asserted by WP01.",
+        "convective_precipitation": "Current sparse full-member GEFS product path does not expose ACPCP under the accepted DEV03 contract."
+      },
+      "limitations": {
+        "wind_gust_10m": {
+          "scope": "near sparse-policy leads through 240h only"
+        },
+        "native_available_scope": "Only WP01-proven selected full-member leads; no new acquisition is authorized by I02."
+      }
+    }
+  },
+  "convective_precipitation_contract": {
+    "semantic_id": "convective_precipitation",
+    "meaning": "Provider-native convective precipitation amount over its native accumulation interval.",
+    "derived_event_truth": false,
+    "forbidden_conflations": [
+      "total_precipitation",
+      "convective_precipitation_rate",
+      "cape",
+      "cin",
+      "thunderstorm_occurrence",
+      "lightning_occurrence",
+      "warning_event"
+    ],
+    "initial_required_provider_paths": [
+      "ICON-D2",
+      "ICON-EU",
+      "GFS"
+    ],
+    "zero_additional_request_paths": [
+      "ECMWF-IFS",
+      "GEFS-control",
+      "NOAA_GEFS_FULL",
+      "ICON-D2-EPS"
+    ],
+    "network_activation_in_i02": false
+  },
+  "derived_semantics": {
+    "surface_downward_shortwave": {
+      "role": "total_downward_shortwave",
+      "provider_native_allowed": true,
+      "explicit_derivation_allowed": true,
+      "automatic_derivation": false,
+      "derivation_formula": "surface_downward_shortwave_direct + surface_downward_shortwave_diffuse",
+      "required_component_semantics": [
+        "surface_downward_shortwave_direct",
+        "surface_downward_shortwave_diffuse"
+      ],
+      "required_compatibility": [
+        "same model and provider product context",
+        "same run_time_utc and valid_time_utc",
+        "same grid point",
+        "same interval_start_utc and interval_end_utc",
+        "compatible provider-native units"
+      ],
+      "required_provenance": [
+        "component field_identity_id values",
+        "component semantic_id values",
+        "native interval metadata",
+        "derivation method version"
+      ],
+      "missing_or_incompatible_components": "do_not_derive"
+    }
+  },
+  "operational_boundary": {
+    "runtime_wiring_in_i02": false,
+    "network_requests_authorized": false,
+    "operational_v2_registry_unchanged": true,
+    "operational_authority_unchanged": "v16-c3-v9"
+  }
+}
