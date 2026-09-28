@@ -104,6 +104,28 @@ class Dev03Wp03I03Tests(unittest.TestCase):
         with self.assertRaises(Dev03ParentBindingError):
             build_parent_cycle_inventory({"models": {"ICON-D2": [bad]}}, registry)
 
+    def test_missing_dwd_provider_product_can_be_proven_only_from_exact_parent_source_urls(self):
+        row = {
+            "model":"ICON-D2",
+            "run_time_utc":"2026-09-28T09:00:00+00:00",
+            "valid_time_utc":"2026-09-28T12:00:00+00:00",
+            "forecast_lead_hours":3,
+            "source_urls":[
+                "https://opendata.dwd.de/weather/nwp/icon-d2/grib/09/u_10m/icon-d2_germany_regular-lat-lon_single-level_2026092809_003_2d_u_10m.grib2.bz2",
+                "https://opendata.dwd.de/weather/nwp/icon-d2/grib/09/v_10m/icon-d2_germany_regular-lat-lon_single-level_2026092809_003_2d_v_10m.grib2.bz2",
+            ],
+            "forecast_coordinate_or_grid_point":{"latitude":52.5,"longitude":9.3},
+        }
+        inventory, _ = build_parent_cycle_inventory(
+            {"models":{"ICON-D2":[row]}},
+            {"providers":{"ICON-D2":{"convective_precipitation_native_identity":{"provider_product":"must-not-be-used"}}}},
+        )
+        self.assertEqual(inventory[0]["provider_product"], "icon-d2_regular-lat-lon")
+        bad = json.loads(json.dumps(row))
+        bad["source_urls"][0] = bad["source_urls"][0].replace("2026092809_003", "2026092812_003")
+        with self.assertRaises(Dev03ParentBindingError):
+            build_parent_cycle_inventory({"models":{"ICON-D2":[bad]}},{"providers":{}})
+
     def test_missing_provider_product_never_inferred_from_registry(self):
         row = {
             "model":"ICON-D2","run_time_utc":"2026-09-28T09:00:00+00:00",
