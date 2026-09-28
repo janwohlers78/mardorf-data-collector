@@ -28,7 +28,8 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install pinned runtime dependencies
-        run: python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-runtime.txt
+        run: |
+          python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-runtime.txt
       - name: Validate I10 isolated wiring
         run: PYTHONPATH=src python src/validate_dev03_wp03_i10_public.py
       - name: Execute naturally sourced I10 successor attempt
