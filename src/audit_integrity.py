@@ -55,8 +55,6 @@ def gefs_mature_cycle_archive_exception(payload,run,now):
     if evidence.get("full_horizon_publication_required") is not True:
         return False,{"reason":"far_horizon_publication_not_required"}
     selected=dt(evidence.get("selected_cycle_run_time_utc"))
-    if run.hour not in (0,6,12,18):
-        return False,{"reason":"selected_cycle_is_not_icon_eu_main_cycle","run_hour":run.hour}
     if selected!=run:
         return False,{"reason":"selected_cycle_mismatch",
                       "evidence_cycle":selected.isoformat() if selected else None,
@@ -147,6 +145,8 @@ def icon_eu_mature_cycle_archive_exception(payload,run,now):
     if int(evidence.get("required_lead_hours",-1))!=120:
         return False,{"reason":"required_lead_not_120"}
     selected=dt(evidence.get("selected_cycle_run_time_utc"))
+    if run.hour not in (0,6,12,18):
+        return False,{"reason":"selected_cycle_is_not_icon_eu_main_cycle","run_hour":run.hour}
     if selected!=run:
         return False,{"reason":"selected_cycle_mismatch",
                       "evidence_cycle":selected.isoformat() if selected else None,
