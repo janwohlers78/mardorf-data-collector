@@ -41,6 +41,8 @@ jobs:
         run: python -m compileall -q src tests
       - name: Run integrity regression tests
         run: PYTHONPATH=src python -m unittest discover -s tests -v
+      - name: Validate DEV03 WP03 I03 parent/transfer shell
+        run: PYTHONPATH=src python src/validate_dev03_wp03_i03.py
       - name: Cross-repository Phase 2 successor contract gate
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         env:
