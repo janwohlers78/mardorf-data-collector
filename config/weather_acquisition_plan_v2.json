@@ -23,7 +23,9 @@
     "parent_cycle_binding_method_version": "dev03-parent-cycle-binding-v1",
     "newest_or_mature_cycle_selection_allowed": false,
     "provider_product_inference_allowed": false,
-    "grid_or_coordinate_inference_allowed": false
+    "grid_or_coordinate_inference_allowed": false,
+    "parent_provider_product_evidence_method": "parent-source-product-evidence-v1",
+    "frozen_dwd_missing_product_policy": "prove from every exact parent source_urls entry; otherwise fail closed"
   },
   "successor_acquisition": {
     "semantic_id": "convective_precipitation",
@@ -122,5 +124,10 @@
     "l4_l5_cutover_authorized": false,
     "operational_authority": "v16-c3-v9"
   },
-  "next_step_after_i04": "WP03-I05"
+  "next_step_after_i04": "WP03-I05",
+  "frozen_predecessor_code_blobs": {
+    "src/fetch_model_data.py": "a34c81eebbf67220fd8feb40e790434b33547f05",
+    "src/fetch_dwd_additional_models.py": "9535b2ad049e9d66519e6d8c76501110f37784f4",
+    "src/extend_model_horizon.py": "f95d3598eac9479b7d58a1d53417923eddd1c7dd"
+  }
 }
