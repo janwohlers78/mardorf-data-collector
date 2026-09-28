@@ -9,20 +9,38 @@ from __future__ import annotations
 import json
 
 from dev03_v3_parent_binding import (
+    BUNDLE_METHOD,
     TRANSFER_METHOD,
     attempt_event_pointer_allows,
+    collection_transaction_id,
     current_parent_pointer_allows,
     isolated_v3_paths,
     sha256_hex,
+    v3_attempt_id,
 )
 
 
 def build_transfer_plan(bundle: dict, payload_bytes: bytes) -> dict:
-    if bundle.get("schema_version") != 3:
+    if not isinstance(bundle, dict) or bundle.get("schema_version") != 3:
         raise ValueError("collector-model-bundle-v3 shell required")
+    if bundle.get("method_version") != BUNDLE_METHOD:
+        raise ValueError("collector-model-bundle-v3 method_version mismatch")
+    if not isinstance(payload_bytes, (bytes, bytearray)):
+        raise ValueError("payload_bytes must be exact bytes")
+    expected_payload = canonical_payload_bytes(bundle)
+    if bytes(payload_bytes) != expected_payload:
+        raise ValueError("payload_bytes do not exactly match canonical collector-model-bundle-v3 bytes")
     attempt_id = bundle.get("v3_attempt_id")
     generated = bundle.get("v3_generated_at_utc")
     parent = bundle.get("parent_v2") or {}
+    expected_tx = collection_transaction_id(parent)
+    if bundle.get("collection_transaction_id") != expected_tx:
+        raise ValueError("bundle collection_transaction_id contradicts exact parent binding")
+    expected_attempt = v3_attempt_id(
+        expected_tx, generated, bundle.get("attempt_nonce")
+    )
+    if attempt_id != expected_attempt:
+        raise ValueError("bundle v3_attempt_id contradicts collection transaction/attempt identity")
     paths = isolated_v3_paths(generated, attempt_id)
     return {
         "schema_version": 1,
