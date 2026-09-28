@@ -49,6 +49,8 @@ class Dev03Wp03I02Tests(unittest.TestCase):
         d=a.make_declaration(model="GFS",semantic_id="convective_precipitation",observed_at_utc=self.observed)
         self.assertEqual(d["availability_status"],"unknown_or_ambiguous")
         self.assertIsNone(d["value"])
+        self.assertTrue(d["availability_evidence_type"])
+        self.assertTrue(d["availability_reason"])
 
     def test_unsupported_precedes_policy_disabled(self):
         d=a.make_declaration(model="ECMWF-IFS",semantic_id="convective_precipitation",observed_at_utc=self.observed)
@@ -63,11 +65,13 @@ class Dev03Wp03I02Tests(unittest.TestCase):
         with self.assertRaises(ValueError):
             a.make_declaration(
                 model="GFS",semantic_id="convective_precipitation",observed_at_utc=self.observed,
-                runtime_status="received",value=None,field_available_at_utc=self.observed)
+                runtime_status="received",value=None,field_available_at_utc=self.observed,
+                evidence_type="provider_fetch_attempt")
         d=a.make_declaration(
             model="GFS",semantic_id="convective_precipitation",observed_at_utc=self.observed,
             runtime_status="received",value=0.0,field_available_at_utc=self.observed,
-            parameter_native="ACPCP",field_provider_product="gfs_0p25")
+            parameter_native="ACPCP",field_provider_product="gfs_0p25",
+            evidence_type="provider_fetch_attempt")
         self.assertEqual(d["availability_status"],"received")
         self.assertEqual(d["value"],0.0)
         self.assertTrue(a.validate_declaration(d))
@@ -86,13 +90,34 @@ class Dev03Wp03I02Tests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     a.make_declaration(
                         model="GFS",semantic_id="convective_precipitation",observed_at_utc=self.observed,
-                        runtime_status=status,value=0.0)
+                        runtime_status=status,value=0.0,evidence_type="provider_fetch_attempt",reason="test")
 
     def test_gfs_uses_acpcp_not_cprat(self):
         p=self.registry["providers"]["GFS"]
         self.assertEqual(p["native_mapping"]["ACPCP"],"convective_precipitation")
         self.assertNotIn("CPRAT",[k for k,v in p["native_mapping"].items() if v=="convective_precipitation"])
         self.assertEqual(p["convective_precipitation_native_identity"]["explicitly_excluded_alias"],"CPRAT")
+
+    def test_runtime_states_require_explicit_evidence_and_reason(self):
+        with self.assertRaises(ValueError):
+            a.make_declaration(
+                model="GFS", semantic_id="convective_precipitation", observed_at_utc=self.observed,
+                runtime_status="received", value=1.0, field_available_at_utc=self.observed)
+        for status in ("not_yet_published","fetch_error","unknown_or_ambiguous"):
+            with self.subTest(status=status):
+                with self.assertRaises(ValueError):
+                    a.make_declaration(
+                        model="GFS", semantic_id="convective_precipitation", observed_at_utc=self.observed,
+                        runtime_status=status, evidence_type="provider_fetch_attempt")
+
+    def test_availability_times_are_strict_utc_and_causal(self):
+        with self.assertRaises(ValueError):
+            a.make_declaration(model="GFS", semantic_id="convective_precipitation", observed_at_utc="not-a-time")
+        with self.assertRaises(ValueError):
+            a.make_declaration(
+                model="GFS", semantic_id="convective_precipitation", observed_at_utc="2026-09-28T12:00:00Z",
+                runtime_status="received", value=1.0, field_available_at_utc="2026-09-28T12:00:01Z",
+                evidence_type="provider_fetch_attempt")
 
     def test_i02_does_not_activate_runtime(self):
         b=self.registry["operational_boundary"]
