@@ -58,6 +58,7 @@ def validate_repository(root=ROOT):
         model="GFS", semantic_id="convective_precipitation", observed_at_utc=observed,
         runtime_status="received", value=1.25, field_available_at_utc=observed,
         parameter_native="ACPCP", field_provider_product="gfs_0p25",
+        evidence_type="provider_fetch_attempt",
     )
     try:
         availability_v3.validate_declaration(d)
@@ -69,10 +70,22 @@ def validate_repository(root=ROOT):
             d = availability_v3.make_declaration(
                 model="GFS", semantic_id="convective_precipitation", observed_at_utc=observed,
                 runtime_status=status, reason="synthetic I02 validation",
+                evidence_type="provider_fetch_attempt",
             )
             availability_v3.validate_declaration(d)
         except Exception as exc:
             problems.append(f"runtime state {status} rejected: {exc}")
+
+    check(bool(d.get("availability_evidence_type")), "runtime state evidence type missing")
+    try:
+        availability_v3.make_declaration(
+            model="GFS", semantic_id="convective_precipitation", observed_at_utc="2026-09-28T12:00:00Z",
+            runtime_status="received", value=1.0, field_available_at_utc="2026-09-28T12:00:01Z",
+            evidence_type="provider_fetch_attempt",
+        )
+        problems.append("Availability-v3 accepted field availability later than observation")
+    except ValueError:
+        pass
 
     # Active Registry-v3 capability/policy fields must never claim runtime reception.
     # predecessor_v2_coverage intentionally preserves immutable historical v2 evidence,

@@ -8,6 +8,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from forecast_lead_identity import (
     ForecastLeadIdentityError,
+    INT64_MAX,
     lead_seconds_from_hours,
     validate_forecast_lead_identity,
     validate_lead_seconds,
@@ -47,6 +48,13 @@ class Dev03Wp03I01Tests(unittest.TestCase):
             with self.subTest(bad=bad):
                 with self.assertRaises(ForecastLeadIdentityError):
                     lead_seconds_from_hours(bad)
+
+    def test_signed_int64_bounds_fail_closed(self):
+        self.assertEqual(validate_lead_seconds(INT64_MAX), INT64_MAX)
+        with self.assertRaises(ForecastLeadIdentityError):
+            validate_lead_seconds(INT64_MAX + 1)
+        with self.assertRaises(ForecastLeadIdentityError):
+            lead_seconds_from_hours(INT64_MAX // 3600 + 1)
 
     def test_timestamp_contradiction_fails_closed(self):
         with self.assertRaises(ForecastLeadIdentityError):

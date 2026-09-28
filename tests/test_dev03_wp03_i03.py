@@ -68,6 +68,7 @@ class Dev03Wp03I03Tests(unittest.TestCase):
             "run_time_utc": "2026-09-28T09:00:00+00:00",
             "valid_time_utc": "2026-09-28T09:00:00+00:00",
             "forecast_lead_hours": 0,
+            "provider_product": "DWD ICON-D2 Open Data raw GRIB2",
             "forecast_coordinate_or_grid_point": {
                 "latitude": 52.5,
                 "longitude": 9.3,
@@ -87,6 +88,26 @@ class Dev03Wp03I03Tests(unittest.TestCase):
         bad["forecast_lead_hours"] = 2
         with self.assertRaises(Dev03ParentBindingError):
             build_parent_cycle_inventory({"models": {"ICON-D2": [bad]}}, registry)
+
+    def test_missing_provider_product_never_inferred_from_registry(self):
+        row = {
+            "model":"ICON-D2","run_time_utc":"2026-09-28T09:00:00+00:00",
+            "valid_time_utc":"2026-09-28T09:00:00+00:00","forecast_lead_hours":0,
+            "forecast_coordinate_or_grid_point":{"latitude":52.5,"longitude":9.3},
+        }
+        registry={"providers":{"ICON-D2":{"convective_precipitation_native_identity":{"provider_product":"guessed"}}}}
+        with self.assertRaises(Dev03ParentBindingError):
+            build_parent_cycle_inventory({"models":{"ICON-D2":[row]}},registry)
+
+    def test_duplicate_parent_occurrence_fails_closed(self):
+        row = {
+            "model":"ICON-D2","run_time_utc":"2026-09-28T09:00:00+00:00",
+            "valid_time_utc":"2026-09-28T09:00:00+00:00","forecast_lead_hours":0,
+            "provider_product":"DWD ICON-D2 Open Data raw GRIB2",
+            "forecast_coordinate_or_grid_point":{"latitude":52.5,"longitude":9.3},
+        }
+        with self.assertRaises(Dev03ParentBindingError):
+            build_parent_cycle_inventory({"models":{"ICON-D2":[row,row]}},{"providers":{}})
 
     def test_ambiguous_provider_product_fails_closed(self):
         row = {
@@ -118,6 +139,16 @@ class Dev03Wp03I03Tests(unittest.TestCase):
         ).hexdigest()
         self.assertEqual(a, expected)
 
+    def test_bundle_rejects_forged_collection_transaction(self):
+        result, raw = self.parent_result_and_receipt()
+        binding = verify_parent_transfer_receipt(raw, result)
+        binding["collection_transaction_id"] = h("f")
+        with self.assertRaises(Dev03ParentBindingError):
+            build_bundle_v3_shell(
+                parent_binding=binding,parent_cycle_binding_id=h("e"),
+                v3_generated_at_utc="2026-09-28T12:00:00+00:00",
+                attempt_nonce="11111111-1111-4111-8111-111111111111")
+
     def test_old_parent_retry_cannot_roll_current_pointer_back(self):
         newer = {
             "parent_v2_collector_generated_at_utc": "2026-09-28T12:00:00+00:00",
@@ -142,6 +173,8 @@ class Dev03Wp03I03Tests(unittest.TestCase):
         )
         payload = canonical_json_bytes(shell) + b"\n"
         plan = build_transfer_plan(shell, payload)
+        with self.assertRaises(ValueError):
+            build_transfer_plan(shell, payload + b"x")
         self.assertEqual(shell["network_requests_performed"], 0)
         self.assertEqual(plan["network_requests_performed_by_plan"], 0)
         self.assertFalse(plan["legacy_namespace_writes_allowed"])

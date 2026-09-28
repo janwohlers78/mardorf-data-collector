@@ -7,6 +7,7 @@ It separates static Registry-v3 capability/policy from per-attempt evidence.
 from __future__ import annotations
 
 from copy import deepcopy
+from datetime import datetime, timezone
 
 import relevant_meteorology_registry_v3 as registry_v3
 
@@ -23,10 +24,25 @@ STATES = {
 RUNTIME_ATTEMPT_STATES = {"received", "not_yet_published", "fetch_error", "unknown_or_ambiguous"}
 
 
-def _require_observed_at(value):
+def _parse_utc(value, field):
     if not isinstance(value, str) or not value:
-        raise ValueError("availability_observed_at_utc is required")
-    return value
+        raise ValueError(f"{field} is required")
+    raw = value[:-1] + "+00:00" if value.endswith("Z") else value
+    try:
+        dt = datetime.fromisoformat(raw)
+    except ValueError as exc:
+        raise ValueError(f"{field} must be RFC3339/ISO-8601 UTC") from exc
+    if dt.tzinfo is None or dt.utcoffset() != timezone.utc.utcoffset(dt):
+        raise ValueError(f"{field} must be explicitly UTC")
+    return dt.astimezone(timezone.utc)
+
+
+def _canonical_utc(value, field):
+    return _parse_utc(value, field).isoformat().replace("+00:00", "Z")
+
+
+def _require_observed_at(value):
+    return _canonical_utc(value, "availability_observed_at_utc")
 
 
 def static_status(model, semantic_id):
@@ -73,14 +89,31 @@ def make_declaration(
         status = static_status(model, semantic_id)
         if value is not None or field_available_at_utc is not None:
             raise ValueError("static capability/policy declaration cannot carry runtime value/time")
+        if status == "unknown_or_ambiguous":
+            if not evidence_type:
+                evidence_type = "static_registry_without_attempt_evidence"
+            if not reason:
+                reason = (
+                    "provider capability is unknown or ambiguous in Registry v3"
+                    if capability == "unknown_or_ambiguous"
+                    else "required native field has no per-attempt runtime evidence"
+                )
     else:
-        status = str(runtime_status)
+        if not isinstance(runtime_status, str):
+            raise ValueError("runtime_status must be a string")
+        status = runtime_status
         if status not in RUNTIME_ATTEMPT_STATES:
             raise ValueError(f"runtime_status must be an attempt state, got {status!r}")
         if capability != "native_available":
             raise ValueError("runtime attempt evidence cannot override unsupported/inapplicable/ambiguous capability")
         if policy != "required":
             raise ValueError("runtime attempt evidence cannot override not_requested_by_policy")
+        if not isinstance(evidence_type, str) or not evidence_type:
+            raise ValueError("runtime attempt state requires availability_evidence_type")
+        if status in {"not_yet_published", "fetch_error", "unknown_or_ambiguous"} and (
+            not isinstance(reason, str) or not reason
+        ):
+            raise ValueError(f"{status} requires explicit availability_reason")
 
     if status not in STATES:
         raise ValueError(f"unknown Availability-v3 state: {status!r}")
@@ -89,6 +122,13 @@ def make_declaration(
             raise ValueError("received must carry a value")
         if not field_available_at_utc:
             raise ValueError("received must carry field_available_at_utc")
+        field_available_at_utc = _canonical_utc(
+            field_available_at_utc, "field_available_at_utc"
+        )
+        if _parse_utc(field_available_at_utc, "field_available_at_utc") > _parse_utc(
+            observed, "availability_observed_at_utc"
+        ):
+            raise ValueError("field_available_at_utc cannot be later than availability_observed_at_utc")
     else:
         if value is not None:
             raise ValueError("only received may carry a value")
@@ -139,7 +179,9 @@ def validate_declaration(item):
         raise ValueError("Availability namespace drift")
     if item["availability_status"] not in STATES:
         raise ValueError("Unknown Availability-v3 status")
-    _require_observed_at(item["availability_observed_at_utc"])
+    observed_dt = _parse_utc(
+        item["availability_observed_at_utc"], "availability_observed_at_utc"
+    )
 
     expected_cap = registry_v3.capability_for(item["model"], item["semantic_id"])
     expected_policy = registry_v3.acquisition_policy_for(item["model"], item["semantic_id"])
@@ -152,6 +194,11 @@ def validate_declaration(item):
     if status == "received":
         if item.get("value") is None or not item.get("field_available_at_utc"):
             raise ValueError("received requires value and field_available_at_utc")
+        if not isinstance(item.get("availability_evidence_type"), str) or not item.get("availability_evidence_type"):
+            raise ValueError("received requires explicit runtime availability_evidence_type")
+        field_dt = _parse_utc(item["field_available_at_utc"], "field_available_at_utc")
+        if field_dt > observed_dt:
+            raise ValueError("field_available_at_utc cannot be later than availability_observed_at_utc")
     else:
         if item.get("value") is not None:
             raise ValueError("only received may carry a value")
@@ -167,6 +214,11 @@ def validate_declaration(item):
         raise ValueError("inapplicable capability has highest precedence")
     if cap == "native_available" and policy == "not_requested_by_policy" and status != "not_requested_by_policy":
         raise ValueError("disabled acquisition policy must remain not_requested_by_policy")
+    if status in {"not_yet_published", "fetch_error", "unknown_or_ambiguous"}:
+        if not isinstance(item.get("availability_evidence_type"), str) or not item.get("availability_evidence_type"):
+            raise ValueError(f"{status} requires explicit availability_evidence_type")
+        if not isinstance(item.get("availability_reason"), str) or not item.get("availability_reason"):
+            raise ValueError(f"{status} requires explicit availability_reason")
     return True
 
 

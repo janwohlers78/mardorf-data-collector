@@ -10,6 +10,7 @@ from pathlib import Path
 
 from forecast_lead_identity import (
     ForecastLeadIdentityError,
+    INT64_MAX,
     lead_seconds_from_hours,
     validate_forecast_lead_identity,
 )
@@ -89,6 +90,12 @@ def validate_repository(root=ROOT):
         try:
             lead_seconds_from_hours(bad)
             problems.append(f"helper accepted lossy/non-strict acquisition lead: {bad!r}")
+        except ForecastLeadIdentityError:
+            pass
+    for bad in (INT64_MAX + 1,):
+        try:
+            lead_seconds_from_hours(bad)
+            problems.append("helper accepted acquisition lead whose seconds overflow int64")
         except ForecastLeadIdentityError:
             pass
     try:
