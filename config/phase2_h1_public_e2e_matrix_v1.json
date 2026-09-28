@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "matrix_version": "phase2-h1-public-e2e-matrix-v1",
+  "role": "public_collector_and_transfer_side",
+  "repository": "janwohlers78/mardorf-data-collector",
+  "scope": [
+    "provider acquisition semantics",
+    "registry/provider native identity preservation",
+    "full-horizon and GEFS interval semantics",
+    "provider-cycle no-op and supplemental retry behavior",
+    "transfer publication atomicity",
+    "traffic/action public-side guardrails"
+  ],
+  "required_audit_ids": [
+    "P1-AUDIT-001",
+    "P1-AUDIT-003",
+    "P1-AUDIT-004",
+    "P1-AUDIT-005",
+    "P2-AUDIT-007",
+    "P2-AUDIT-008",
+    "P1-AUDIT-016",
+    "P2-AUDIT-010"
+  ],
+  "regression_refs": {
+    "P1-AUDIT-001": [
+      "tests/test_phase2_e3_semantic_roundtrip.py::test_noaa_runtime_native_mapping_covers_every_registry_native_semantic",
+      "tests/test_phase2_e3_semantic_roundtrip.py::test_runtime_metadata_contract_preserves_unit_level_and_interval_evidence"
+    ],
+    "P1-AUDIT-003": [
+      "tests/test_phase2_e3_semantic_roundtrip.py::test_dwd_runtime_native_mapping_equals_registry_v2",
+      "tests/test_phase2_e3_semantic_roundtrip.py::test_all_90_provider_semantic_cells_are_explicit"
+    ],
+    "P1-AUDIT-004": [
+      "tests/test_phase2_e3_semantic_roundtrip.py::test_runtime_metadata_contract_preserves_unit_level_and_interval_evidence",
+      "tests/test_full_horizon.py::test_gefs_cycle_specific_contract_and_maximum",
+      "tests/test_full_horizon.py::test_complete_archive_preserves_legacy_inputs_exactly"
+    ],
+    "P1-AUDIT-005": [
+      "tests/test_provider_edges.py::test_ecmwf_requests_both_gust_aliases",
+      "tests/test_provider_edges.py::test_ecmwf_gust_alias_is_accepted_by_value_selection"
+    ],
+    "P2-AUDIT-007": [
+      "tests/test_phase2_e3_semantic_roundtrip.py::test_missingness_is_closed_and_non_received_never_carries_value",
+      "tests/test_full_horizon.py::test_gefs_pgrb2b_supplement_does_not_download_0p50a",
+      "tests/test_full_horizon.py::test_gefs_pgrb2b_retry_is_delayed_once_then_exhausted"
+    ],
+    "P2-AUDIT-008": [
+      "tests/test_phase2_freeze.py::test_successor_v2_shared_core_hash_and_revision_invariants"
+    ],
+    "P1-AUDIT-016": [
+      "tests/test_provider_cycle_gate.py::test_exact_archived_full_gefs_prefers_v2_index_and_validates_latest_event",
+      "tests/test_provider_cycle_gate.py::test_all_archived_cycles_predict_zero_delta",
+      "tests/test_push_private_parent_bound.py::test_atomic_commit_binds_guards_and_exact_checks_to_parent",
+      "tests/test_push_private_parent_bound.py::test_later_descendant_may_advance_monotonic_pointer"
+    ],
+    "P2-AUDIT-010": [
+      "tests/test_phase2_g2_traffic_actions.py::test_compatibility_horizon_is_not_provider_native_horizon",
+      "tests/test_phase2_g2_traffic_actions.py::test_normal_daily_acquisition_opportunity_baseline_is_pinned",
+      "tests/test_phase2_g2_traffic_actions.py::test_sparse_gefs_live_measurement_remains_inside_frozen_budgets",
+      "tests/test_phase2_g2_traffic_actions.py::test_supplemental_retry_is_bounded_and_cannot_become_full_refetch",
+      "tests/test_phase2_g2_traffic_actions.py::test_noop_and_private_action_measurements_are_explicit"
+    ]
+  },
+  "pipeline_invariants": {
+    "non_native_missingness_explicit": true,
+    "native_identity_metadata_preserved": true,
+    "provider_interval_metadata_preserved": true,
+    "same_cycle_noop_suppresses_transfer": true,
+    "supplemental_retry_is_bounded": true,
+    "transfer_parent_bound_and_monotonic": true,
+    "cross_repo_successor_contract_gate_required": true
+  }
+}
