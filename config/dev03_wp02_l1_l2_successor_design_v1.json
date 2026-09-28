@@ -1,0 +1,535 @@
+{
+  "schema_version": 1,
+  "contract_version": "dev03-wp02-l1-l2-successor-design-v1",
+  "status": "candidate",
+  "date": "2026-09-28",
+  "development_phase": "DEV-03",
+  "work_package": "DEV03-WP02",
+  "prep_alias": "DEV03-PREP04",
+  "name": "L1_L2_SUCCESSOR_CONTRACT_DESIGN",
+  "depends_on": {
+    "work_package": "DEV03-WP01",
+    "artifact": "config/dev03_wp01_l3_requirements_matrix_v1.json",
+    "required_status": "complete"
+  },
+  "scope": {
+    "target_layers": [
+      "L1",
+      "L2"
+    ],
+    "purpose": "Define the exact post-freeze L1/L2 successor set required by DEV-03 L3 without mutating frozen Phase-2 predecessors or changing L4/L5 operation.",
+    "in_scope_findings": [
+      "AUD-20260928-01-F02",
+      "AUD-20260928-01-F03",
+      "AUD-20260928-01-F04",
+      "AUD-20260928-01-F05"
+    ],
+    "out_of_scope": [
+      "Feature Broker implementation",
+      "L3 analyzer implementation",
+      "L4 decision-policy changes",
+      "L5 notification changes",
+      "rewriting Registry v2, Archive v5, canonical-model-record-v2 or Phase-2 successor/refreeze evidence"
+    ]
+  },
+  "design_principles": [
+    "Frozen predecessors remain immutable and readable.",
+    "Successor acquisition and storage are introduced on explicit versioned channels.",
+    "Provider-native parameter/product/level/time identity is preserved before any derivation.",
+    "Missing or ambiguous evidence is explicit and never zero-filled or false-clear.",
+    "Historical reconstruction remains causal and uses one as_of cutoff per evaluated issue state.",
+    "L4/L5 authority remains v16-c3-v9 throughout DEV-03."
+  ],
+  "findings": {
+    "AUD-20260928-01-F02": {
+      "layer": "L1",
+      "decision": "Introduce one new model semantic, convective_precipitation, in relevant-meteorology-v3. Do not create a model semantic that claims observed thunder/event truth.",
+      "resolved_by": [
+        "relevant-meteorology-v3",
+        "weather-acquisition-plan-v2",
+        "collector-model-bundle-v3",
+        "model-field-availability-v3"
+      ]
+    },
+    "AUD-20260928-01-F03": {
+      "layer": "L2",
+      "decision": "Replace divergent interval normalization behavior on the successor path with one native-interval-resolution-v1 contract and integer interval_seconds authority.",
+      "resolved_by": [
+        "native-interval-resolution-v1",
+        "canonical-model-record-v3",
+        "ensemble-member-storage-contract-v3",
+        "mardorf-weather-archive-v6"
+      ]
+    },
+    "AUD-20260928-01-F04": {
+      "layer": "L2->L3",
+      "decision": "Introduce l2-l3-meteorology-read-contract-v1 with complete native identity, causal provenance, exact lead and interval requirements.",
+      "resolved_by": [
+        "mardorf-weather-archive-v6",
+        "l2-l3-meteorology-read-contract-v1"
+      ]
+    },
+    "AUD-20260928-01-F05": {
+      "layer": "L1/L2",
+      "decision": "Introduce forecast-lead-identity-v1. Acquisition leads remain strict integral hours; lead_seconds becomes the exact L2 authority. Truncating int() coercion is forbidden.",
+      "resolved_by": [
+        "forecast-lead-identity-v1",
+        "collector-model-bundle-v3",
+        "canonical-model-record-v3",
+        "ensemble-member-storage-contract-v3",
+        "mardorf-weather-archive-v6"
+      ]
+    }
+  },
+  "successor_set": [
+    {
+      "id": "relevant-meteorology-v3",
+      "layer": "L1",
+      "owner_repository": "janwohlers78/mardorf-data-collector",
+      "mirror_repository": "janwohlers78/mardorf-kitevorhersage",
+      "predecessor": "relevant-meteorology-v2",
+      "lifecycle": "planned_for_DEV03_WP03",
+      "reason": "Add convective_precipitation while separating provider capability from acquisition policy."
+    },
+    {
+      "id": "weather-acquisition-plan-v2",
+      "layer": "L1",
+      "owner_repository": "janwohlers78/mardorf-data-collector",
+      "predecessor": "weather_acquisition_plan.json / phase2_complete_frozen",
+      "lifecycle": "planned_for_DEV03_WP03",
+      "reason": "Acquire Registry-v3 fields on the retained acquisition grid without changing the frozen Phase-2 plan."
+    },
+    {
+      "id": "collector-model-bundle-v3",
+      "layer": "L1",
+      "owner_repository": "janwohlers78/mardorf-data-collector",
+      "predecessor": "collector model bundle schema_version=2",
+      "lifecycle": "planned_shadow_sidecar_for_DEV03_WP03",
+      "reason": "Carry strict lead identity, Registry-v3 availability and new native fields without changing the operational v2 payload."
+    },
+    {
+      "id": "model-field-availability-v3",
+      "layer": "L1",
+      "owner_repository": "janwohlers78/mardorf-data-collector",
+      "predecessor": "model-field-availability-v2",
+      "lifecycle": "planned_for_DEV03_WP03",
+      "reason": "Availability v2 is code-bound to Registry v2; v3 must materialize Registry-v3 capability/policy states while preserving the same closed missingness semantics."
+    },
+    {
+      "id": "forecast-lead-identity-v1",
+      "layer": "L1/L2",
+      "owner_repository": "shared_contract",
+      "predecessor": null,
+      "lifecycle": "planned_for_DEV03_WP03",
+      "reason": "Provide one lossless lead-duration authority across public payload, canonical record, ensemble storage and Archive v6."
+    },
+    {
+      "id": "native-interval-resolution-v1",
+      "layer": "L2",
+      "owner_repository": "janwohlers78/mardorf-kitevorhersage",
+      "predecessor": "divergent Archive-v5/gust-v2/ensemble-v2 resolver behavior",
+      "lifecycle": "planned_for_DEV03_WP03",
+      "reason": "Centralize native interval resolution and make interval_seconds authoritative."
+    },
+    {
+      "id": "canonical-model-record-v3",
+      "layer": "L2",
+      "owner_repository": "janwohlers78/mardorf-kitevorhersage",
+      "predecessor": "canonical-model-record-v2",
+      "lifecycle": "planned_for_DEV03_WP03",
+      "reason": "Bind exact lead identity and central interval resolution for deterministic successor records."
+    },
+    {
+      "id": "field-availability-v3",
+      "layer": "L2",
+      "owner_repository": "janwohlers78/mardorf-kitevorhersage",
+      "predecessor": "field-availability-v2",
+      "lifecycle": "planned_for_DEV03_WP03",
+      "reason": "Bind causal private availability to Registry v3 and the v6 identity surface without weakening v2 missingness semantics."
+    },
+    {
+      "id": "ensemble-member-storage-contract-v3",
+      "layer": "L2",
+      "owner_repository": "janwohlers78/mardorf-kitevorhersage",
+      "predecessor": "ensemble-member-storage-contract-v2",
+      "lifecycle": "planned_for_DEV03_WP03",
+      "reason": "Use forecast-lead-identity-v1 and native-interval-resolution-v1 for ensemble members, availability and aggregates."
+    },
+    {
+      "id": "mardorf-weather-archive-v6",
+      "layer": "L2",
+      "owner_repository": "janwohlers78/mardorf-kitevorhersage",
+      "predecessor": "mardorf-weather-archive-v5",
+      "lifecycle": "planned_shadow_archive_for_DEV03_WP03",
+      "reason": "Persist exact lead/interval/native identity while preserving revision-event causality."
+    },
+    {
+      "id": "l2-l3-meteorology-read-contract-v1",
+      "layer": "L2->L3",
+      "owner_repository": "janwohlers78/mardorf-kitevorhersage",
+      "predecessor": "phase3-archive-interface-gate-v1",
+      "lifecycle": "planned_for_DEV03_WP04_after_WP03_acceptance",
+      "reason": "Expose complete provider-format-independent L3 read identity without mutating the historical Phase-3 interface gate."
+    }
+  ],
+  "reused_unchanged": [
+    {
+      "id": "acquisition-grid-v2",
+      "reason": "F02-F05 do not require a cadence/horizon change; new fields use the already retained model/lead grid."
+    },
+    {
+      "id": "logical-forecast-identity-v2",
+      "reason": "Run/valid/model/member logical identity remains correct; exact lead_seconds is a validated duration, not a new logical forecast key."
+    },
+    {
+      "id": "phase2-revision-event-shared-core-v2",
+      "reason": "A->B->A, exact replay, private visibility and as_of causality remain valid."
+    },
+    {
+      "id": "ensemble-source-revision-set-v2",
+      "reason": "Atomic source-set semantics remain valid under ensemble v3."
+    },
+    {
+      "id": "ensemble-source-event-chronology-v2",
+      "reason": "Provider/source chronology remains unchanged."
+    },
+    {
+      "id": "gefs-cycle-evidence-event-stream-index-v2",
+      "reason": "F02-F05 do not alter GEFS evidence publication semantics."
+    },
+    {
+      "id": "private-transfer-readback-v2",
+      "reason": "Transfer hashing/readback semantics remain valid; the v3 channel requires its own receipt but not a new readback algorithm."
+    },
+    {
+      "id": "phase2-acquisition-storage-successor-v2",
+      "reason": "Frozen historical acceptance evidence remains immutable and is not superseded as audit history."
+    }
+  ],
+  "f02_registry_v3": {
+    "new_semantic": {
+      "semantic_id": "convective_precipitation",
+      "meaning": "Provider-native convective precipitation amount over its native accumulation interval.",
+      "time_semantics": "provider_native_accumulation",
+      "native_identity_required": true,
+      "derived_event_truth": false,
+      "forbidden_conflations": [
+        "total_precipitation",
+        "convective_precipitation_rate",
+        "cape",
+        "cin",
+        "thunderstorm_occurrence",
+        "lightning_occurrence",
+        "warning_event"
+      ]
+    },
+    "provider_matrix": {
+      "ICON-D2": {
+        "provider_capability": "native_available",
+        "acquisition_policy_v2": "required",
+        "parameter_native": "rain_con",
+        "provider_product": "DWD ICON-D2 Open Data raw GRIB2",
+        "level": "single-level/surface",
+        "interval_policy": "preserve native step metadata; resolve only through native-interval-resolution-v1"
+      },
+      "ICON-EU": {
+        "provider_capability": "native_available",
+        "acquisition_policy_v2": "required",
+        "parameter_native": "rain_con",
+        "provider_product": "DWD ICON-EU Open Data raw GRIB2",
+        "level": "single-level/surface",
+        "interval_policy": "preserve native step metadata; resolve only through native-interval-resolution-v1"
+      },
+      "ECMWF-IFS": {
+        "provider_capability": "unsupported_by_current_open_data_product",
+        "acquisition_policy_v2": "not_requested_by_policy",
+        "parameter_native": null,
+        "note": "Current IFS Open Data atmosphere inventory used by this project exposes total precipitation but not convective precipitation cp."
+      },
+      "GFS": {
+        "provider_capability": "native_available",
+        "acquisition_policy_v2": "required",
+        "parameter_native": "ACPCP",
+        "selector": "ACPCP|surface",
+        "provider_product": "gfs_0p25",
+        "interval_policy": "provider-native accumulation",
+        "explicitly_excluded_alias": "CPRAT because it is a rate semantic, not an accumulation amount"
+      },
+      "GEFS-control": {
+        "provider_capability": "unsupported_by_current_provider_product",
+        "acquisition_policy_v2": "not_requested_by_policy",
+        "parameter_native": null,
+        "note": "Current GEFS atmospheric products used by the project expose APCP but not ACPCP."
+      },
+      "ICON-D2-EPS": {
+        "provider_capability": "native_available_via_DWD_raw_not_current_project_path",
+        "acquisition_policy_v2": "not_requested_by_policy",
+        "parameter_native": "rain_con",
+        "activation_gate": "DEV03-PREP07 resource/network budget plus dedicated source-path acceptance",
+        "note": "Do not relabel total precipitation from the current Open-Meteo EPS path as convective precipitation."
+      },
+      "NOAA_GEFS_FULL": {
+        "provider_capability": "unsupported_by_current_provider_product",
+        "acquisition_policy_v2": "not_requested_by_policy",
+        "parameter_native": null,
+        "note": "Sparse full-member policy remains unchanged."
+      }
+    },
+    "future_nonbinding_evidence": {
+      "ECMWF-AIFS": {
+        "status": "outside_current_DEV03_source_paths",
+        "parameter_native": "cp",
+        "meaning": "convective precipitation",
+        "rule": "Adding AIFS requires a later explicit provider/source-path successor and does not change this WP02 contract."
+      }
+    },
+    "event_truth_boundary": {
+      "model_semantic_is_event_truth": false,
+      "required_future_target": "CONVECTIVE_EVENT_TRUTH_REQUIRED",
+      "allowed_future_target_classes": [
+        "radar-derived convective precipitation/event labels",
+        "lightning observations",
+        "official warning/event evidence"
+      ]
+    }
+  },
+  "f03_interval_resolution_v1": {
+    "authority_field": "interval_seconds",
+    "authority_type": "int64",
+    "compatibility_field": "interval_hours",
+    "compatibility_rule": "derived as interval_seconds / 3600.0; never authoritative",
+    "statuses": [
+      "resolved",
+      "point",
+      "unknown",
+      "ambiguous",
+      "invalid"
+    ],
+    "required_native_inputs_to_preserve": [
+      "stepType",
+      "stepRange",
+      "startStep",
+      "endStep",
+      "stepUnits"
+    ],
+    "step_unit_contract": {
+      "source": "WMO GRIB2 Code Table 4.4 / ecCodes-compatible values",
+      "numeric_codes_supported": {
+        "0": "minute",
+        "1": "hour",
+        "2": "day",
+        "10": "3_hours",
+        "11": "6_hours",
+        "12": "12_hours",
+        "13": "second"
+      },
+      "textual_aliases_may_be_supported_only_if_explicit_and_unit_equivalent": true
+    },
+    "precedence": [
+      "complete explicit interval_start_utc plus interval_end_utc, validated against field valid time",
+      "complete startStep plus endStep plus recognized stepUnits",
+      "stepRange only when its unit is explicit or an independent recognized stepUnits value removes ambiguity",
+      "instantaneous stepType may yield a zero-second point only when no contradictory interval evidence exists"
+    ],
+    "forbidden_inference": [
+      "derive interval duration from forecast lead",
+      "derive interval duration from parameter alias such as 10fg3 or 10fg6",
+      "assume unitless stepRange values are hours",
+      "partially combine conflicting explicit and native interval metadata"
+    ],
+    "fail_closed": {
+      "incomplete": "unknown",
+      "conflicting_complete_evidence": "ambiguous",
+      "impossible_order_or_valid_time_mismatch": "invalid",
+      "unresolved_normalized_fields": "null"
+    }
+  },
+  "f04_l2_l3_read_contract_v1": {
+    "required_logical_views": [
+      "l3_forecast_records_v1",
+      "l3_field_values_v1",
+      "l3_field_availability_v1",
+      "l3_ensemble_members_v1",
+      "l3_ensemble_aggregates_v1",
+      "l3_ensemble_field_status_v1"
+    ],
+    "required_record_identity": [
+      "logical_record_id",
+      "revision_event_id",
+      "model",
+      "model_family",
+      "representation_type",
+      "ensemble_system_id",
+      "member_id",
+      "run_time_utc",
+      "valid_time_utc",
+      "lead_seconds",
+      "available_at_utc",
+      "record_first_seen_at_utc",
+      "provider_product",
+      "grid_id",
+      "latitude",
+      "longitude",
+      "source_payload_sha256",
+      "source_archive_version"
+    ],
+    "required_field_identity": [
+      "registry_version",
+      "semantic_id",
+      "field_identity_id",
+      "parameter_native",
+      "param_id_native",
+      "short_name_native",
+      "unit_native",
+      "type_of_level_native",
+      "level_native",
+      "step_type_native",
+      "step_range_native",
+      "start_step_native",
+      "end_step_native",
+      "step_units_native",
+      "interval_status",
+      "interval_start_utc",
+      "interval_end_utc",
+      "interval_seconds",
+      "identity_completeness_status",
+      "source_provenance"
+    ],
+    "required_value_availability": [
+      "value_native",
+      "availability_status",
+      "availability_observed_at_utc",
+      "field_available_at_utc",
+      "field_first_seen_at_utc"
+    ],
+    "required_ensemble_identity": [
+      "ensemble_source_revision_set_id",
+      "member_role",
+      "expected_member_count",
+      "received_member_count",
+      "expected_member_ids",
+      "received_member_ids",
+      "aggregate_method_version",
+      "member_set_identity"
+    ],
+    "identity_completeness_states": [
+      "native_exact",
+      "legacy_exactly_reconstructable",
+      "legacy_partial",
+      "invalid"
+    ],
+    "causal_read_rule": "All relations for one historical issue state come from one adapter/session bound to one as_of=T.",
+    "legacy_adapter_rule": "v1-v5 history may add only values exactly derivable from persisted timestamps/native metadata; missing native identity remains null and explicitly partial.",
+    "primary_input_rule": "An analyzer that requires a missing identity dimension must reject legacy_partial rows rather than infer it.",
+    "predecessor_contract_remains_immutable": "phase3-archive-interface-gate-v1"
+  },
+  "f05_forecast_lead_identity_v1": {
+    "current_project_policy": "All acquired forecast leads are integral hours.",
+    "l1_fields": {
+      "forecast_lead_hours": {
+        "type": "JSON integer",
+        "rule": "must be an integer value and not bool/string/float"
+      },
+      "forecast_lead_seconds": {
+        "type": "JSON integer",
+        "rule": "must equal forecast_lead_hours * 3600"
+      }
+    },
+    "l1_invariant": "valid_time_utc - run_time_utc == forecast_lead_seconds exactly and forecast_lead_seconds % 3600 == 0",
+    "rejected_examples": [
+      "3.5",
+      "\"3\"",
+      "true",
+      "a value that differs from run/valid timestamp delta"
+    ],
+    "l2_authority": {
+      "field": "lead_seconds",
+      "type": "int64",
+      "source": "validated exact timestamp delta and matching successor payload identity"
+    },
+    "l2_compatibility": {
+      "field": "lead_hours",
+      "type": "float64 or computed numeric",
+      "rule": "derived from lead_seconds / 3600.0 and never used as the semantic authority"
+    },
+    "legacy_adapter_rule": "A legacy lead_hours value is accepted only when finite, mathematically integral, and exactly consistent with run/valid timestamps. Never use int() truncation.",
+    "future_subhour_rule": "A future provider needing sub-hour forecast leads requires a new lead-identity contract version rather than weakening v1."
+  },
+  "migration_topology": {
+    "public_collection": {
+      "provider_request_rule": "Use one shared provider retrieval pass where possible. Do not duplicate existing provider downloads merely to create v3 records.",
+      "legacy_channel": "collector-model-bundle-v2 remains operational and unchanged",
+      "successor_channel": "collector-model-bundle-v3 is a separate shadow sidecar/transfer channel",
+      "additional_provider_requests": "Only fields newly required by Registry v3 may add provider traffic.",
+      "acquisition_grid": "acquisition-grid-v2 unchanged"
+    },
+    "transfer": {
+      "legacy_receipt": "existing models v2 verified transfer receipt unchanged",
+      "successor_receipt": "v3 shadow payload gets its own verified receipt/readback identity",
+      "hash_algorithm_and_readback": "reuse private-transfer-readback-v2 semantics"
+    },
+    "private_promotion": {
+      "legacy": "existing v2 promotion/current forecast path unchanged",
+      "successor": "v3 shadow promotion uses a separate namespace and may not replace operational latest pointers during DEV-03"
+    },
+    "persistence": {
+      "legacy_archive": "Archive v5 continues unchanged for the operational/compatibility path",
+      "successor_archive": "Archive v6 is written in a separate shadow root during WP03 acceptance",
+      "suggested_shadow_root": "data/weather_archive_v6/",
+      "no_history_rewrite": true,
+      "no_first_seen_backdating": true
+    },
+    "l2_l3_read": {
+      "historical_sources": "read-only Archive v1-v5 through exact legacy adapter",
+      "prospective_source": "Archive v6 native successor rows",
+      "duplicate_rule": "when the same revision_event_id exists in v5 and v6, expose the exact v6 successor row and suppress the legacy duplicate",
+      "mixed_as_of_rule": "both legacy and v6 sources must be evaluated against the same as_of cutoff"
+    },
+    "operational_boundary": {
+      "l4_authority": "v16-c3-v9",
+      "l5_authority": "existing notification path",
+      "dev03_cutover_allowed": false
+    }
+  },
+  "implementation_order_for_DEV03_WP03": [
+    "Implement shared forecast-lead-identity-v1 and relevant-meteorology-v3 contracts.",
+    "Implement public model-field-availability-v3 and weather-acquisition-plan-v2.",
+    "Implement collector-model-bundle-v3 shadow sidecar without changing v2 operational output.",
+    "Implement private native-interval-resolution-v1 and canonical-model-record-v3.",
+    "Implement field-availability-v3 and ensemble-member-storage-contract-v3.",
+    "Implement Archive v6 shadow persistence preserving revision-event causality.",
+    "Run cross-repository regression and representative/live successor acceptance before WP04."
+  ],
+  "stop_conditions": [
+    "Do not implement a model event-truth semantic in place of convective precipitation.",
+    "Do not start a v3 field acquisition path unless provider-native identity and interval metadata can be preserved.",
+    "Do not accept non-integral or coercible-only forecast lead values.",
+    "Do not create normalized interval boundaries from incomplete or guessed evidence.",
+    "Do not expose legacy_partial identity as exact L3 input.",
+    "Do not rewrite v1-v5 Parquet or backdate private first_seen.",
+    "Do not change v16-c3-v9 or notification behavior."
+  ],
+  "wp02_exit_gate": {
+    "exact_successor_count": 11,
+    "exact_successor_ids": [
+      "relevant-meteorology-v3",
+      "weather-acquisition-plan-v2",
+      "collector-model-bundle-v3",
+      "model-field-availability-v3",
+      "forecast-lead-identity-v1",
+      "native-interval-resolution-v1",
+      "canonical-model-record-v3",
+      "field-availability-v3",
+      "ensemble-member-storage-contract-v3",
+      "mardorf-weather-archive-v6",
+      "l2-l3-meteorology-read-contract-v1"
+    ],
+    "requirements": [
+      "F02-F05 each map to explicit successor artifacts.",
+      "Frozen predecessors are not mutated.",
+      "Legacy and successor transfer/persistence namespaces are separate during acceptance.",
+      "Historical dual-read never invents missing identity or first_seen chronology.",
+      "Operational L4/L5 authority is unchanged."
+    ]
+  }
+}
