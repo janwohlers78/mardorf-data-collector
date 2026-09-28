@@ -76,7 +76,7 @@ def check_contract(c):
     check(f10.get("pointer_ordering_superseded_by")=="FIX-20260928-02-F14","F10/F14 pointer supersession missing")
 
     f11=fixes.get("AUD-20260928-02-F11") or {}
-    check("before any v3 network request" in " ".join(f11.get("rules") or []),"F11 pre-network parent binding missing")
+    f11_rules=" ".join(f11.get("rules") or []).lower()\n    check("network request" in f11_rules and "exact parent" in f11_rules and ("may execute until" in f11_rules or "before" in f11_rules),"F11 pre-network parent binding missing")
     order=c.get("corrected_wp03_execution_order_v2") or []
     check([x.get("step_id") for x in order]==[f"WP03-I{i:02d}" for i in range(1,11)],"corrected WP03 step ids/order drift")
     i3=next((x for x in order if x.get("step_id")=="WP03-I03"),{})
