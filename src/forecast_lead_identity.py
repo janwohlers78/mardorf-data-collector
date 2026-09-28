@@ -8,11 +8,16 @@ class ForecastLeadIdentityError(ValueError):
     pass
 
 
+INT64_MAX = (1 << 63) - 1
+
+
 def _strict_non_negative_int(value, field: str) -> int:
     if isinstance(value, bool) or not isinstance(value, int):
         raise ForecastLeadIdentityError(f"{field} must be a strict integer")
     if value < 0:
         raise ForecastLeadIdentityError(f"{field} must be non-negative")
+    if value > INT64_MAX:
+        raise ForecastLeadIdentityError(f"{field} must fit signed int64")
     return value
 
 
@@ -22,7 +27,10 @@ def validate_acquisition_lead_hours(value) -> int:
 
 def lead_seconds_from_hours(value) -> int:
     hours = validate_acquisition_lead_hours(value)
-    return hours * 3600
+    seconds = hours * 3600
+    if seconds > INT64_MAX:
+        raise ForecastLeadIdentityError("acquisition_lead_hours overflows lead_seconds int64")
+    return seconds
 
 
 def validate_lead_seconds(value) -> int:
