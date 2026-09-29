@@ -101,6 +101,18 @@ def _hex64(value, field: str) -> str:
     return value.lower()
 
 
+def _git_object_id(value, field: str) -> str:
+    if not isinstance(value, str) or len(value) not in (40, 64):
+        raise Dev03ParentBindingError(
+            f"{field} must be a 40- or 64-character Git object ID"
+        )
+    try:
+        int(value, 16)
+    except ValueError as exc:
+        raise Dev03ParentBindingError(f"{field} is not hexadecimal") from exc
+    return value.lower()
+
+
 def verify_parent_transfer_receipt(receipt_bytes: bytes, transfer_result: dict) -> dict:
     """Verify the exact immutable v2 transfer receipt and return F01 binding."""
     if not isinstance(receipt_bytes, (bytes, bytearray)) or not receipt_bytes:
@@ -126,7 +138,7 @@ def verify_parent_transfer_receipt(receipt_bytes: bytes, transfer_result: dict) 
     payload_sha = _hex64(
         transfer_result.get("payload_source_sha256"), "payload_source_sha256"
     )
-    verified_commit = _hex64(
+    verified_commit = _git_object_id(
         transfer_result.get("verified_data_commit_sha"), "verified_data_commit_sha"
     )
     generated = _utc(
