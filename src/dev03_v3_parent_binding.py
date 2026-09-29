@@ -15,6 +15,7 @@ import re
 import uuid
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 from forecast_lead_identity import (
     ForecastLeadIdentityError,
@@ -230,6 +231,63 @@ def _grid_identity(row: dict) -> dict:
     return {"extraction_coordinate": identity}
 
 
+def _resolve_icon_d2_eps_parent_product(row: dict, run_time_utc: str) -> str:
+    source_url = row.get("source_url")
+    if not isinstance(source_url, str):
+        raise Dev03ParentBindingError("ICON-D2-EPS exact source_url evidence is required")
+    parsed = urlparse(source_url)
+    if (
+        parsed.scheme != "https"
+        or parsed.hostname != "ensemble-api.open-meteo.com"
+        or parsed.path != "/v1/ensemble"
+    ):
+        raise Dev03ParentBindingError("ICON-D2-EPS source_url does not prove the named Open-Meteo product")
+    models = []
+    for value in parse_qs(parsed.query).get("models", []):
+        models.extend(part.strip() for part in value.split(",") if part.strip())
+    if models != ["dwd_icon_d2_eps"]:
+        raise Dev03ParentBindingError("ICON-D2-EPS source_url model query is not exactly dwd_icon_d2_eps")
+
+    identity = row.get("source_run_identity")
+    if not isinstance(identity, dict):
+        raise Dev03ParentBindingError("ICON-D2-EPS source_run_identity evidence is required")
+    if identity.get("model_id") != "dwd_icon_d2_eps":
+        raise Dev03ParentBindingError("ICON-D2-EPS source_run_identity model_id mismatch")
+    if identity.get("verification_status") != "verified_stable_metadata_dwd_cycle_and_spatial_provenance":
+        raise Dev03ParentBindingError("ICON-D2-EPS source_run_identity verification status is not authoritative")
+    if _utc(identity.get("run_time_utc"), "ICON-D2-EPS source_run_identity.run_time_utc") != run_time_utc:
+        raise Dev03ParentBindingError("ICON-D2-EPS source_run_identity run time mismatch")
+
+    response_binding = identity.get("response_run_binding")
+    if not isinstance(response_binding, dict):
+        raise Dev03ParentBindingError("ICON-D2-EPS response_run_binding evidence is required")
+    response_sha = _hex64(
+        response_binding.get("response_sha256"),
+        "ICON-D2-EPS source_run_identity.response_run_binding.response_sha256",
+    )
+    authoritative_sha = _hex64(
+        row.get("authoritative_member_source_response_sha256"),
+        "ICON-D2-EPS authoritative_member_source_response_sha256",
+    )
+    if response_sha != authoritative_sha:
+        raise Dev03ParentBindingError("ICON-D2-EPS response SHA evidence mismatch")
+
+    confirmation = identity.get("dwd_cycle_confirmation_url")
+    if not isinstance(confirmation, str):
+        raise Dev03ParentBindingError("ICON-D2-EPS DWD cycle confirmation URL is required")
+    run = datetime.fromisoformat(run_time_utc.replace("Z", "+00:00"))
+    cycle = run.strftime("%Y%m%d%H")
+    hour = run.strftime("%H")
+    expected = re.compile(
+        rf"^https://opendata\.dwd\.de/weather/nwp/icon-d2-eps/grib/{hour}/u_10m/"
+        rf"icon-d2-eps_germany_icosahedral_single-level_{cycle}_\d{{3}}_2d_u_10m\.grib2\.bz2$",
+        re.IGNORECASE,
+    )
+    if not expected.fullmatch(confirmation):
+        raise Dev03ParentBindingError("ICON-D2-EPS DWD cycle confirmation URL does not bind the exact run")
+    return "open_meteo:dwd_icon_d2_eps"
+
+
 def resolve_parent_provider_product(
     row: dict, model: str, run_time_utc: str, lead_seconds: int
 ) -> str:
@@ -243,6 +301,9 @@ def resolve_parent_provider_product(
     explicit = row.get("provider_product")
     if isinstance(explicit, str) and explicit:
         return explicit
+
+    if model == "ICON-D2-EPS":
+        return _resolve_icon_d2_eps_parent_product(row, run_time_utc)
 
     spec = _DWD_PARENT_PRODUCT_SPECS.get(model)
     if spec is None:
