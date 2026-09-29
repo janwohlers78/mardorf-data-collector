@@ -15,7 +15,6 @@ import re
 import uuid
 from datetime import datetime
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
 
 from forecast_lead_identity import (
     ForecastLeadIdentityError,
@@ -235,16 +234,14 @@ def _resolve_icon_d2_eps_parent_product(row: dict, run_time_utc: str) -> str:
     source_url = row.get("source_url")
     if not isinstance(source_url, str):
         raise Dev03ParentBindingError("ICON-D2-EPS exact source_url evidence is required")
-    parsed = urlparse(source_url)
-    if (
-        parsed.scheme != "https"
-        or parsed.hostname != "ensemble-api.open-meteo.com"
-        or parsed.path != "/v1/ensemble"
-    ):
+    match = re.fullmatch(
+        r"https://ensemble-api\.open-meteo\.com/v1/ensemble\?(.+)",
+        source_url,
+    )
+    if not match:
         raise Dev03ParentBindingError("ICON-D2-EPS source_url does not prove the named Open-Meteo product")
-    models = []
-    for value in parse_qs(parsed.query).get("models", []):
-        models.extend(part.strip() for part in value.split(",") if part.strip())
+    query = match.group(1)
+    models = re.findall(r"(?:^|&)models=([^&]+)(?:&|$)", query)
     if models != ["dwd_icon_d2_eps"]:
         raise Dev03ParentBindingError("ICON-D2-EPS source_url model query is not exactly dwd_icon_d2_eps")
 
