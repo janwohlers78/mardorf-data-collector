@@ -33,7 +33,7 @@ class I10PublicTests(unittest.TestCase):
             self.assertEqual(result["provider_requests"],0)
             parent.assert_not_called()
 
-    def test_partial_public_activation_fails_closed(self):
+    def test_safe_public_rollback_stage_is_clean_noop(self):
         with tempfile.TemporaryDirectory() as td:
             p=Path(td)/"controls.json"
             p.write_text(json.dumps({"controls":{
@@ -43,7 +43,23 @@ class I10PublicTests(unittest.TestCase):
                 "archive_v6_write_enabled":False,
             }}))
             with patch.object(live,"CONTROL_PATH",p):
-                with self.assertRaisesRegex(RuntimeError,"enabled together"):
+                with patch.object(live,"load_verified_private_parent") as parent:
+                    result=live.run_live("token")
+            self.assertEqual(result["status"],"disabled_noop")
+            self.assertEqual(result["provider_requests"],0)
+            parent.assert_not_called()
+
+    def test_transfer_without_generation_fails_closed(self):
+        with tempfile.TemporaryDirectory() as td:
+            p=Path(td)/"controls.json"
+            p.write_text(json.dumps({"controls":{
+                "public_v3_generation_enabled":False,
+                "public_v3_transfer_enabled":True,
+                "private_v3_promotion_enabled":False,
+                "archive_v6_write_enabled":False,
+            }}))
+            with patch.object(live,"CONTROL_PATH",p):
+                with self.assertRaisesRegex(RuntimeError,"cannot be enabled"):
                     live.run_live("token")
 
     def test_matched_baseline_urls_are_exact_parent_urls_and_deduplicated(self):
