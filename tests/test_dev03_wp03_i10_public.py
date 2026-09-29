@@ -19,6 +19,13 @@ class I10PublicTests(unittest.TestCase):
     def test_wiring_gate(self):
         self.assertEqual(gate.validate(ROOT)["status"],"PASS")
 
+    def test_wiring_control_state_machine_matches_runtime_contract(self):
+        self.assertTrue(gate._valid_public_control_state(False,False))
+        self.assertTrue(gate._valid_public_control_state(True,True))
+        self.assertTrue(gate._valid_public_control_state(True,False))
+        self.assertFalse(gate._valid_public_control_state(False,True))
+        self.assertFalse(gate._valid_public_control_state(1,False))
+
     def test_disabled_controls_are_noop_before_private_read(self):
         with tempfile.TemporaryDirectory() as td:
             p=Path(td)/"controls.json"

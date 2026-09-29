@@ -9,6 +9,12 @@ ROOT=Path(__file__).resolve().parents[1]
 FROZEN_V2_WORKFLOW_BLOB="b26223764a0702a04b6b40d90a63da6507a54d59"
 
 
+def _valid_public_control_state(generation, transfer):
+    if not isinstance(generation,bool) or not isinstance(transfer,bool):
+        return False
+    return not (generation is False and transfer is True)
+
+
 def validate(root=ROOT):
     root=Path(root)
     problems=[]
@@ -40,7 +46,8 @@ def validate(root=ROOT):
 
     gen=controls.get("public_v3_generation_enabled")
     transfer=controls.get("public_v3_transfer_enabled")
-    check(gen is transfer,"public v3 generation and transfer controls must move together for I10")
+    check(_valid_public_control_state(gen,transfer),
+          "public v3 transfer cannot be enabled while generation is disabled")
     check(controls.get("private_v3_promotion_enabled") is False and controls.get("archive_v6_write_enabled") is False,
           "public repo must not activate private controls")
 
