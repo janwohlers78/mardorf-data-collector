@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "artifact_version": "dev03-wp03-i10-runtime-controls-v1",
-  "status": "audit_repair_acceptance_disabling_public",
+  "status": "audit_repair_acceptance_disabled",
   "date": "2026-09-29",
   "work_package": "DEV03-WP03",
   "implementation_step": "WP03-I10",
   "controls": {
-    "public_v3_generation_enabled": true,
+    "public_v3_generation_enabled": false,
     "public_v3_transfer_enabled": false,
     "private_v3_promotion_enabled": false,
     "archive_v6_write_enabled": false
@@ -61,7 +61,11 @@
     "private_final_fix_merge_commit": "242e8eeb8924e4e2eee7613436c0630c4eb13c03",
     "private_representative_live_run_id": 36545957826,
     "representative_attempt_id": "c7e50b42de327580ff839bfae2d3ff9f1ef8f0ac33e02af3d7065d4e809d5cc7",
-    "public_disable_stage": "transfer_disabled_generation_still_enabled",
-    "operational_authority_unchanged": "v16-c3-v9"
+    "public_disable_stage": "public_successor_controls_disabled",
+    "operational_authority_unchanged": "v16-c3-v9",
+    "public_successor_controls_final": {
+      "generation": false,
+      "transfer": false
+    }
   }
 }
