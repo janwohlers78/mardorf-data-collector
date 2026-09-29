@@ -38,6 +38,11 @@ from grib_identity import assert_grib_valid_time
 ROOT = Path(__file__).resolve().parents[1]
 PLAN_PATH = ROOT / "config" / "weather_acquisition_plan_v2.json"
 SEMANTIC_ID = "convective_precipitation"
+DWD_RAIN_CON_GRIB2_IDENTITY = {
+    "discipline": 0,
+    "parameterCategory": 1,
+    "parameterNumber": 76,
+}
 
 
 class Dev03I04Error(ValueError):
@@ -251,7 +256,7 @@ def plan_parent_pinned_requests(
         }
         if model in {"ICON-D2", "ICON-EU"}:
             job["expected_grib2_identity"] = _git_safe_copy(
-                provider.get("expected_grib2_identity")
+                DWD_RAIN_CON_GRIB2_IDENTITY
             )
         job["source_url"] = _request_url(job, provider)
         if model == "GFS" and ("CPRAT" in job["source_url"] or "var_CPRAT" in job["source_url"]):
