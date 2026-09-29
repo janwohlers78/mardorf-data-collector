@@ -82,10 +82,15 @@ def _controls():
     c=d.get("controls") or {}
     generation=c.get("public_v3_generation_enabled")
     transfer=c.get("public_v3_transfer_enabled")
-    if generation is False and transfer is False:
+    # PREP05 preferred rollback stage 3 is generation=true/transfer=false.
+    # It must stop before any private read or provider request and is therefore
+    # a clean disabled state, not a workflow error.
+    if transfer is False:
         return False,c
+    if transfer is True and generation is not True:
+        raise I10PublicError("public v3 transfer cannot be enabled while generation is disabled")
     if generation is not True or transfer is not True:
-        raise I10PublicError("public v3 generation/transfer controls must be enabled together")
+        raise I10PublicError("public v3 runtime controls are invalid")
     return True,c
 
 
