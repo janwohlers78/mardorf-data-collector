@@ -79,7 +79,20 @@
     "explicit_parent_field_authoritative": true,
     "frozen_dwd_predecessor_fallback": "When provider_product is absent only on frozen ICON-D2/ICON-EU rows, every immutable source_urls entry must exactly prove the same DWD regular-lat-lon model, run and lead.",
     "registry_inference_allowed": false,
-    "ambiguous_or_missing_source_evidence": "fail_closed"
+    "ambiguous_or_missing_source_evidence": "fail_closed",
+    "icon_d2_eps_parent_evidence_fallback": {
+      "resolved_provider_product": "open_meteo:dwd_icon_d2_eps",
+      "registry_inference_allowed": false,
+      "required_row_evidence": [
+        "source_url host/path is ensemble-api.open-meteo.com/v1/ensemble and query models=dwd_icon_d2_eps",
+        "source_run_identity.model_id == dwd_icon_d2_eps",
+        "source_run_identity.run_time_utc exactly equals the row run_time_utc",
+        "source_run_identity.verification_status == verified_stable_metadata_dwd_cycle_and_spatial_provenance",
+        "source_run_identity.response_run_binding.response_sha256 equals authoritative_member_source_response_sha256",
+        "source_run_identity.dwd_cycle_confirmation_url is an HTTPS DWD icon-d2-eps GRIB URL"
+      ],
+      "contradictory_or_missing_evidence": "fail_closed"
+    }
   },
   "parent_verified_data_commit_id_rule": {
     "semantics": "Git object ID of the exact readback-verified unpublished data commit from private-transfer-readback-v2; it is not a payload SHA-256 digest.",
