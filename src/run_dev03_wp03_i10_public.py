@@ -131,26 +131,78 @@ def _controls():
     return True,c
 
 
+def _promoted_parent_locator(snapshot):
+    if not isinstance(snapshot,dict):
+        raise I10PublicError("promoted canonical model snapshot must be an object")
+    ingest=snapshot.get("canonical_ingest") or {}
+    if ingest.get("method_version")!="public-collector-canonical-promotion-v1":
+        raise I10PublicError("private canonical model snapshot promotion method drift")
+    parent_sha=ingest.get("source_payload_sha256")
+    payload_path=ingest.get("source_payload_path")
+    generated=ingest.get("collector_generated_at_utc")
+    if (
+        not isinstance(parent_sha,str) or len(parent_sha)!=64
+        or not isinstance(payload_path,str)
+        or not payload_path.startswith("data/inbox/public_collector/models/")
+        or not payload_path.endswith(".json.gz")
+        or not isinstance(generated,str)
+    ):
+        raise I10PublicError("private canonical model snapshot lacks exact promoted-parent identity")
+    try:
+        when=datetime.fromisoformat(generated.replace("Z","+00:00")).astimezone(timezone.utc)
+    except ValueError as exc:
+        raise I10PublicError("promoted parent collector time invalid") from exc
+    name=Path(payload_path).name
+    if not name.startswith("models_") or not name.endswith(".json.gz"):
+        raise I10PublicError("promoted parent payload filename is not canonical")
+    stamp=name[len("models_"):-len(".json.gz")]
+    if not stamp:
+        raise I10PublicError("promoted parent payload stamp missing")
+    day=when.strftime("%Y/%m/%d")
+    receipt_path=f"data/inbox/public_collector/transfer_receipts/models/{day}/receipt_{stamp}.json"
+    manifest_path=(
+        f"data/weather_archive/manifests/year={when:%Y}/month={when:%m}/day={when:%d}/"
+        f"{parent_sha}.json"
+    )
+    return {
+        "parent_v2_payload_sha256":parent_sha,
+        "payload_path":payload_path,
+        "collector_generated_at_utc":generated,
+        "receipt_path":receipt_path,
+        "v5_manifest_path":manifest_path,
+    }
+
+
 def load_verified_private_parent(token):
-    latest_path="data/inbox/public_collector/transfer_receipts/models/latest.json"
-    latest_raw=_content_bytes(PRIVATE_REPO,latest_path,token)
-    latest=_strict_json(latest_raw)
-    if latest.get("method_version")!="private-transfer-readback-v2" or latest.get("readback_verified") is not True:
-        raise I10PublicError("latest v2 model transfer is not verified")
-    stamp=latest.get("stamp")
-    generated=latest.get("source_generated_at_utc")
-    if not isinstance(stamp,str) or not isinstance(generated,str):
-        raise I10PublicError("latest v2 receipt lacks stamp/generated time")
+    snapshot_raw=_content_bytes(PRIVATE_REPO,"data/raw/model_snapshots/latest.json",token)
+    snapshot=_strict_json(snapshot_raw)
+    promoted=_promoted_parent_locator(snapshot)
+    generated=promoted["collector_generated_at_utc"]
     when=datetime.fromisoformat(generated.replace("Z","+00:00")).astimezone(timezone.utc)
     age_h=(datetime.now(timezone.utc)-when).total_seconds()/3600
     if age_h < -0.01 or age_h > 48:
         raise I10PublicError(f"paired v2 parent outside LP03 live window: age_hours={age_h:.3f}")
-    day=when.strftime("%Y/%m/%d")
-    immutable=f"data/inbox/public_collector/transfer_receipts/models/{day}/receipt_{stamp}.json"
+
+    manifest_raw=_content_bytes(PRIVATE_REPO,promoted["v5_manifest_path"],token)
+    manifest=_strict_json(manifest_raw)
+    if (
+        manifest.get("schema_version")!="mardorf-weather-archive-v5"
+        or manifest.get("source_payload_sha256")!=promoted["parent_v2_payload_sha256"]
+        or not (manifest.get("files") or [])
+    ):
+        raise I10PublicError("promoted parent lacks exact valid Archive-v5 manifest")
+
+    immutable=promoted["receipt_path"]
     raw=_content_bytes(PRIVATE_REPO,immutable,token)
     receipt=_strict_json(raw)
-    if receipt != latest:
-        raise I10PublicError("latest receipt bytes differ from immutable paired receipt")
+    if (
+        receipt.get("method_version")!="private-transfer-readback-v2"
+        or receipt.get("readback_verified") is not True
+        or receipt.get("payload_source_sha256")!=promoted["parent_v2_payload_sha256"]
+        or receipt.get("payload_destination")!=promoted["payload_path"]
+        or receipt.get("source_generated_at_utc")!=generated
+    ):
+        raise I10PublicError("promoted parent receipt does not match canonical/v5 authority")
     transfer_result={
         "transfer_receipt_path":immutable,
         "transfer_receipt_sha256":hashlib.sha256(raw).hexdigest(),
@@ -159,7 +211,7 @@ def load_verified_private_parent(token):
         "source_generated_at_utc":receipt.get("source_generated_at_utc"),
     }
     binding=verify_parent_transfer_receipt(raw,transfer_result)
-    payload_path=receipt.get("payload_destination")
+    payload_path=promoted["payload_path"]
     packed=_content_bytes(PRIVATE_REPO,payload_path,token)
     proof=[x for x in receipt.get("readback",[]) if x.get("path")==payload_path]
     if len(proof)!=1 or proof[0].get("exact_bytes_match") is not True:
@@ -167,6 +219,8 @@ def load_verified_private_parent(token):
     if hashlib.sha256(packed).hexdigest()!=proof[0].get("sha256"):
         raise I10PublicError("paired v2 compressed payload SHA mismatch")
     parent_raw=gzip.decompress(packed)
+    if hashlib.sha256(parent_raw).hexdigest()!=promoted["parent_v2_payload_sha256"]:
+        raise I10PublicError("paired v2 decompressed payload SHA mismatch")
     parent=load_verified_parent_payload(parent_raw,binding)
     return {
         "binding":binding,
@@ -174,10 +228,10 @@ def load_verified_private_parent(token):
         "parent":parent,
         "receipt":receipt,
         "immutable_receipt_path":immutable,
+        "paired_v5_manifest_path":promoted["v5_manifest_path"],
         "paired_v2_compressed_bytes":len(packed),
         "age_hours":age_h,
     }
-
 
 def _baseline_urls(parent):
     urls={}
@@ -418,6 +472,7 @@ def run_live(token):
         "persistent_daily_budget":daily,
         "required_provider_acceptance":provider_acceptance,
         "paired_v2_receipt_path":parent["immutable_receipt_path"],
+        "paired_v5_manifest_path":parent["paired_v5_manifest_path"],
         "paired_v2_age_hours":parent["age_hours"],
         "matched_v2_network":baseline,
         "matched_v2_wall_seconds":baseline["wall_seconds"],
@@ -443,6 +498,7 @@ def run_live(token):
         "status":"published",
         "parent_v2_payload_sha256":parent["binding"]["parent_v2_payload_sha256"],
         "parent_v2_receipt_path":parent["immutable_receipt_path"],
+        "paired_v5_manifest_path":parent["paired_v5_manifest_path"],
         "parent_age_hours":parent["age_hours"],
         "matched_v2_network":baseline,
         "v3_budget":budget_after,

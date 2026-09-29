@@ -64,6 +64,34 @@ class I10PublicTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError,"cannot be enabled"):
                     live.run_live("token")
 
+    def test_promoted_parent_locator_uses_canonical_v5_authority(self):
+        snapshot={"canonical_ingest":{
+            "method_version":"public-collector-canonical-promotion-v1",
+            "collector_generated_at_utc":"2026-09-29T06:30:54.660693Z",
+            "source_payload_path":"data/inbox/public_collector/models/2026/09/29/models_20260929T063054660693Z.json.gz",
+            "source_payload_sha256":"a"*64,
+        }}
+        out=live._promoted_parent_locator(snapshot)
+        self.assertEqual(
+            out["receipt_path"],
+            "data/inbox/public_collector/transfer_receipts/models/2026/09/29/receipt_20260929T063054660693Z.json",
+        )
+        self.assertEqual(
+            out["v5_manifest_path"],
+            "data/weather_archive/manifests/year=2026/month=09/day=29/"+"a"*64+".json",
+        )
+        self.assertEqual(out["parent_v2_payload_sha256"],"a"*64)
+
+    def test_promoted_parent_locator_rejects_noncanonical_source(self):
+        snapshot={"canonical_ingest":{
+            "method_version":"public-collector-canonical-promotion-v1",
+            "collector_generated_at_utc":"2026-09-29T06:30:54Z",
+            "source_payload_path":"data/inbox/public_collector/models/latest.json.gz",
+            "source_payload_sha256":"a"*64,
+        }}
+        with self.assertRaisesRegex(RuntimeError,"filename"):
+            live._promoted_parent_locator(snapshot)
+
     def test_matched_baseline_urls_are_exact_parent_urls_and_deduplicated(self):
         parent={"models":{
             "ICON-D2":[{"source_urls":["https://example/a","https://example/a"]}],
