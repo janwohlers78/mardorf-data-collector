@@ -14,12 +14,17 @@ class IconParameterProbeTests(unittest.TestCase):
     @patch("icon_parameter_probe.subprocess.run")
     def test_message_metadata_keeps_units_and_interval_fields(self, run):
         outputs={
-            "shortName":"2t\n","paramId":"167\n","units":"K\n","typeOfLevel":"heightAboveGround\n",
+            "shortName":"2t\n","paramId":"167\n","discipline":"0\n",
+            "parameterCategory":"0\n","parameterNumber":"0\n",
+            "units":"K\n","typeOfLevel":"heightAboveGround\n",
             "level":"2\n","stepType":"instant\n","startStep":"12\n","endStep":"12\n",
             "stepUnits":"1\n","stepRange":"12\n",
         }
         run.side_effect=lambda args,**kw: subprocess.CompletedProcess(args,0,stdout=outputs[args[-2]],stderr="")
         rows=p.message_metadata("x.grib2")
+        self.assertEqual(rows[0]["discipline"],0)
+        self.assertEqual(rows[0]["parameterCategory"],0)
+        self.assertEqual(rows[0]["parameterNumber"],0)
         self.assertEqual(rows[0]["units"],"K")
         self.assertEqual(rows[0]["typeOfLevel"],"heightAboveGround")
         self.assertEqual(rows[0]["startStep"],12)
