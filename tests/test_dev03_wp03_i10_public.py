@@ -10,6 +10,7 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/"src"))
 
 import run_dev03_wp03_i10_public as live
+import push_private_v3
 import validate_dev03_wp03_i10_public as gate
 from dev03_v3_parent_binding import current_parent_pointer_allows, attempt_event_pointer_allows
 
@@ -120,6 +121,26 @@ class I10PublicTests(unittest.TestCase):
                 live._content_bytes("owner/repo","large.bin","token"),
                 b"large-bytes",
             )
+
+    def test_receipt_pointer_binds_visibility_attestation(self):
+        bundle={
+            "v3_attempt_id":"a"*64,
+            "v3_generated_at_utc":"2026-09-29T05:00:00Z",
+            "collection_transaction_id":"b"*64,
+            "parent_v2":{
+                "parent_v2_collector_generated_at_utc":"2026-09-29T04:00:00Z",
+                "parent_v2_payload_sha256":"c"*64,
+            },
+        }
+        pointer=push_private_v3._receipt_pointer(
+            bundle,"receipt.json","d"*64,
+            visibility_path="visibility.json",
+            visibility_sha="e"*64,
+            private_first_seen_at_utc="2026-09-29T05:01:00Z",
+        )
+        self.assertEqual(pointer["visibility_attestation_path"],"visibility.json")
+        self.assertEqual(pointer["visibility_attestation_sha256"],"e"*64)
+        self.assertEqual(pointer["private_first_seen_at_utc"],"2026-09-29T05:01:00Z")
 
     def test_runtime_gate_excludes_matched_baseline_measurement(self):
         baseline_wall=86.922
