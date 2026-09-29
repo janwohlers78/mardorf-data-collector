@@ -6,6 +6,12 @@ on:
     branches: [main]
     paths:
       - 'config/dev03_wp03_i10_runtime_controls_v1.json'
+      - 'src/run_dev03_wp03_i10_public.py'
+      - 'src/dev03_v3_convective_acquisition.py'
+      - 'src/push_private_v3.py'
+      - 'src/dev03_v3_parent_binding.py'
+      - 'src/dev03_v3_transfer_shell.py'
+      - '.github/workflows/dev03-v3-live-proof.yml'
 
 permissions:
   contents: read
