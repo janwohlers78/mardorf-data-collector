@@ -438,6 +438,7 @@ def isolated_v3_paths(v3_generated_at_utc: str, attempt_id: str) -> dict:
         "payload": f"{V3_ROOT}/models/{day}/models_{suffix}.json.gz",
         "integrity": f"{V3_ROOT}/integrity/models/{day}/integrity_{suffix}.json",
         "receipt": f"{V3_ROOT}/transfer_receipts/models/{day}/receipt_{suffix}.json",
+        "visibility": f"{V3_ROOT}/visibility/models/{day}/visibility_{suffix}.json",
         "current_parent_pointer": f"{V3_ROOT}/integrity/models/latest_success.json",
         "attempt_event_pointer": f"{V3_ROOT}/transfer_receipts/models/latest_attempt.json",
     }

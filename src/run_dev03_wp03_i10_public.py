@@ -30,7 +30,12 @@ from dev03_v3_parent_binding import (
     new_attempt_nonce,
     verify_parent_transfer_receipt,
 )
-from dev03_v3_convective_acquisition import acquire_convective_successor, load_plan
+from dev03_v3_convective_acquisition import (
+    acquire_convective_successor,
+    load_plan,
+    plan_parent_pinned_requests,
+)
+import push_private as private_tx
 import push_private_v3
 
 PRIVATE_REPO="janwohlers78/mardorf-kitevorhersage"
@@ -53,17 +58,49 @@ def _headers(token):
     }
 
 
-def _content_bytes(repo,path,token,ref="main"):
+def _content_bytes(repo,path,token,ref="main",*,required=True):
     r=requests.get(
         f"{API}/repos/{repo}/contents/{path}",
         headers=_headers(token),params={"ref":ref},timeout=30,
     )
+    if r.status_code==404 and not required:
+        return None
     if r.status_code!=200:
         raise I10PublicError(f"private content read failed {path}: HTTP {r.status_code}")
     data=r.json()
-    if data.get("encoding")!="base64" or not data.get("content"):
-        raise I10PublicError(f"private content encoding invalid: {path}")
-    return base64.b64decode(data["content"].replace("\n",""))
+    encoding=data.get("encoding")
+    if encoding=="base64" and data.get("content"):
+        return base64.b64decode(data["content"].replace("\n",""))
+    if encoding=="none":
+        sha=data.get("sha")
+        if not isinstance(sha,str) or not sha:
+            raise I10PublicError(f"large private content metadata lacks blob SHA: {path}")
+        blob=requests.get(
+            f"{API}/repos/{repo}/git/blobs/{sha}",
+            headers=_headers(token),timeout=30,
+        )
+        if blob.status_code!=200:
+            raise I10PublicError(f"private git-blob read failed {path}: HTTP {blob.status_code}")
+        body=blob.json()
+        if body.get("encoding")!="base64" or not body.get("content"):
+            raise I10PublicError(f"private git-blob encoding invalid: {path}")
+        return base64.b64decode(body["content"].replace("\n",""))
+    raise I10PublicError(f"private content encoding invalid: {path}")
+
+
+def _directory_items(repo,path,token,ref="main"):
+    r=requests.get(
+        f"{API}/repos/{repo}/contents/{path}",
+        headers=_headers(token),params={"ref":ref},timeout=30,
+    )
+    if r.status_code==404:
+        return []
+    if r.status_code!=200:
+        raise I10PublicError(f"private directory read failed {path}: HTTP {r.status_code}")
+    data=r.json()
+    if not isinstance(data,list):
+        raise I10PublicError(f"private directory path is not a directory: {path}")
+    return data
 
 
 def _strict_json(raw):
@@ -199,6 +236,130 @@ def measure_matched_v2_network(parent,workers=12):
     }
 
 
+def _budget_reservation_path(day, attempt):
+    return (
+        "data/inbox/public_collector_v3/resource_budget/"
+        f"{day.replace('-', '/')}/reservation_{attempt}.json"
+    )
+
+
+def _validate_budget_reservation(item, *, day, plan):
+    if not isinstance(item,dict) or item.get("method_version")!="dev03-v3-daily-budget-reservation-v1":
+        raise I10PublicError("invalid DEV03 daily budget reservation")
+    if item.get("utc_day")!=day:
+        raise I10PublicError("DEV03 daily budget reservation day mismatch")
+    for key in ("planned_requests","matched_v2_response_bytes","reserved_response_bytes"):
+        value=item.get(key)
+        if isinstance(value,bool) or not isinstance(value,int) or value<0:
+            raise I10PublicError(f"invalid DEV03 daily budget reservation {key}")
+    ratio=float(plan["resource_budget"]["deterministic_network_hard_incremental_ratio_max"])
+    if item["reserved_response_bytes"]!=int(item["matched_v2_response_bytes"]*ratio):
+        raise I10PublicError("DEV03 daily byte reservation formula drift")
+    return item
+
+
+def _read_daily_reservations(token, day, plan):
+    root="data/inbox/public_collector_v3/resource_budget/"+day.replace("-","/")
+    rows=[]
+    for meta in _directory_items(PRIVATE_REPO,root,token):
+        name=meta.get("name")
+        if not isinstance(name,str) or not name.startswith("reservation_") or not name.endswith(".json"):
+            continue
+        raw=_content_bytes(PRIVATE_REPO,f"{root}/{name}",token)
+        rows.append(_validate_budget_reservation(_strict_json(raw),day=day,plan=plan))
+    return rows
+
+
+def reserve_daily_budget(token, *, day, attempt, generated, planned_requests, matched_v2_response_bytes, attempt_kind, plan):
+    if attempt_kind not in {"initial","retry"}:
+        raise I10PublicError("invalid budget reservation attempt_kind")
+    ratio=float(plan["resource_budget"]["deterministic_network_hard_incremental_ratio_max"])
+    reservation={
+        "schema_version":1,
+        "method_version":"dev03-v3-daily-budget-reservation-v1",
+        "utc_day":day,
+        "v3_attempt_id":attempt,
+        "v3_generated_at_utc":generated,
+        "attempt_kind":attempt_kind,
+        "planned_requests":int(planned_requests),
+        "matched_v2_response_bytes":int(matched_v2_response_bytes),
+        "reserved_response_bytes":int(matched_v2_response_bytes*ratio),
+        "operational_authority":"v16-c3-v9",
+    }
+    path=_budget_reservation_path(day,attempt)
+    raw=(json.dumps(reservation,sort_keys=True,separators=(",",":"),allow_nan=False)+"\n").encode()
+    h=private_tx.hdr(token)
+    private_tx.atomic_commit(
+        PRIVATE_REPO,
+        [{"path":path,"content":raw,"immutable":True}],
+        f"dev03 i10: reserve daily provider budget {attempt}",
+        h,
+    )
+    rows=_read_daily_reservations(token,day,plan)
+    by_attempt={x["v3_attempt_id"]:x for x in rows}
+    if attempt not in by_attempt:
+        raise I10PublicError("published daily budget reservation is not visible")
+    request_total=sum(x["planned_requests"] for x in rows)
+    baseline_total=sum(x["matched_v2_response_bytes"] for x in rows)
+    byte_reserved_total=sum(x["reserved_response_bytes"] for x in rows)
+    request_max=int(plan["resource_budget"]["daily_incremental_request_hard_max"])
+    byte_max=int(baseline_total*ratio)
+    if request_total>request_max:
+        raise I10PublicError(
+            f"persistent daily provider-request budget exhausted: reserved={request_total} max={request_max}"
+        )
+    if byte_reserved_total>byte_max:
+        raise I10PublicError(
+            f"persistent daily deterministic-network byte budget exhausted: reserved={byte_reserved_total} max={byte_max}"
+        )
+    current=by_attempt[attempt]
+    prior_requests=request_total-current["planned_requests"]
+    prior_bytes=byte_reserved_total-current["reserved_response_bytes"]
+    return {
+        "method_version":"dev03-v3-daily-budget-ledger-v1",
+        "reservation_path":path,
+        "utc_day":day,
+        "reservation_count":len(rows),
+        "requests_reserved_total":request_total,
+        "request_hard_max":request_max,
+        "matched_v2_response_bytes_total":baseline_total,
+        "response_bytes_reserved_total":byte_reserved_total,
+        "response_byte_hard_max":byte_max,
+        "prior_requests_reserved":prior_requests,
+        "prior_response_bytes_reserved":prior_bytes,
+        "retry_requests_reserved_total":sum(
+            x["planned_requests"] for x in rows if x.get("attempt_kind")=="retry"
+        ),
+    }
+
+
+def _required_provider_live_acceptance(bundle, jobs):
+    planned={}
+    for job in jobs:
+        planned[job["model"]]=planned.get(job["model"],0)+1
+    received={}
+    failures={}
+    for item in bundle.get("provider_evidence") or []:
+        model=item.get("model")
+        status=(item.get("availability") or {}).get("availability_status")
+        if status=="received":
+            received[model]=received.get(model,0)+1
+        else:
+            failures[model]=failures.get(model,0)+1
+    missing=[m for m,n in planned.items() if n>0 and received.get(m,0)==0]
+    if missing:
+        raise I10PublicError(
+            "LP03 required provider path has no received successor evidence: "
+            + ",".join(sorted(missing))
+        )
+    return {
+        "planned_by_model":planned,
+        "received_by_model":received,
+        "non_received_by_model":failures,
+        "all_planned_provider_paths_have_received_evidence":True,
+    }
+
+
 def run_live(token):
     enabled,controls=_controls()
     if not enabled:
@@ -220,14 +381,28 @@ def run_live(token):
         v3_generated_at_utc=generated,
         attempt_nonce=new_attempt_nonce(),
     )
+    jobs,_=plan_parent_pinned_requests(
+        parent["parent_raw"],parent["binding"],plan=plan,registry=registry
+    )
     baseline=measure_matched_v2_network(parent["parent"])
     successor_started=time.monotonic()
+    day=datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    daily=reserve_daily_budget(
+        token,
+        day=day,
+        attempt=shell["v3_attempt_id"],
+        generated=generated,
+        planned_requests=len(jobs),
+        matched_v2_response_bytes=baseline["response_bytes"],
+        attempt_kind="initial",
+        plan=plan,
+    )
     budget={
-        "utc_day":datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-        "requests_used":0,
-        "response_bytes_used":0,
-        "retry_requests_used":0,
-        "matched_v2_response_bytes":baseline["response_bytes"],
+        "utc_day":day,
+        "requests_used":daily["prior_requests_reserved"],
+        "response_bytes_used":daily["prior_response_bytes_reserved"],
+        "retry_requests_used":daily["retry_requests_reserved_total"],
+        "matched_v2_response_bytes":daily["matched_v2_response_bytes_total"],
     }
     bundle,budget_after=acquire_convective_successor(
         parent_payload_bytes=parent["parent_raw"],
@@ -237,8 +412,11 @@ def run_live(token):
         attempt_kind="initial",
         plan=plan,
     )
+    provider_acceptance=_required_provider_live_acceptance(bundle,jobs)
     bundle["i10_live_proof"]={
         "method_version":METHOD_VERSION,
+        "persistent_daily_budget":daily,
+        "required_provider_acceptance":provider_acceptance,
         "paired_v2_receipt_path":parent["immutable_receipt_path"],
         "paired_v2_age_hours":parent["age_hours"],
         "matched_v2_network":baseline,
@@ -268,6 +446,8 @@ def run_live(token):
         "parent_age_hours":parent["age_hours"],
         "matched_v2_network":baseline,
         "v3_budget":budget_after,
+        "persistent_daily_budget":daily,
+        "required_provider_acceptance":provider_acceptance,
         "v3_transfer":result,
         "matched_v2_wall_seconds":baseline["wall_seconds"],
         "public_incremental_wall_seconds":round(successor_elapsed,3),

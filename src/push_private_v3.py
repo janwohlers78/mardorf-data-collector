@@ -23,6 +23,7 @@ from dev03_v3_transfer_shell import canonical_payload_bytes, build_transfer_plan
 
 METHOD_VERSION="dev03-i10-v3-private-publisher-v1"
 RECEIPT_METHOD="private-transfer-readback-v2"
+VISIBILITY_METHOD="dev03-v3-receipt-visibility-attestation-v1"
 PRIVATE_REPO="janwohlers78/mardorf-kitevorhersage"
 V3_PREFIX="data/inbox/public_collector_v3/"
 
@@ -47,7 +48,10 @@ def _current_json(repo,path,h,ref=None):
     return tx.decoded_json_content(tx.content_meta(repo,path,h,ref=ref))
 
 
-def _receipt_pointer(bundle,receipt_path,receipt_sha):
+def _receipt_pointer(
+    bundle,receipt_path,receipt_sha,
+    *,visibility_path,visibility_sha,private_first_seen_at_utc
+):
     parent=bundle["parent_v2"]
     return {
         "schema_version":1,
@@ -59,6 +63,9 @@ def _receipt_pointer(bundle,receipt_path,receipt_sha):
         "collection_transaction_id":bundle["collection_transaction_id"],
         "transfer_receipt_path":receipt_path,
         "transfer_receipt_sha256":receipt_sha,
+        "visibility_attestation_path":visibility_path,
+        "visibility_attestation_sha256":visibility_sha,
+        "private_first_seen_at_utc":private_first_seen_at_utc,
         "operational_authority":"v16-c3-v9",
     }
 
@@ -115,10 +122,29 @@ def publish_v3(*,bundle,private_token,paired_v2_compressed_bytes,repo=PRIVATE_RE
             raise V3PublishError("idempotent v3 data exists without immutable receipt")
         if existing.get("v3_payload_sha256")!=_sha(payload_raw):
             raise V3PublishError("existing v3 receipt conflicts with payload")
+        visibility=_current_json(repo,paths["visibility"],h)
+        if not isinstance(visibility,dict):
+            raise V3PublishError(
+                "idempotent v3 data/receipt exists without receipt visibility attestation"
+            )
+        receipt_raw_existing=tx.decoded_bytes(tx.content_meta(repo,paths["receipt"],h))
+        visibility_raw_existing=tx.decoded_bytes(tx.content_meta(repo,paths["visibility"],h))
+        if not receipt_raw_existing or not visibility_raw_existing:
+            raise V3PublishError("idempotent v3 receipt/visibility bytes unavailable")
+        receipt_sha_existing=_sha(receipt_raw_existing)
+        if (
+            visibility.get("method_version")!=VISIBILITY_METHOD
+            or visibility.get("transfer_receipt_sha256")!=receipt_sha_existing
+            or visibility.get("v3_attempt_id")!=bundle["v3_attempt_id"]
+        ):
+            raise V3PublishError("existing v3 visibility attestation conflicts with receipt")
         return {
             "status":"already_published",
             "receipt_path":paths["receipt"],
-            "receipt_sha256":_sha(tx.decoded_bytes(tx.content_meta(repo,paths["receipt"],h))),
+            "receipt_sha256":receipt_sha_existing,
+            "visibility_attestation_path":paths["visibility"],
+            "visibility_attestation_sha256":_sha(visibility_raw_existing),
+            "private_first_seen_at_utc":visibility.get("receipt_visible_at_utc"),
             "v3_attempt_id":bundle["v3_attempt_id"],
             "data_commit_sha":existing.get("verified_data_commit_sha"),
             "network_requests_performed":bundle.get("network_requests_performed",0),
@@ -140,19 +166,58 @@ def publish_v3(*,bundle,private_token,paired_v2_compressed_bytes,repo=PRIVATE_RE
         "verified_data_commit_sha":data["commit_sha"],
         "payload_destination":paths["payload"],
         "integrity_destination":paths["integrity"],
+        "visibility_attestation_path":paths["visibility"],
         "readback":data.get("readback") or [],
         "transfer_channel":"dev03-v3-shadow",
         "operational_authority":"v16-c3-v9",
     }
     receipt_raw=_json_bytes(receipt)
     receipt_sha=_sha(receipt_raw)
-    pointer=_receipt_pointer(bundle,paths["receipt"],receipt_sha)
+
+    # Phase 2 publishes only the immutable receipt.  Pointers must not make the
+    # attempt promotable until phase 3 has attested that this exact receipt was
+    # actually visible/read back in the private repository.
+    receipt_publication=tx.atomic_commit(
+        repo,
+        [{"path":paths["receipt"],"content":receipt_raw,"immutable":True}],
+        f"dev03 i10: record verified v3 transfer {bundle['v3_attempt_id']}",
+        h,
+    )
+    if not receipt_publication.get("readback_verified"):
+        raise V3PublishError("v3 receipt publication readback failed")
+    receipt_commit_sha=receipt_publication.get("commit_sha")
+    if not isinstance(receipt_commit_sha,str) or not receipt_commit_sha:
+        raise V3PublishError("v3 receipt publication commit identity missing")
+    private_first_seen=datetime.now(timezone.utc).isoformat()
+    visibility={
+        "schema_version":1,
+        "method_version":VISIBILITY_METHOD,
+        "v3_attempt_id":bundle["v3_attempt_id"],
+        "v3_payload_sha256":_sha(payload_raw),
+        "parent_v2_payload_sha256":bundle["parent_v2"]["parent_v2_payload_sha256"],
+        "collection_transaction_id":bundle["collection_transaction_id"],
+        "transfer_receipt_path":paths["receipt"],
+        "transfer_receipt_sha256":receipt_sha,
+        "receipt_commit_sha":receipt_commit_sha,
+        "receipt_validated_main_sha":receipt_publication.get("validated_main_sha"),
+        "receipt_visible_at_utc":private_first_seen,
+        "attestation_created_at_utc":private_first_seen,
+        "operational_authority":"v16-c3-v9",
+    }
+    visibility_raw=_json_bytes(visibility)
+    visibility_sha=_sha(visibility_raw)
+    pointer=_receipt_pointer(
+        bundle,paths["receipt"],receipt_sha,
+        visibility_path=paths["visibility"],
+        visibility_sha=visibility_sha,
+        private_first_seen_at_utc=private_first_seen,
+    )
 
     current_parent=_current_json(repo,paths["current_parent_pointer"],h)
     latest_attempt=_current_json(repo,paths["attempt_event_pointer"],h)
-    receipt_files=[{"path":paths["receipt"],"content":receipt_raw,"immutable":True}]
+    visibility_files=[{"path":paths["visibility"],"content":visibility_raw,"immutable":True}]
     if current_parent_pointer_allows(current_parent,pointer):
-        receipt_files.append({
+        visibility_files.append({
             "path":paths["current_parent_pointer"],
             "content":_canonical_pointer_bytes(pointer),
             "immutable":False,
@@ -163,7 +228,7 @@ def publish_v3(*,bundle,private_token,paired_v2_compressed_bytes,repo=PRIVATE_RE
             },
         })
     if attempt_event_pointer_allows(latest_attempt,pointer):
-        receipt_files.append({
+        visibility_files.append({
             "path":paths["attempt_event_pointer"],
             "content":_canonical_pointer_bytes(pointer),
             "immutable":False,
@@ -173,9 +238,12 @@ def publish_v3(*,bundle,private_token,paired_v2_compressed_bytes,repo=PRIVATE_RE
                 "incoming_time":pointer["v3_generated_at_utc"],
             },
         })
-    final=tx.atomic_commit(repo,receipt_files,f"dev03 i10: record verified v3 transfer {bundle['v3_attempt_id']}",h)
+    final=tx.atomic_commit(
+        repo,visibility_files,
+        f"dev03 i10: attest v3 receipt visibility {bundle['v3_attempt_id']}",h
+    )
     if not final.get("readback_verified"):
-        raise V3PublishError("v3 receipt publication readback failed")
+        raise V3PublishError("v3 receipt visibility publication readback failed")
     return {
         "schema_version":1,
         "method_version":METHOD_VERSION,
@@ -185,7 +253,11 @@ def publish_v3(*,bundle,private_token,paired_v2_compressed_bytes,repo=PRIVATE_RE
         "receipt_path":paths["receipt"],
         "receipt_sha256":receipt_sha,
         "verified_data_commit_sha":data["commit_sha"],
-        "receipt_commit_sha":final.get("commit_sha"),
+        "receipt_commit_sha":receipt_commit_sha,
+        "visibility_attestation_path":paths["visibility"],
+        "visibility_attestation_sha256":visibility_sha,
+        "private_first_seen_at_utc":private_first_seen,
+        "visibility_commit_sha":final.get("commit_sha"),
         "current_parent_pointer_advanced":paths["current_parent_pointer"] in (final.get("paths") or []),
         "attempt_event_pointer_advanced":paths["attempt_event_pointer"] in (final.get("paths") or []),
         "compressed_payload_bytes":len(packed),

@@ -38,6 +38,11 @@ from grib_identity import assert_grib_valid_time
 ROOT = Path(__file__).resolve().parents[1]
 PLAN_PATH = ROOT / "config" / "weather_acquisition_plan_v2.json"
 SEMANTIC_ID = "convective_precipitation"
+DWD_RAIN_CON_GRIB2_IDENTITY = {
+    "discipline": 0,
+    "parameterCategory": 1,
+    "parameterNumber": 76,
+}
 
 
 class Dev03I04Error(ValueError):
@@ -249,6 +254,10 @@ def plan_parent_pinned_requests(
             "parameter_native": provider["parameter_native"],
             "field_provider_product": provider["field_provider_product"],
         }
+        if model in {"ICON-D2", "ICON-EU"}:
+            job["expected_grib2_identity"] = _git_safe_copy(
+                DWD_RAIN_CON_GRIB2_IDENTITY
+            )
         job["source_url"] = _request_url(job, provider)
         if model == "GFS" and ("CPRAT" in job["source_url"] or "var_CPRAT" in job["source_url"]):
             raise Dev03I04Error("GFS CPRAT rate alias is forbidden for convective precipitation")
@@ -265,10 +274,35 @@ def _same_point(expected: dict, observed_lat, observed_lon) -> bool:
 
 def _native_metadata(meta: dict) -> dict:
     keys = (
-        "shortName", "name", "paramId", "units", "typeOfLevel", "level",
+        "shortName", "name", "paramId", "discipline", "parameterCategory",
+        "parameterNumber", "units", "typeOfLevel", "level",
         "stepType", "startStep", "endStep", "stepUnits", "stepRange",
     )
     return {k: meta[k] for k in keys if k in meta}
+
+
+def _native_int(value):
+    if isinstance(value, bool):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _dwd_convective_identity_matches(meta: dict, job: dict) -> bool:
+    """Match DWD RAIN_CON by provider-native GRIB2 numeric identity.
+
+    ecCodes shortName is retained as metadata but is not authoritative here:
+    different definition-table installations can render the same DWD field with
+    a different/unknown shortName. The exact pinned rain_con URL plus the GRIB2
+    discipline/category/number triple is the stable provider-native identity.
+    """
+    expected = job.get("expected_grib2_identity") or {}
+    required = ("discipline", "parameterCategory", "parameterNumber")
+    if any(_native_int(expected.get(k)) is None for k in required):
+        raise Dev03I04Error("DWD convective job lacks exact expected GRIB2 identity")
+    return all(_native_int(meta.get(k)) == _native_int(expected[k]) for k in required)
 
 
 def _received_evidence(job: dict, raw: bytes, observed_at_utc: str) -> list[dict]:
@@ -318,7 +352,7 @@ def _received_evidence(job: dict, raw: bytes, observed_at_utc: str) -> list[dict
     for m, p in zip(meta, nearest):
         native = str(m.get("shortName") or p.get("shortName") or "")
         if job["model"] in {"ICON-D2", "ICON-EU"}:
-            matches = native.lower() == "rain_con"
+            matches = _dwd_convective_identity_matches(m, job)
         else:
             label = str(m.get("name") or "").lower()
             matches = native.lower() == "acpcp" or (

@@ -16,6 +16,7 @@ from dev03_v3_convective_acquisition import (
     acquire_convective_successor,
     load_plan,
     plan_parent_pinned_requests,
+    _dwd_convective_identity_matches,
 )
 
 
@@ -129,6 +130,23 @@ class Dev03Wp03I04Tests(unittest.TestCase):
                 self.assertEqual(len(jobs), 1)
                 self.assertIn(token, jobs[0]["source_url"])
                 self.assertIn("/rain_con/", jobs[0]["source_url"])
+
+    def test_dwd_convective_identity_uses_grib2_numeric_identity_not_shortname(self):
+        raw, binding, _ = self.fixture(model="ICON-D2", product="icon-d2_regular-lat-lon")
+        jobs, _ = plan_parent_pinned_requests(raw, binding, plan=self.plan, registry=self.registry)
+        job=jobs[0]
+        self.assertTrue(_dwd_convective_identity_matches({
+            "shortName":"unknown",
+            "discipline":"0",
+            "parameterCategory":"1",
+            "parameterNumber":"76",
+        },job))
+        self.assertFalse(_dwd_convective_identity_matches({
+            "shortName":"rain_con",
+            "discipline":"0",
+            "parameterCategory":"1",
+            "parameterNumber":"77",
+        },job))
 
     def test_frozen_dwd_parent_without_provider_product_uses_exact_source_evidence(self):
         for model, token in (

@@ -1,14 +1,16 @@
+import base64
 import json
 import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/"src"))
 
 import run_dev03_wp03_i10_public as live
+import push_private_v3
 import validate_dev03_wp03_i10_public as gate
 from dev03_v3_parent_binding import current_parent_pointer_allows, attempt_event_pointer_allows
 
@@ -73,6 +75,72 @@ class I10PublicTests(unittest.TestCase):
         urls=live._baseline_urls(parent)
         self.assertEqual(set(urls),{"https://example/a","https://example/b","https://example/c","https://example/d"})
         self.assertNotIn("https://example/forbidden",urls)
+
+    def test_required_provider_acceptance_rejects_all_failed_path(self):
+        jobs=[
+            {"model":"ICON-D2"},{"model":"ICON-D2"},{"model":"ICON-EU"},{"model":"GFS"}
+        ]
+        bundle={"provider_evidence":[
+            {"model":"ICON-D2","availability":{"availability_status":"fetch_error"}},
+            {"model":"ICON-D2","availability":{"availability_status":"fetch_error"}},
+            {"model":"ICON-EU","availability":{"availability_status":"received"}},
+            {"model":"GFS","availability":{"availability_status":"received"}},
+        ]}
+        with self.assertRaisesRegex(RuntimeError,"ICON-D2"):
+            live._required_provider_live_acceptance(bundle,jobs)
+
+    def test_budget_reservation_validation_is_fail_closed(self):
+        plan={"resource_budget":{
+            "deterministic_network_hard_incremental_ratio_max":0.25,
+            "daily_incremental_request_hard_max":500,
+        }}
+        row={
+            "method_version":"dev03-v3-daily-budget-reservation-v1",
+            "utc_day":"2026-09-29",
+            "v3_attempt_id":"a"*64,
+            "planned_requests":83,
+            "matched_v2_response_bytes":1000,
+            "reserved_response_bytes":250,
+        }
+        self.assertEqual(
+            live._validate_budget_reservation(row,day="2026-09-29",plan=plan),
+            row,
+        )
+        bad=dict(row);bad["reserved_response_bytes"]=249
+        with self.assertRaisesRegex(RuntimeError,"formula drift"):
+            live._validate_budget_reservation(bad,day="2026-09-29",plan=plan)
+
+    def test_large_private_content_uses_git_blob_fallback(self):
+        content=base64.b64encode(b"large-bytes").decode()
+        first=MagicMock(status_code=200)
+        first.json.return_value={"encoding":"none","sha":"abc123"}
+        second=MagicMock(status_code=200)
+        second.json.return_value={"encoding":"base64","content":content}
+        with patch.object(live.requests,"get",side_effect=[first,second]):
+            self.assertEqual(
+                live._content_bytes("owner/repo","large.bin","token"),
+                b"large-bytes",
+            )
+
+    def test_receipt_pointer_binds_visibility_attestation(self):
+        bundle={
+            "v3_attempt_id":"a"*64,
+            "v3_generated_at_utc":"2026-09-29T05:00:00Z",
+            "collection_transaction_id":"b"*64,
+            "parent_v2":{
+                "parent_v2_collector_generated_at_utc":"2026-09-29T04:00:00Z",
+                "parent_v2_payload_sha256":"c"*64,
+            },
+        }
+        pointer=push_private_v3._receipt_pointer(
+            bundle,"receipt.json","d"*64,
+            visibility_path="visibility.json",
+            visibility_sha="e"*64,
+            private_first_seen_at_utc="2026-09-29T05:01:00Z",
+        )
+        self.assertEqual(pointer["visibility_attestation_path"],"visibility.json")
+        self.assertEqual(pointer["visibility_attestation_sha256"],"e"*64)
+        self.assertEqual(pointer["private_first_seen_at_utc"],"2026-09-29T05:01:00Z")
 
     def test_runtime_gate_excludes_matched_baseline_measurement(self):
         baseline_wall=86.922
