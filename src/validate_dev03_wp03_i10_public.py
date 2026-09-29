@@ -22,7 +22,7 @@ def validate(root=ROOT):
     publisher=(root/"src/push_private_v3.py").read_text()
 
     check(cfg.get("artifact_version")=="dev03-wp03-i10-live-proof-v1","I10 public contract drift")
-    check(cfg.get("trigger_policy")=="workflow_dispatch_only_no_new_cron","I10 public contract trigger label drift")
+    check(cfg.get("trigger_policy")=="workflow_dispatch_or_versioned_runtime_control_push_no_cron","I10 public contract trigger label drift")
     check("schedule:" not in workflow,"I10 live workflow must not create a cron")
     check("workflow_dispatch:" in workflow,"I10 live workflow must retain manual trigger")
     check("config/dev03_wp03_i10_runtime_controls_v1.json" in workflow,"runtime-control push trigger missing")
