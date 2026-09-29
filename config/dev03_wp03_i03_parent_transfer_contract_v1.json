@@ -80,5 +80,16 @@
     "frozen_dwd_predecessor_fallback": "When provider_product is absent only on frozen ICON-D2/ICON-EU rows, every immutable source_urls entry must exactly prove the same DWD regular-lat-lon model, run and lead.",
     "registry_inference_allowed": false,
     "ambiguous_or_missing_source_evidence": "fail_closed"
+  },
+  "parent_verified_data_commit_id_rule": {
+    "semantics": "Git object ID of the exact readback-verified unpublished data commit from private-transfer-readback-v2; it is not a payload SHA-256 digest.",
+    "encoding": "lowercase hexadecimal",
+    "accepted_hex_lengths": [
+      40,
+      64
+    ],
+    "sha1_repository_compatibility": true,
+    "sha256_repository_forward_compatibility": true,
+    "other_lengths": "fail_closed"
   }
 }
