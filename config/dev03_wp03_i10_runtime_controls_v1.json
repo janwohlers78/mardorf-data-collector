@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
   "artifact_version": "dev03-wp03-i10-runtime-controls-v1",
-  "status": "paused_after_icon_d2_eps_parent_product_binding_failure",
+  "status": "public_live_reenabled_after_eps_exact_product_fix",
   "date": "2026-09-29",
   "work_package": "DEV03-WP03",
   "implementation_step": "WP03-I10",
   "controls": {
-    "public_v3_generation_enabled": false,
-    "public_v3_transfer_enabled": false,
+    "public_v3_generation_enabled": true,
+    "public_v3_transfer_enabled": true,
     "private_v3_promotion_enabled": false,
     "archive_v6_write_enabled": false
   },
@@ -37,10 +37,10 @@
     "operational_authority_unchanged": "v16-c3-v9"
   },
   "reenable_evidence": {
-    "failed_live_run_id": 36510241556,
-    "i03_fix_pr": 73,
-    "i03_fix_validation_run_id": 36510787210,
-    "i03_fix_merge_commit": "0041f03b4fb267052052146655f24f01a26e18c9",
+    "failed_live_run_id": 36510878974,
+    "eps_exact_product_fix_pr": 75,
+    "eps_exact_product_fix_merge_commit": "f3c96de6780e5de5fd32cce67c97f6ce39178e02",
+    "eps_exact_product_validation_run_id": 36511160898,
     "provider_requests_in_failed_attempt": 0,
     "operational_authority_unchanged": "v16-c3-v9"
   }
