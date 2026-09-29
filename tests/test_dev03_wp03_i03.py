@@ -155,6 +155,39 @@ class Dev03Wp03I03Tests(unittest.TestCase):
         with self.assertRaises(Dev03ParentBindingError):
             build_parent_cycle_inventory({"models":{"ICON-D2":[bad]}},{"providers":{}})
 
+    def test_missing_eps_provider_product_requires_exact_parent_source_evidence(self):
+        row = {
+            "model":"ICON-D2-EPS",
+            "run_time_utc":"2026-09-28T21:00:00+00:00",
+            "valid_time_utc":"2026-09-29T00:00:00+00:00",
+            "forecast_lead_hours":3,
+            "source_url":"https://ensemble-api.open-meteo.com/v1/ensemble?latitude=52.4942&longitude=9.3418&models=dwd_icon_d2_eps",
+            "source_run_identity":{
+                "verification_status":"verified_stable_metadata_dwd_cycle_and_spatial_provenance",
+                "model_id":"dwd_icon_d2_eps",
+                "run_time_utc":"2026-09-28T21:00:00+00:00",
+                "dwd_cycle_confirmation_url":"https://opendata.dwd.de/weather/nwp/icon-d2-eps/grib/21/u_10m/icon-d2-eps_germany_icosahedral_single-level_2026092821_048_2d_u_10m.grib2.bz2",
+                "response_run_binding":{"response_sha256":h("d")},
+            },
+            "authoritative_member_source_response_sha256":h("d"),
+            "forecast_coordinate_or_grid_point":{"latitude":52.5,"longitude":9.34},
+        }
+        inventory, _ = build_parent_cycle_inventory({"models":{"ICON-D2-EPS":[row]}},{"providers":{}})
+        self.assertEqual(inventory[0]["provider_product"],"open_meteo:dwd_icon_d2_eps")
+
+        for mutate in ("model_query","response_sha","run","dwd_cycle"):
+            bad=json.loads(json.dumps(row))
+            if mutate=="model_query":
+                bad["source_url"]=bad["source_url"].replace("dwd_icon_d2_eps","dwd_icon_eu")
+            elif mutate=="response_sha":
+                bad["authoritative_member_source_response_sha256"]=h("e")
+            elif mutate=="run":
+                bad["source_run_identity"]["run_time_utc"]="2026-09-28T18:00:00+00:00"
+            else:
+                bad["source_run_identity"]["dwd_cycle_confirmation_url"]=bad["source_run_identity"]["dwd_cycle_confirmation_url"].replace("2026092821","2026092818")
+            with self.assertRaises(Dev03ParentBindingError):
+                build_parent_cycle_inventory({"models":{"ICON-D2-EPS":[bad]}},{"providers":{}})
+
     def test_missing_provider_product_never_inferred_from_registry(self):
         row = {
             "model":"ICON-D2","run_time_utc":"2026-09-28T09:00:00+00:00",
