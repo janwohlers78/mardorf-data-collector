@@ -8,7 +8,7 @@
   "operational_authority": "v16-c3-v9",
   "frozen_v2_workflow": ".github/workflows/collect-models.yml",
   "v3_live_workflow": ".github/workflows/dev03-v3-live-proof.yml",
-  "trigger_policy": "workflow_dispatch_only_no_new_cron",
+  "trigger_policy": "workflow_dispatch_or_versioned_runtime_control_push_no_cron",
   "parent_source": "latest readback-verified private v2 models transfer, max 48h old",
   "successor_semantic": "convective_precipitation",
   "allowed_provider_requests": [
