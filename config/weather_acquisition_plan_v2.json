@@ -38,24 +38,14 @@
         "parameter_native": "rain_con",
         "field_provider_product": "DWD ICON-D2 Open Data raw GRIB2",
         "provider_model": "icon-d2",
-        "url_template": "https://opendata.dwd.de/weather/nwp/icon-d2/grib/{cycle_hour}/rain_con/icon-d2_germany_regular-lat-lon_single-level_{cycle_yyyymmddhh}_{lead_3}_2d_rain_con.grib2.bz2",
-        "expected_grib2_identity": {
-          "discipline": 0,
-          "parameterCategory": 1,
-          "parameterNumber": 76
-        }
+        "url_template": "https://opendata.dwd.de/weather/nwp/icon-d2/grib/{cycle_hour}/rain_con/icon-d2_germany_regular-lat-lon_single-level_{cycle_yyyymmddhh}_{lead_3}_2d_rain_con.grib2.bz2"
       },
       "ICON-EU": {
         "parent_provider_product": "icon-eu_regular-lat-lon",
         "parameter_native": "rain_con",
         "field_provider_product": "DWD ICON-EU Open Data raw GRIB2",
         "provider_model": "icon-eu",
-        "url_template": "https://opendata.dwd.de/weather/nwp/icon-eu/grib/{cycle_hour}/rain_con/icon-eu_europe_regular-lat-lon_single-level_{cycle_yyyymmddhh}_{lead_3}_RAIN_CON.grib2.bz2",
-        "expected_grib2_identity": {
-          "discipline": 0,
-          "parameterCategory": 1,
-          "parameterNumber": 76
-        }
+        "url_template": "https://opendata.dwd.de/weather/nwp/icon-eu/grib/{cycle_hour}/rain_con/icon-eu_europe_regular-lat-lon_single-level_{cycle_yyyymmddhh}_{lead_3}_RAIN_CON.grib2.bz2"
       },
       "GFS": {
         "parent_provider_product": "gfs_0p25",
@@ -109,9 +99,6 @@
       "parameter_native",
       "field_provider_product",
       "shortName",
-      "parameterNumber",
-      "parameterCategory",
-      "discipline",
       "paramId",
       "units",
       "typeOfLevel",
