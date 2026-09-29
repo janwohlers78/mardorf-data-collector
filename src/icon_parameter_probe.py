@@ -49,7 +49,8 @@ CANONICAL = {
     "cin_ml": "cin",
 }
 META_KEYS = (
-    "shortName", "paramId", "units", "typeOfLevel", "level", "stepType",
+    "shortName", "paramId", "discipline", "parameterCategory", "parameterNumber",
+    "units", "typeOfLevel", "level", "stepType",
     "startStep", "endStep", "stepUnits", "stepRange",
 )
 
@@ -75,7 +76,7 @@ def message_metadata(path):
     out = []
     for i in range(n):
         row = {key: columns[key][i] for key in META_KEYS}
-        for key in ("paramId", "level", "startStep", "endStep"):
+        for key in ("paramId", "discipline", "parameterCategory", "parameterNumber", "level", "startStep", "endStep"):
             try:
                 row[key] = int(row[key])
             except (TypeError, ValueError):
