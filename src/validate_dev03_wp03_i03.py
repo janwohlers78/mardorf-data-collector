@@ -27,6 +27,13 @@ def main():
     check(methods.get("pointer_ordering") == "dev03-v3-pointer-ordering-v2", "pointer method drift", problems)
     check(methods.get("transfer_readback") == "private-transfer-readback-v2", "readback method drift", problems)
     check(methods.get("parent_provider_product_evidence") == "parent-source-product-evidence-v1", "parent product evidence method drift", problems)
+    commit_rule = contract.get("parent_verified_data_commit_id_rule") or {}
+    check(commit_rule.get("encoding") == "lowercase hexadecimal", "verified commit encoding drift", problems)
+    check(commit_rule.get("accepted_hex_lengths") == [40, 64], "verified commit Git object ID lengths drift", problems)
+    check(commit_rule.get("other_lengths") == "fail_closed", "verified commit fail-closed length rule missing", problems)
+    source = (ROOT / "src" / "dev03_v3_parent_binding.py").read_text()
+    check("def _git_object_id" in source, "Git object ID validator missing", problems)
+    check("verified_commit = _git_object_id" in source, "verified data commit is not using Git object ID validator", problems)
     required = set(contract.get("parent_v2_binding_required_fields") or [])
     check(required == {
         "parent_v2_payload_sha256",
@@ -38,7 +45,6 @@ def main():
     pointers = contract.get("mutable_pointers") or {}
     check((pointers.get("current_parent") or {}).get("older_parent_may_replace") is False, "old-parent rollback protection missing", problems)
     check((pointers.get("attempt_event") or {}).get("path") == "data/inbox/public_collector_v3/transfer_receipts/models/latest_attempt.json", "attempt pointer path drift", problems)
-    source = (ROOT / "src" / "dev03_v3_parent_binding.py").read_text()
     transfer = (ROOT / "src" / "dev03_v3_transfer_shell.py").read_text()
     workflow = (ROOT / ".github" / "workflows" / "collect-models.yml").read_text()
     push = (ROOT / "src" / "push_private.py").read_text()

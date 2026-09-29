@@ -22,6 +22,10 @@ def h(ch):
     return ch * 64
 
 
+def git_id(ch, length=40):
+    return ch * length
+
+
 class Dev03Wp03I03Tests(unittest.TestCase):
     def parent_result_and_receipt(self):
         receipt = {
@@ -29,7 +33,7 @@ class Dev03Wp03I03Tests(unittest.TestCase):
             "method_version": "private-transfer-readback-v2",
             "kind": "models",
             "source_generated_at_utc": "2026-09-28T09:54:14.052852+00:00",
-            "verified_data_commit_sha": h("a"),
+            "verified_data_commit_sha": git_id("a"),
             "readback_verified": True,
             "payload_source_sha256": h("b"),
             "audit_input_payload_sha256": h("b"),
@@ -38,7 +42,7 @@ class Dev03Wp03I03Tests(unittest.TestCase):
         result = {
             "transfer_receipt_path": "data/inbox/public_collector/transfer_receipts/models/2026/09/28/receipt_x.json",
             "transfer_receipt_sha256": hashlib.sha256(raw).hexdigest(),
-            "verified_data_commit_sha": h("a"),
+            "verified_data_commit_sha": git_id("a"),
             "payload_source_sha256": h("b"),
             "source_generated_at_utc": "2026-09-28T09:54:14.052852+00:00",
         }
@@ -53,6 +57,31 @@ class Dev03Wp03I03Tests(unittest.TestCase):
         mutated[-2] = 32
         with self.assertRaises(Dev03ParentBindingError):
             verify_parent_transfer_receipt(bytes(mutated), result)
+
+    def test_verified_data_commit_accepts_git_sha1_and_sha256_object_ids(self):
+        result, raw = self.parent_result_and_receipt()
+        binding = verify_parent_transfer_receipt(raw, result)
+        self.assertEqual(binding["parent_v2_verified_data_commit_sha"], git_id("a",40))
+
+        receipt = json.loads(raw)
+        receipt["verified_data_commit_sha"] = git_id("c",64)
+        raw64 = (json.dumps(receipt, indent=2) + "\n").encode()
+        result64 = dict(result)
+        result64["verified_data_commit_sha"] = git_id("c",64)
+        result64["transfer_receipt_sha256"] = hashlib.sha256(raw64).hexdigest()
+        binding64 = verify_parent_transfer_receipt(raw64, result64)
+        self.assertEqual(binding64["parent_v2_verified_data_commit_sha"], git_id("c",64))
+
+    def test_verified_data_commit_rejects_non_git_object_id_lengths_and_nonhex(self):
+        for bad in ("a"*39, "a"*41, "g"*40):
+            result, raw = self.parent_result_and_receipt()
+            receipt = json.loads(raw)
+            receipt["verified_data_commit_sha"] = bad
+            mutated = (json.dumps(receipt, indent=2) + "\n").encode()
+            result["verified_data_commit_sha"] = bad
+            result["transfer_receipt_sha256"] = hashlib.sha256(mutated).hexdigest()
+            with self.assertRaises(Dev03ParentBindingError):
+                verify_parent_transfer_receipt(mutated, result)
 
     def test_parent_payload_bytes_are_exactly_bound_to_verified_sha(self):
         payload = {"models":{"ICON-D2":[]}}
