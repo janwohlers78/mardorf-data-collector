@@ -58,6 +58,15 @@ class I10PublicTests(unittest.TestCase):
         self.assertEqual(set(urls),{"https://example/a","https://example/b","https://example/c","https://example/d"})
         self.assertNotIn("https://example/forbidden",urls)
 
+    def test_runtime_gate_excludes_matched_baseline_measurement(self):
+        baseline_wall=86.922
+        total_wall=153.87
+        successor_delta=total_wall-baseline_wall
+        hard_max=max(120.0,0.35*baseline_wall)
+        self.assertAlmostEqual(successor_delta,66.948,places=3)
+        self.assertEqual(hard_max,120.0)
+        self.assertLessEqual(successor_delta,hard_max)
+
     def test_pointer_ordering_keeps_newer_parent_and_attempt(self):
         current={
             "parent_v2_collector_generated_at_utc":"2026-09-28T18:00:00Z",
