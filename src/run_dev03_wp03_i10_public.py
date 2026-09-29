@@ -35,7 +35,7 @@ import push_private_v3
 
 PRIVATE_REPO="janwohlers78/mardorf-kitevorhersage"
 API="https://api.github.com"
-CONTROL_PATH=Path("config/dev03_shadow_channels_v1.json")
+CONTROL_PATH=Path("config/dev03_wp03_i10_runtime_controls_v1.json")
 METHOD_VERSION="dev03-wp03-i10-public-live-runner-v1"
 ALLOWED_BASELINE_MODELS={"ICON-D2","ICON-EU","GFS"}
 
