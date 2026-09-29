@@ -155,6 +155,43 @@ class Dev03Wp03I03Tests(unittest.TestCase):
         with self.assertRaises(Dev03ParentBindingError):
             build_parent_cycle_inventory({"models":{"ICON-D2":[bad]}},{"providers":{}})
 
+    def test_missing_eps_provider_product_is_reconstructed_only_from_exact_hourly_source(self):
+        row = {
+            "model":"ICON-D2-EPS",
+            "run_time_utc":"2026-09-28T21:00:00+00:00",
+            "valid_time_utc":"2026-09-28T21:00:00+00:00",
+            "forecast_lead_hours":0,
+            "forecast_coordinate_or_grid_point":{"latitude":52.5,"longitude":9.34},
+        }
+        source = {
+            "model":"dwd_icon_d2_eps",
+            "authoritative_for_member_weather":True,
+            "run_time_utc":"2026-09-28T21:00:00+00:00",
+            "response_sha256":"a"*64,
+            "field_specs":{
+                "wind_speed_10m":{"field_provider_product":"open_meteo:dwd_icon_d2_eps"},
+                "cape":{"field_provider_product":"open_meteo:dwd_icon_d2_eps"},
+            },
+        }
+        parent={"models":{"ICON-D2-EPS":[row]},"ensemble_hourly_source":source}
+        inv,_=build_parent_cycle_inventory(parent,{"providers":{}})
+        self.assertEqual(inv[0]["provider_product"],"open_meteo:dwd_icon_d2_eps")
+
+        mixed=json.loads(json.dumps(parent))
+        mixed["ensemble_hourly_source"]["field_specs"]["cape"]["field_provider_product"]="other"
+        with self.assertRaises(Dev03ParentBindingError):
+            build_parent_cycle_inventory(mixed,{"providers":{}})
+
+        wrong_run=json.loads(json.dumps(parent))
+        wrong_run["ensemble_hourly_source"]["run_time_utc"]="2026-09-28T18:00:00+00:00"
+        with self.assertRaises(Dev03ParentBindingError):
+            build_parent_cycle_inventory(wrong_run,{"providers":{}})
+
+        missing=json.loads(json.dumps(parent))
+        missing.pop("ensemble_hourly_source")
+        with self.assertRaises(Dev03ParentBindingError):
+            build_parent_cycle_inventory(missing,{"providers":{}})
+
     def test_missing_provider_product_never_inferred_from_registry(self):
         row = {
             "model":"ICON-D2","run_time_utc":"2026-09-28T09:00:00+00:00",

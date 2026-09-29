@@ -231,7 +231,7 @@ def _grid_identity(row: dict) -> dict:
 
 
 def resolve_parent_provider_product(
-    row: dict, model: str, run_time_utc: str, lead_seconds: int
+    row: dict, model: str, run_time_utc: str, lead_seconds: int, parent_payload: dict | None = None
 ) -> str:
     """Resolve exact parent product without Registry inference.
 
@@ -243,6 +243,43 @@ def resolve_parent_provider_product(
     explicit = row.get("provider_product")
     if isinstance(explicit, str) and explicit:
         return explicit
+
+    if model == "ICON-D2-EPS":
+        source = parent_payload.get("ensemble_hourly_source") if isinstance(parent_payload, dict) else None
+        if not isinstance(source, dict):
+            raise Dev03ParentBindingError(
+                "ICON-D2-EPS parent occurrence lacks provider_product and exact ensemble_hourly_source evidence"
+            )
+        if source.get("model") != "dwd_icon_d2_eps" or source.get("authoritative_for_member_weather") is not True:
+            raise Dev03ParentBindingError("ICON-D2-EPS ensemble source is not authoritative exact product evidence")
+        try:
+            source_run = _utc(source.get("run_time_utc"), "ICON-D2-EPS ensemble source run_time_utc")
+        except Exception as exc:
+            raise Dev03ParentBindingError("ICON-D2-EPS ensemble source run identity is invalid") from exc
+        if source_run != run_time_utc:
+            raise Dev03ParentBindingError("ICON-D2-EPS ensemble source run does not match parent occurrence")
+        response_sha = source.get("response_sha256")
+        if not isinstance(response_sha, str) or not re.fullmatch(r"[0-9a-fA-F]{64}", response_sha):
+            raise Dev03ParentBindingError("ICON-D2-EPS ensemble source response SHA is missing or invalid")
+        specs = source.get("field_specs")
+        if not isinstance(specs, dict) or not specs:
+            raise Dev03ParentBindingError("ICON-D2-EPS ensemble source field_specs are missing")
+        products = {
+            item.get("field_provider_product")
+            for item in specs.values()
+            if isinstance(item, dict) and isinstance(item.get("field_provider_product"), str)
+            and item.get("field_provider_product")
+        }
+        if len(products) != 1 or len(products) != len({
+            item.get("field_provider_product")
+            for item in specs.values()
+            if isinstance(item, dict)
+        }):
+            raise Dev03ParentBindingError("ICON-D2-EPS ensemble source product evidence is incomplete or contradictory")
+        product = next(iter(products))
+        if product != "open_meteo:dwd_icon_d2_eps":
+            raise Dev03ParentBindingError("ICON-D2-EPS ensemble source product is not the verified predecessor product")
+        return product
 
     spec = _DWD_PARENT_PRODUCT_SPECS.get(model)
     if spec is None:
@@ -306,7 +343,7 @@ def build_parent_cycle_inventory(parent_payload: dict, registry: dict) -> tuple[
                     f"invalid parent lead identity for {model}: {exc}"
                 ) from exc
             product = resolve_parent_provider_product(
-                row, model, lead["run_time_utc"], lead["lead_seconds"]
+                row, model, lead["run_time_utc"], lead["lead_seconds"], parent_payload
             )
             inventory.append(
                 {
