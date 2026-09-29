@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
   "artifact_version": "dev03-wp03-i10-runtime-controls-v1",
-  "status": "paused_after_prep07_runtime_hard_gate",
+  "status": "active_persistently_until_i10_complete",
   "date": "2026-09-29",
   "work_package": "DEV03-WP03",
   "implementation_step": "WP03-I10",
   "controls": {
-    "public_v3_generation_enabled": false,
-    "public_v3_transfer_enabled": false,
+    "public_v3_generation_enabled": true,
+    "public_v3_transfer_enabled": true,
     "private_v3_promotion_enabled": false,
     "archive_v6_write_enabled": false
   },
@@ -43,6 +43,13 @@
     "eps_exact_product_fix_merge_commit": "f3c96de6780e5de5fd32cce67c97f6ce39178e02",
     "eps_exact_product_validation_run_id": 36511160898,
     "provider_requests_in_failed_attempt": 0,
+    "operational_authority_unchanged": "v16-c3-v9"
+  },
+  "persistent_activation_policy": {
+    "set_at_utc": "2026-09-29T02:42:00Z",
+    "reason": "Keep WP03-I10 data processing enabled while remaining defects are repaired; do not toggle controls merely because a live proof exposes a defect.",
+    "public_controls_must_remain_enabled_until_i10_complete": true,
+    "defect_handling": "fix_forward_without_control_toggle",
     "operational_authority_unchanged": "v16-c3-v9"
   }
 }
