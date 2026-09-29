@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
   "artifact_version": "dev03-wp03-i10-runtime-controls-v1",
-  "status": "public_live_reenabled_after_eps_exact_product_fix",
+  "status": "paused_after_prep07_runtime_hard_gate",
   "date": "2026-09-29",
   "work_package": "DEV03-WP03",
   "implementation_step": "WP03-I10",
   "controls": {
-    "public_v3_generation_enabled": true,
-    "public_v3_transfer_enabled": true,
+    "public_v3_generation_enabled": false,
+    "public_v3_transfer_enabled": false,
     "private_v3_promotion_enabled": false,
     "archive_v6_write_enabled": false
   },
@@ -29,11 +29,12 @@
     "operational_authority_unchanged": "v16-c3-v9"
   },
   "pause_evidence": {
-    "failed_live_run_id": 36510878974,
-    "failure": "parent occurrence provider_product missing for ICON-D2-EPS; exact product evidence required before I03 binding",
-    "provider_requests_before_failure": 0,
-    "previous_failed_live_run_id": 36510241556,
-    "previous_failed_provider_requests": 0,
+    "live_run_id": 36511213618,
+    "reason": "public live-proof execution exceeded PREP07 120-second incremental wall hard limit while provider step was still active",
+    "hard_limit_seconds": 120,
+    "run_started_at_utc": "2026-09-29T02:08:45Z",
+    "pause_decision_at_utc": "2026-09-29T02:11:23Z",
+    "note": "GitHub connector exposes no workflow-run cancellation action; runtime controls disabled immediately to prevent any new attempt.",
     "operational_authority_unchanged": "v16-c3-v9"
   },
   "reenable_evidence": {
