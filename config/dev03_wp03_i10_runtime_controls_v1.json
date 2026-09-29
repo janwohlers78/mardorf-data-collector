@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
   "artifact_version": "dev03-wp03-i10-runtime-controls-v1",
-  "status": "public_live_enabled",
+  "status": "paused_after_parent_commit_sha_validation_failure",
   "date": "2026-09-29",
   "work_package": "DEV03-WP03",
   "implementation_step": "WP03-I10",
   "controls": {
-    "public_v3_generation_enabled": true,
-    "public_v3_transfer_enabled": true,
+    "public_v3_generation_enabled": false,
+    "public_v3_transfer_enabled": false,
     "private_v3_promotion_enabled": false,
     "archive_v6_write_enabled": false
   },
@@ -26,6 +26,12 @@
     "wiring_validation_run_id": 36509784626,
     "disabled_noop_run_id": 36509832634,
     "activation_stage": "public_after_private_ready",
+    "operational_authority_unchanged": "v16-c3-v9"
+  },
+  "pause_evidence": {
+    "failed_live_run_id": 36510241556,
+    "failure": "parent verified_data_commit_sha incorrectly required SHA-256 length 64; real readback-v2 commit SHA is Git SHA length 40",
+    "provider_requests_before_failure": 0,
     "operational_authority_unchanged": "v16-c3-v9"
   }
 }
