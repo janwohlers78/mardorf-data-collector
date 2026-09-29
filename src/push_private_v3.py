@@ -90,6 +90,7 @@ def publish_v3(*,bundle,private_token,paired_v2_compressed_bytes,repo=PRIVATE_RE
         "network_requests_performed":bundle.get("network_requests_performed"),
         "network_response_bytes":bundle.get("network_response_bytes"),
         "i04_acquisition":bundle.get("i04_acquisition"),
+        "i10_live_proof":bundle.get("i10_live_proof"),
         "compressed_payload_bytes":len(packed),
         "paired_v2_compressed_bytes":paired_v2_compressed_bytes,
         "compressed_v3_to_v2_ratio":len(packed)/paired_v2_compressed_bytes,

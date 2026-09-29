@@ -2,6 +2,10 @@ name: DEV03 WP03 I10 public live proof
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'config/dev03_wp03_i10_runtime_controls_v1.json'
 
 permissions:
   contents: read

@@ -15,15 +15,18 @@ def validate(root=ROOT):
     def check(ok,msg):
         if not ok: problems.append(msg)
     cfg=json.loads((root/"config/dev03_wp03_i10_live_proof_v1.json").read_text())
-    controls=json.loads((root/"config/dev03_shadow_channels_v1.json").read_text())["controls"]
+    frozen=json.loads((root/"config/dev03_shadow_channels_v1.json").read_text())["controls"]
+    controls=json.loads((root/"config/dev03_wp03_i10_runtime_controls_v1.json").read_text())["controls"]
     workflow=(root/".github/workflows/dev03-v3-live-proof.yml").read_text()
     runner=(root/"src/run_dev03_wp03_i10_public.py").read_text()
     publisher=(root/"src/push_private_v3.py").read_text()
 
     check(cfg.get("artifact_version")=="dev03-wp03-i10-live-proof-v1","I10 public contract drift")
-    check(cfg.get("trigger_policy")=="workflow_dispatch_only_no_new_cron","new cron is forbidden")
+    check(cfg.get("trigger_policy")=="workflow_dispatch_or_versioned_runtime_control_push_no_cron","I10 public contract trigger label drift")
     check("schedule:" not in workflow,"I10 live workflow must not create a cron")
-    check("workflow_dispatch:" in workflow,"I10 live workflow must be manual")
+    check("workflow_dispatch:" in workflow,"I10 live workflow must retain manual trigger")
+    check("config/dev03_wp03_i10_runtime_controls_v1.json" in workflow,"runtime-control push trigger missing")
+    check(all(value is False for value in frozen.values()),"frozen I01 shadow defaults must remain false")
     check("contents: read" in workflow,"public I10 workflow must have read-only public-repo permission")
     check("data/inbox/public_collector_v3" in publisher,"isolated v3 namespace missing")
     check("data/inbox/public_collector/" not in publisher.replace("data/inbox/public_collector_v3",""),
@@ -55,6 +58,7 @@ def validate(root=ROOT):
     return {
         "status":"PASS",
         "implementation_step":"WP03-I10",
+        "frozen_defaults_all_false":all(value is False for value in frozen.values()),
         "public_generation_enabled":gen,
         "public_transfer_enabled":transfer,
         "frozen_v2_workflow_blob":FROZEN_V2_WORKFLOW_BLOB,
