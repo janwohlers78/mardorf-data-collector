@@ -31,6 +31,11 @@ def main():
     check(commit_rule.get("encoding") == "lowercase hexadecimal", "verified commit encoding drift", problems)
     check(commit_rule.get("accepted_hex_lengths") == [40, 64], "verified commit Git object ID lengths drift", problems)
     check(commit_rule.get("other_lengths") == "fail_closed", "verified commit fail-closed length rule missing", problems)
+    product_rule = contract.get("parent_provider_product_rule") or {}
+    eps_rule = product_rule.get("icon_d2_eps_parent_evidence_fallback") or {}
+    check(eps_rule.get("resolved_provider_product") == "open_meteo:dwd_icon_d2_eps", "EPS product fallback drift", problems)
+    check(eps_rule.get("registry_inference_allowed") is False, "EPS fallback must not use Registry inference", problems)
+    check(eps_rule.get("contradictory_or_missing_evidence") == "fail_closed", "EPS fallback must fail closed", problems)
     source = (ROOT / "src" / "dev03_v3_parent_binding.py").read_text()
     check("def _git_object_id" in source, "Git object ID validator missing", problems)
     check("verified_commit = _git_object_id" in source, "verified data commit is not using Git object ID validator", problems)
@@ -54,6 +59,8 @@ def main():
     check("data/inbox/public_collector_v3" in source, "isolated v3 namespace missing", problems)
     check("_registry_provider_product" not in source, "parent provider_product must not be inferred from Registry v3", problems)
     check("PARENT_PRODUCT_EVIDENCE_METHOD" in source and "source_urls" in source, "frozen DWD source-evidence product resolver missing", problems)
+    check("_resolve_icon_d2_eps_parent_product" in source and "ensemble-api.open-meteo.com" in source,
+          "exact EPS parent-product evidence resolver missing", problems)
     check("duplicate parent retained occurrence identity is not allowed" in source, "duplicate parent identity fail-closed rule missing", problems)
     check("collection_transaction_id contradicts exact parent binding" in source, "parent transaction recomputation guard missing", problems)
     check("payload_bytes do not exactly match canonical collector-model-bundle-v3 bytes" in transfer, "transfer payload/bundle byte-binding guard missing", problems)
