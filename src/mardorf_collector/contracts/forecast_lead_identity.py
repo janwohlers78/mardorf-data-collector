@@ -41,11 +41,20 @@ def validate_lead_seconds(value) -> int:
     return _strict_non_negative_int(value, "lead_seconds")
 
 
+def ensure_microsecond_precision(value, field: str = "timestamp") -> None:
+    """Reject precision datetime/Arrow would silently lose; exact trailing zeros are safe."""
+    if isinstance(value, str):
+        for fraction in re.findall(r"[.,](\d+)", value):
+            if len(fraction) > 6 and any(digit != "0" for digit in fraction[6:]):
+                raise ForecastLeadIdentityError(f"{field} exceeds exact microsecond precision")
+
+
 def parse_utc_timestamp(value, field: str) -> datetime:
     if not isinstance(value, str) or not RFC3339_UTC_RE.fullmatch(value):
         raise ForecastLeadIdentityError(
             f"{field} must be an RFC3339 UTC timestamp using T and Z/+00:00"
         )
+    ensure_microsecond_precision(value, field)
     raw = value[:-1] + "+00:00" if value.endswith("Z") else value
     try:
         dt = datetime.fromisoformat(raw)

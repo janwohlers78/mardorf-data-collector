@@ -11,6 +11,7 @@ import argparse,base64,gzip,hashlib,json,os,time
 from datetime import datetime,timezone
 from pathlib import Path
 import requests
+from mardorf_collector.contracts.forecast_lead_identity import ensure_microsecond_precision
 
 API="https://api.github.com"
 DEFAULT_REPO="janwohlers78/mardorf-kitevorhersage"
@@ -18,6 +19,7 @@ DEFAULT_REPO="janwohlers78/mardorf-kitevorhersage"
 def parse_time(value):
     if not value:
         raise ValueError("required timestamp is missing")
+    ensure_microsecond_precision(value, "pointer_timestamp")
     x=datetime.fromisoformat(str(value).replace("Z","+00:00"))
     if x.tzinfo is None:
         raise ValueError(f"timestamp must be timezone-aware: {value!r}")
@@ -63,10 +65,26 @@ def decoded_bytes(meta):
     except Exception:return None
 
 def decoded_json_content(meta):
-    raw=decoded_bytes(meta)
-    if raw is None:return None
-    try:return json.loads(raw.decode("utf-8"))
-    except Exception:return None
+    if meta is None:
+        return None
+    def unique_object(pairs):
+        out={}
+        for key,value in pairs:
+            if key in out:
+                raise ValueError(f"duplicate pointer JSON key: {key}")
+            out[key]=value
+        return out
+    try:
+        content=meta.get("content")
+        if not isinstance(content,str) or not content:
+            raise ValueError("existing pointer bytes unavailable")
+        raw=base64.b64decode(content.replace("\n",""),validate=True)
+        pointer=json.loads(raw.decode("utf-8"),object_pairs_hook=unique_object)
+        if not isinstance(pointer,dict) or not pointer:
+            raise ValueError("existing pointer must be a nonempty JSON object")
+        return pointer
+    except (ValueError,TypeError,AttributeError) as exc:
+        raise RuntimeError("existing pointer cannot be verified; publication stopped") from exc
 
 def same_existing(repo,path,content,h,gz=False,ref=None):
     """Return the existing blob SHA only when immutable bytes match exactly."""
@@ -105,10 +123,11 @@ def timestamp_not_older(current_value,incoming_value):
 def monotonic_allows(repo,item,h,ref=None):
     guard=item.get("monotonic_guard")
     if not isinstance(guard,dict):return True
+    parse_time(guard["incoming_time"])
     current=decoded_json_content(content_meta(repo,guard["path"],h,ref=ref))
-    if not current:return True
+    if current is None:return True
     current_value=current.get(guard["field"])
-    if not current_value:return True
+    if not current_value:raise RuntimeError("existing pointer lacks monotonic timestamp; publication stopped")
     return timestamp_not_older(current_value,guard["incoming_time"])
 
 def mutable_already_exact(repo,item,h,ref=None):

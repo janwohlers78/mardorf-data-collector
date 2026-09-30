@@ -209,6 +209,8 @@ def validate_declaration(item):
     policy = item["acquisition_policy"]
     if cap == "unsupported_by_provider_or_product" and status != "unsupported_by_provider_or_product":
         raise ValueError("unsupported capability has highest precedence")
+    if cap == "unknown_or_ambiguous" and status != "unknown_or_ambiguous":
+        raise ValueError("unknown provider capability cannot become runtime availability")
     if cap == "intentionally_not_applicable" and status != "intentionally_not_applicable":
         raise ValueError("inapplicable capability has highest precedence")
     if cap == "native_available" and policy == "not_requested_by_policy" and status != "not_requested_by_policy":
@@ -223,6 +225,8 @@ def validate_declaration(item):
         status == "unknown_or_ambiguous" and evidence_type != "static_registry_without_attempt_evidence"
     )
     if is_runtime:
+        if cap != "native_available" or policy != "required":
+            raise ValueError("runtime availability requires native capability and required policy")
         _require_runtime_native_identity(
             item.get("parameter_native"), item.get("field_provider_product")
         )

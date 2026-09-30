@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "artifact_version": "aud-20260930-01-package-source-corrections-v1",
+  "audit_id": "AUD-20260930-01",
+  "baseline_source_commit": "36c27f6b710a714e507e8d0fc2bfd077eb21f9a3",
+  "audit_source_commit": "7e9d663fbf3c75c78487c82cf80719ebfb9c8a63",
+  "purpose": "Preserve immutable PREP09 migration parity; bind explicit intent-preserving bug fixes to original normalized AST and exact corrected source/AST hashes. Other source changes still fail closed.",
+  "modules": [
+    {
+      "implementation_path": "src/mardorf_collector/contracts/availability_contract_v3.py",
+      "baseline_normalized_ast_sha256": "d89f06a3fff9584797b9d1ef2c323e15404991f2f85231de8696cbe65dd1822a",
+      "baseline_source_sha256": "ad65ae5124512255d519bc9eb847c50f875227a70582f0295e4bb5ed17a715cc",
+      "corrected_normalized_ast_sha256": "28c7d0aafc5962be8a42647ae9ca6ef06dc13ef2d1417f4e7535b48be8850313",
+      "corrected_source_sha256": "bd0a683c7faa4c5f2597c9dff0ace9b5a2021b2f77dbdebed14fc9c6a0336716",
+      "finding_ids": [
+        "AUD-20260930-01-F05"
+      ]
+    },
+    {
+      "implementation_path": "src/mardorf_collector/contracts/forecast_lead_identity.py",
+      "baseline_normalized_ast_sha256": "7db625a8aa3531784fbd4aa764b1f10631729296a98b08c286f04bf8f2642ba6",
+      "baseline_source_sha256": "0ba7a01423d254a38e9394bbdb6615396679310ed9164bcb17611be36ee9bbbc",
+      "corrected_normalized_ast_sha256": "cc515e2a244f557f2ed7c8f78aa89f471b07545c2f21e98d949890877585aba2",
+      "corrected_source_sha256": "6d1f0923f8e1d056251e286f1562c2bf78fc0aa9c9c1725d7c393849dbd8d317",
+      "finding_ids": [
+        "AUD-20260930-01-F02"
+      ]
+    },
+    {
+      "implementation_path": "src/mardorf_collector/transfer/push_private.py",
+      "baseline_normalized_ast_sha256": "3599cab97e556ed167b9dfe4793aeb7847754b8d97a46342df2b2c393c1a28a7",
+      "baseline_source_sha256": "62e2b1b14f2f18cd958e56ea8770d5c355a049d049c30087a98220ddae08d395",
+      "corrected_normalized_ast_sha256": "4951cd032343b017d16dc50ea1c48a69d48f37a743863f9b607a495d16cf2067",
+      "corrected_source_sha256": "e73225ce7c9e0288c025a8ab26c5492f1710b84c7ef382aae5e83b40dde7aa8e",
+      "finding_ids": [
+        "AUD-20260930-01-F02",
+        "AUD-20260930-01-F04"
+      ]
+    }
+  ]
+}
