@@ -115,7 +115,20 @@ def validate(root):
         elif package_steps:
             raise ValueError('package validation signature exception outside its approved CI path')
         if signature(data) != expected[name]['source_control_sha256']:
-            raise ValueError(f'trigger/permission/concurrency/guard drift: {name}')
+            # The only approved new trigger is public CI coverage for its test-only lockfile.
+            correction = next((item for item in corrections_doc.get('workflow_ci_path_corrections', [])
+                               if item.get('path') == '.github/workflows/' + name), None)
+            baseline_data = json.loads(json.dumps(data))
+            paths = baseline_data.get('on', {}).get('pull_request', {}).get('paths', [])
+            if (layout['repository'] != 'janwohlers78/mardorf-data-collector' or name != 'validate.yml' or
+                    correction is None or paths.count('requirements-ci.txt') != 1):
+                raise ValueError(f'trigger/permission/concurrency/guard drift: {name}')
+            paths.remove('requirements-ci.txt')
+            if (signature(baseline_data) != expected[name]['source_control_sha256'] or
+                    correction.get('baseline_control_sha256') != expected[name]['source_control_sha256'] or
+                    correction.get('corrected_source_sha256') != hashlib.sha256(path.read_bytes()).hexdigest() or
+                    not correction.get('finding_ids')):
+                raise ValueError(f'unverified CI path correction: {name}')
         if expected[name].get('frozen_git_blob'):
             raw = path.read_bytes()
             blob = hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()

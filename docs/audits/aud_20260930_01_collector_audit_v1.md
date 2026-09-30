@@ -29,3 +29,5 @@ Reproduktion: `PYTHONPATH=src python -m unittest discover -s tests -v` und
 `PYTHONPATH=src python tools/validate_prep09_layout.py`. Rücknahme am Audit-Basis-
 Commit, zusammen mit Correction-Manifestbindung; keine getrackten Daten geändert.
 Dies ist fokussierte Quell-/Correctness-Prüfung, kein Exhaustiv- oder Security-Audit.
+
+Der erste Validate-Lauf36763151220 stoppte wegen fehlendem yaml-Modul: lokale Umgebung enthielt private CI-Abhängigkeiten. Public CI installiert jetzt PyYAML6.0.3 hashgepinnt aus requirements-ci.txt. Der Lockfile-Pfad gehört zur PR-CI-Coverage; deklarierte Korrekturbindung erlaubt ausschließlich diese neue CI-Path-Zeile und prüft alle übrigen alten Controls exakt. Produktive requirements-runtime.txt und sämtliche Akquise-Trigger bleiben unverändert. Finale Abnahme in einer separaten ausschließlich gepinnten CI-Umgebung.

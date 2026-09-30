@@ -37,5 +37,16 @@
         "AUD-20260930-01-F04"
       ]
     }
+  ],
+  "workflow_ci_path_corrections": [
+    {
+      "path": ".github/workflows/validate.yml",
+      "baseline_control_sha256": "19c3dcd2be98a628c15c243a8a4cb914b4a773d1a3fc1f8577dfa1c621de26f4",
+      "corrected_source_sha256": "b6c62802b6a53345937a23f180db18e92e2da177fb9445b10c24f7e3a551c634",
+      "finding_ids": [
+        "AUD-20260930-01-F06"
+      ],
+      "scope": "Only add CI lockfile to pull_request path coverage; runtime triggers/permissions/concurrency/job guards remain exact."
+    }
   ]
 }
