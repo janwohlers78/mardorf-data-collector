@@ -129,3 +129,7 @@ false. The collector records the exact response SHA, stable before/after
 metadata, direct DWD cycle confirmation and the explicit
 `strong_indirect_bracketed_not_provider_embedded` binding status rather than
 claiming stronger evidence than the provider exposes.
+
+## Repository-Navigation und Wartung
+
+Der [Repository-Katalog](docs/inventory/repository_catalog_v1.json) und die [Inventar-Übersicht](docs/inventory/README.md) trennen aktive Einstiegspunkte, manuelle Prüf-/Reproduktionspfade und historische Evidenz. Der Katalog ist ein versionierter Inventar-Snapshot, keine Laufzeit- oder Workflow-Statusquelle.
