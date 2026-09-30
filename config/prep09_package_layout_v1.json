@@ -1,0 +1,287 @@
+{
+  "schema_version": 1,
+  "artifact_version": "dev03-prep09-package-layout-v1",
+  "repository": "janwohlers78/mardorf-data-collector",
+  "canonical_package": "mardorf_collector",
+  "source_commit": "36c27f6b710a714e507e8d0fc2bfd077eb21f9a3",
+  "modules": [
+    {
+      "legacy_path": "src/fetch_model_data.py",
+      "module": "mardorf_collector.providers.fetch_model_data",
+      "implementation_path": "src/fetch_model_data.py",
+      "baseline_sha256": "0c2c020ff2d6b69e7e038ab3fa71e90a664abedfc11a433bc87819eadb8a1bf6",
+      "cli_main": true,
+      "kind": "protected_implementation_bridge",
+      "package_bridge_path": "src/mardorf_collector/providers/fetch_model_data.py"
+    },
+    {
+      "legacy_path": "src/fetch_extra_models.py",
+      "module": "mardorf_collector.providers.fetch_extra_models",
+      "implementation_path": "src/mardorf_collector/providers/fetch_extra_models.py",
+      "baseline_sha256": "92ea251903f65c1c11db02d11b2379f6ac151a7e6eb0ebf97d367d7030f5fa1d",
+      "cli_main": true
+    },
+    {
+      "legacy_path": "src/fetch_dwd_additional_models.py",
+      "module": "mardorf_collector.providers.fetch_dwd_additional_models",
+      "implementation_path": "src/fetch_dwd_additional_models.py",
+      "baseline_sha256": "c9288497fcee93487291a1ad54cb4dae68d07d139b303611f43733656ef26fe9",
+      "cli_main": true,
+      "kind": "protected_implementation_bridge",
+      "package_bridge_path": "src/mardorf_collector/providers/fetch_dwd_additional_models.py"
+    },
+    {
+      "legacy_path": "src/fetch_svg_weatherlink.py",
+      "module": "mardorf_collector.providers.fetch_svg_weatherlink",
+      "implementation_path": "src/mardorf_collector/providers/fetch_svg_weatherlink.py",
+      "baseline_sha256": "c6c20ac1d716c7170b232f2eb903ea777e08e41267697751201738d73da989e6",
+      "cli_main": true
+    },
+    {
+      "legacy_path": "src/fetch_skm_optional.py",
+      "module": "mardorf_collector.providers.fetch_skm_optional",
+      "implementation_path": "src/mardorf_collector/providers/fetch_skm_optional.py",
+      "baseline_sha256": "72e2adbc4a8cb5d2b635e19d066eed6895048a8d4d4a1da3d296d199f690efd6",
+      "cli_main": true
+    },
+    {
+      "legacy_path": "src/fetch_wunstorf.py",
+      "module": "mardorf_collector.providers.fetch_wunstorf",
+      "implementation_path": "src/mardorf_collector/providers/fetch_wunstorf.py",
+      "baseline_sha256": "20e1350b5d000f704d6faa8e80f865fa346cab3e44a584750b181e3280523ee5",
+      "cli_main": true
+    },
+    {
+      "legacy_path": "src/fetch_etnw_metar.py",
+      "module": "mardorf_collector.providers.fetch_etnw_metar",
+      "implementation_path": "src/mardorf_collector/providers/fetch_etnw_metar.py",
+      "baseline_sha256": "8ac5346509318305452e18be8f3d94584711c716d6c4781e65dc930028decc11",
+      "cli_main": true
+    },
+    {
+      "legacy_path": "src/provider_fetch.py",
+      "module": "mardorf_collector.providers.provider_fetch",
+      "implementation_path": "src/mardorf_collector/providers/provider_fetch.py",
+      "baseline_sha256": "9cfd61a31932b08bc1db1c6940878e20ae9362269864cb535308ba3c64ec7d3d",
+      "cli_main": true
+    },
+    {
+      "legacy_path": "src/gefs_full_members.py",
+      "module": "mardorf_collector.providers.gefs_full_members",
+      "implementation_path": "src/mardorf_collector/providers/gefs_full_members.py",
+      "baseline_sha256": "fefb9f772c947e1ec1e6c9bf4995c84c8b16cfaa3b83b6483b649e7e1889e540",
+      "cli_main": true
+    },
+    {
+      "legacy_path": "src/noaa_weather_context.py",
+      "module": "mardorf_collector.providers.noaa_weather_context",
+      "implementation_path": "src/mardorf_collector/providers/noaa_weather_context.py",
+      "baseline_sha256": "78e21f2aa1ede3c75809ca180c0d43736d7b29195131a349a21867364cbb5af2",
+      "cli_main": false
+    },
+    {
+      "legacy_path": "src/ecmwf_registry.py",
+      "module": "mardorf_collector.providers.ecmwf_registry",
+      "implementation_path": "src/mardorf_collector/providers/ecmwf_registry.py",
+      "baseline_sha256": "68adb2f898e8e41067964e2510b1b450afe557591326df0d12f7ba808cca19a4",
+      "cli_main": false
+    },
+    {
+      "legacy_path": "src/grib_identity.py",
+      "module": "mardorf_collector.providers.grib_identity",
+      "implementation_path": "src/mardorf_collector/providers/grib_identity.py",
+      "baseline_sha256": "09789e3a38e1822ad19476ef0640a89dce0e55f748079fd6c89a893dacf5015b",
+      "cli_main": false
+    },
+    {
+      "legacy_path": "src/icon_parameter_probe.py",
+      "module": "mardorf_collector.providers.icon_parameter_probe",
+      "implementation_path": "src/mardorf_collector/providers/icon_parameter_probe.py",
+      "baseline_sha256": "7dc6b73ffd4f2eed000e1c55d617a6776c4f946f6345cf42bcc8ba606f50030e",
+      "cli_main": true
+    },
+    {
+      "legacy_path": "src/dev03_v3_convective_acquisition.py",
+      "module": "mardorf_collector.providers.dev03_v3_convective_acquisition",
+      "implementation_path": "src/mardorf_collector/providers/dev03_v3_convective_acquisition.py",
+      "baseline_sha256": "a5abb4f114aaa2098db194d8040ebb5aa6afcd12a0bc4cadd7bceb89d5e201e9",
+      "cli_main": false
+    },
+    {
+      "legacy_path": "src/availability_contract.py",
+      "module": "mardorf_collector.contracts.availability_contract",
+      "implementation_path": "src/mardorf_collector/contracts/availability_contract.py",
+      "baseline_sha256": "f7ad28fce8a552c38d7bdc697ad7756b8b71b7402bd72180376861c390723995",
+      "cli_main": true
+    },
+    {
+      "legacy_path": "src/availability_contract_v3.py",
+      "module": "mardorf_collector.contracts.availability_contract_v3",
+      "implementation_path": "src/mardorf_collector/contracts/availability_contract_v3.py",
+      "baseline_sha256": "8682940902cd96b09958550670b7ccd29beaa0257c4f779bbb56e32638d03cdc",
+      "cli_main": false
+    },
+    {
+      "legacy_path": "src/cape_native_identity.py",
+      "module": "mardorf_collector.contracts.cape_native_identity",
+      "implementation_path": "src/mardorf_collector/contracts/cape_native_identity.py",
+      "baseline_sha256": "ec4802b531b9bbc80d2bcd9a8eabb84d3bb8dd83a1dc6a1255ba2f0506e5d2b4",
+      "cli_main": false
+    },
+    {
+      "legacy_path": "src/forecast_lead_identity.py",
+      "module": "mardorf_collector.contracts.forecast_lead_identity",
+      "implementation_path": "src/mardorf_collector/contracts/forecast_lead_identity.py",
+      "baseline_sha256": "0ba7a01423d254a38e9394bbdb6615396679310ed9164bcb17611be36ee9bbbc",
+      "cli_main": false
+    },
+    {
+      "legacy_path": "src/full_horizon_contract.py",
+      "module": "mardorf_collector.contracts.full_horizon_contract",
+      "implementation_path": "src/mardorf_collector/contracts/full_horizon_contract.py",
+      "baseline_sha256": "734c442c0d864dd2c46146c5a789d9c95a1c3b76879be0d8e02bc8092e847885",
+      "cli_main": false
+    },
+    {
+      "legacy_path": "src/relevant_meteorology_registry.py",
+      "module": "mardorf_collector.contracts.relevant_meteorology_registry",
+      "implementation_path": "src/mardorf_collector/contracts/relevant_meteorology_registry.py",
+      "baseline_sha256": "4216aa3531a3407549b759a68ad170e56b6983d7204884b549e30726bacfe843",
+      "cli_main": false
+    },
+    {
+      "legacy_path": "src/relevant_meteorology_registry_v2.py",
+      "module": "mardorf_collector.contracts.relevant_meteorology_registry_v2",
+      "implementation_path": "src/mardorf_collector/contracts/relevant_meteorology_registry_v2.py",
+      "baseline_sha256": "1d8f4efaddbc250388973d7ab2ac00f6dcbebdaeb8d333cf3b15601fc7ebf393",
+      "cli_main": false
+    },
+    {
+      "legacy_path": "src/relevant_meteorology_registry_v3.py",
+      "module": "mardorf_collector.contracts.relevant_meteorology_registry_v3",
+      "implementation_path": "src/mardorf_collector/contracts/relevant_meteorology_registry_v3.py",
+      "baseline_sha256": "8132862952ff62fc25f44185a06fbe49a2cc29f89be48597518fb82d7e0a531a",
+      "cli_main": false
+    },
+    {
+      "legacy_path": "src/dev03_v3_parent_binding.py",
+      "module": "mardorf_collector.contracts.dev03_v3_parent_binding",
+      "implementation_path": "src/mardorf_collector/contracts/dev03_v3_parent_binding.py",
+      "baseline_sha256": "9e4073b400cfc110a11c4b4e59ea5152f19c8b1b8111dc49c0ddc3b6eea314f1",
+      "cli_main": false
+    },
+    {
+      "legacy_path": "src/audit_integrity.py",
+      "module": "mardorf_collector.integrity.audit_integrity",
+      "implementation_path": "src/mardorf_collector/integrity/audit_integrity.py",
+      "baseline_sha256": "c0390a0f886d1104a73857e91dea6a63e4f24e5ac7e3adab3e36f480e56f366b",
+      "cli_main": true
+    },
+    {
+      "legacy_path": "src/audit_secondary_integrity.py",
+      "module": "mardorf_collector.integrity.audit_secondary_integrity",
+      "implementation_path": "src/mardorf_collector/integrity/audit_secondary_integrity.py",
+      "baseline_sha256": "8e118c8b08d715f17ee190357e1a3d0a544d24cb4cb98baf80c31c43794cf647",
+      "cli_main": true
+    },
+    {
+      "legacy_path": "src/push_private.py",
+      "module": "mardorf_collector.transfer.push_private",
+      "implementation_path": "src/mardorf_collector/transfer/push_private.py",
+      "baseline_sha256": "62e2b1b14f2f18cd958e56ea8770d5c355a049d049c30087a98220ddae08d395",
+      "cli_main": true
+    },
+    {
+      "legacy_path": "src/push_private_v3.py",
+      "module": "mardorf_collector.transfer.push_private_v3",
+      "implementation_path": "src/mardorf_collector/transfer/push_private_v3.py",
+      "baseline_sha256": "dc47bdad02381fbf0f5449505c5b22ace45443f5763f584423fca43d78110f18",
+      "cli_main": false
+    },
+    {
+      "legacy_path": "src/dev03_v3_transfer_shell.py",
+      "module": "mardorf_collector.transfer.dev03_v3_transfer_shell",
+      "implementation_path": "src/mardorf_collector/transfer/dev03_v3_transfer_shell.py",
+      "baseline_sha256": "501a461b008365dc3d3774cd69295d4226b7d395b6d78b312b4959134ea441f7",
+      "cli_main": false
+    },
+    {
+      "legacy_path": "src/finalize_secondary_batch.py",
+      "module": "mardorf_collector.transfer.finalize_secondary_batch",
+      "implementation_path": "src/mardorf_collector/transfer/finalize_secondary_batch.py",
+      "baseline_sha256": "1fe760ef0e92a7b58110693f2ebd39253b0054319c30c059cdb38b7ae05925eb",
+      "cli_main": true
+    },
+    {
+      "legacy_path": "src/check_collection_due.py",
+      "module": "mardorf_collector.runtime.check_collection_due",
+      "implementation_path": "src/mardorf_collector/runtime/check_collection_due.py",
+      "baseline_sha256": "c085bb1fca0252becc6f5d3326d2d561939e569aaae6ecd2bec960152cca9e81",
+      "cli_main": true
+    },
+    {
+      "legacy_path": "src/provider_cycle_gate.py",
+      "module": "mardorf_collector.runtime.provider_cycle_gate",
+      "implementation_path": "src/mardorf_collector/runtime/provider_cycle_gate.py",
+      "baseline_sha256": "e7baccb50c33150ac3667e8a46eff6ac503eff9175623ba5fe58a5b228ffb2e5",
+      "cli_main": true
+    },
+    {
+      "legacy_path": "src/collect_full_horizon.py",
+      "module": "mardorf_collector.runtime.collect_full_horizon",
+      "implementation_path": "src/mardorf_collector/runtime/collect_full_horizon.py",
+      "baseline_sha256": "bd01480ee6be38f4d95af59d96e69f303c7a28d9e3b5a5ffafe278731d74a6d3",
+      "cli_main": true
+    },
+    {
+      "legacy_path": "src/collect_icon_tier_a.py",
+      "module": "mardorf_collector.runtime.collect_icon_tier_a",
+      "implementation_path": "src/mardorf_collector/runtime/collect_icon_tier_a.py",
+      "baseline_sha256": "3ca45523a3e7c09f4787274bfdefb0bc6d0cc53bc9c565cc52837ccbfe1dc27b",
+      "cli_main": true
+    },
+    {
+      "legacy_path": "src/extend_model_horizon.py",
+      "module": "mardorf_collector.runtime.extend_model_horizon",
+      "implementation_path": "src/extend_model_horizon.py",
+      "baseline_sha256": "cbfcf33ceb61b093e6cfad86654299b3e518c5ca936cf30056061084a82ad8f5",
+      "cli_main": true,
+      "kind": "protected_implementation_bridge",
+      "package_bridge_path": "src/mardorf_collector/runtime/extend_model_horizon.py"
+    },
+    {
+      "legacy_path": "src/run_dev03_wp03_i10_public.py",
+      "module": "mardorf_collector.runtime.run_dev03_wp03_i10_public",
+      "implementation_path": "src/mardorf_collector/runtime/run_dev03_wp03_i10_public.py",
+      "baseline_sha256": "9f49c1d6c51d5329e87a0647f83b6753fcaa23a6c128dc27ecdf34785d7be6c8",
+      "cli_main": true
+    },
+    {
+      "legacy_path": "src/measure_gefs_sparse_policy.py",
+      "module": "mardorf_collector.runtime.measure_gefs_sparse_policy",
+      "implementation_path": "src/mardorf_collector/runtime/measure_gefs_sparse_policy.py",
+      "baseline_sha256": "4833f124f24d6a86702873b5e940060c836bbe7b08fb28adbd8ee2306acb6e40",
+      "cli_main": true
+    },
+    {
+      "legacy_path": "src/measure_gefs_summary_qa.py",
+      "module": "mardorf_collector.runtime.measure_gefs_summary_qa",
+      "implementation_path": "src/mardorf_collector/runtime/measure_gefs_summary_qa.py",
+      "baseline_sha256": "e59cf405b4f47910df29b7253e400ed1265e938bd295f7811ac0974070c73423",
+      "cli_main": true
+    }
+  ],
+  "compatibility": {
+    "policy": "one canonical implementation; legacy imports alias the identical module object; legacy CLI forwards main unchanged",
+    "remove_after": "DEV03-WP11 acceptance and explicit adapter-removal PR; before the next breaking package/API release",
+    "exit_gate": "Inventory shows no mutable production/test/CLI caller of legacy paths; frozen reproduction uses pinned source commits; package parity and required CI pass. Never remove solely because a date elapsed."
+  },
+  "protected_unmoved": [
+    ".github/workflows/collect-models.yml (frozen Git blob)",
+    "config frozen contracts and historical evidence",
+    "src/record_provider_failure.py (script executes argument parsing at import; retain until explicitly normalized)",
+    "src/extend_model_horizon.py (WP03-I04 frozen Git blob)",
+    "src/fetch_dwd_additional_models.py (WP03-I04 frozen Git blob)",
+    "src/fetch_model_data.py (WP03-I04 frozen Git blob)"
+  ]
+}

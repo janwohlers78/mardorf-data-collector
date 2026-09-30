@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "status": "PASS",
+  "fixture": "Six model identities with fixed UTC time; complete integrity report including families, leads, missingness and freshness checks",
+  "sha256": "951ca57ace77ab7391f98a7101d5e4b7ed245709853513d91aca6a97da106dbb",
+  "output_bytes": 9325,
+  "network_requests": 0,
+  "result": "Public integrity report is byte-identical before and after package migration."
+}

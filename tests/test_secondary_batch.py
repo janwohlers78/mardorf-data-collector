@@ -80,7 +80,7 @@ class SecondaryBatchTests(unittest.TestCase):
 
     def test_workflow_finalizes_batch_only_after_both_gates(self):
         text=Path(".github/workflows/collect-secondary.yml").read_text(encoding="utf-8")
-        self.assertIn("src/finalize_secondary_batch.py",text)
+        self.assertIn("-m mardorf_collector finalize-secondary-batch",text)
         order=[
             text.index("Transfer Wunstorf payload and integrity"),
             text.index("Transfer ETNW payload and integrity"),

@@ -28,15 +28,15 @@ jobs:
 
       - name: Check SVG freshness
         id: svg
-        run: python3 src/check_collection_due.py --kind svg --max-age-minutes 40
+        run: PYTHONPATH=src python3 -m mardorf_collector check-collection-due --kind svg --max-age-minutes 40
 
       - name: Check model freshness
         id: models
-        run: python3 src/check_collection_due.py --kind models --max-age-minutes 150
+        run: PYTHONPATH=src python3 -m mardorf_collector check-collection-due --kind models --max-age-minutes 150
 
       - name: Check secondary freshness
         id: secondary
-        run: python3 src/check_collection_due.py --kind secondary --max-age-minutes 240
+        run: PYTHONPATH=src python3 -m mardorf_collector check-collection-due --kind secondary --max-age-minutes 240
 
       - name: Dispatch only due idle collectors
         shell: bash

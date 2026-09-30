@@ -133,3 +133,5 @@ claiming stronger evidence than the provider exposes.
 ## Repository-Navigation und Wartung
 
 Der [Repository-Katalog](docs/inventory/repository_catalog_v1.json) und die [Inventar-Übersicht](docs/inventory/README.md) trennen aktive Einstiegspunkte, manuelle Prüf-/Reproduktionspfade und historische Evidenz. Der Katalog ist ein versionierter Inventar-Snapshot, keine Laufzeit- oder Workflow-Statusquelle.
+
+Paketstruktur, CLI und Übergangsregeln: [PREP09 Paketlayout](docs/inventory/package_layout_v1.md).

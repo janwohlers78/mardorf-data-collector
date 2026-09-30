@@ -1,0 +1,160 @@
+{
+  "schema_version": 1,
+  "artifact_version": "dev03-prep09-workflow-routes-v1",
+  "source_commit": "36c27f6b710a714e507e8d0fc2bfd077eb21f9a3",
+  "repository": "janwohlers78/mardorf-data-collector",
+  "runtime_routing_authority": false,
+  "purpose": "Reviewable navigation and control-preservation evidence. Workflow YAML and versioned production contracts remain runtime authorities.",
+  "policy": "Existing filenames, dispatches, schedules, job guards, publication rights and concurrency retained. No new analyzer cron or cross-repo push loop.",
+  "allowed_control_exception": "Added private CI package-context validation step; excluded by exact name from signature. No existing step removed or guard relaxed.",
+  "workflows": [
+    {
+      "path": ".github/workflows/collect-models.yml",
+      "role": "acquisition_transfer",
+      "source_control_sha256": "75abadacd317dbabca2916647f002bfc5e6e833b8c0baee89401b89072dea16c",
+      "triggers": [
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "concurrency": {
+        "group": "public-model-collector",
+        "cancel-in-progress": "true"
+      },
+      "permissions": {
+        "contents": "read"
+      },
+      "publication_scopes": [
+        "private:data/inbox/public_collector"
+      ],
+      "frozen_git_blob": "b26223764a0702a04b6b40d90a63da6507a54d59"
+    },
+    {
+      "path": ".github/workflows/collect-secondary.yml",
+      "role": "acquisition_transfer",
+      "source_control_sha256": "0e62ea2e6070d923556b892dcf3617e38a7fb7083d52cf6aeb22a5c2fb2bd651",
+      "triggers": [
+        "push",
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "concurrency": {
+        "group": "public-secondary-observations",
+        "cancel-in-progress": "true"
+      },
+      "permissions": {
+        "contents": "read"
+      },
+      "publication_scopes": [
+        "private:data/inbox/public_collector"
+      ]
+    },
+    {
+      "path": ".github/workflows/collect-svg.yml",
+      "role": "acquisition_transfer",
+      "source_control_sha256": "f4ba06e1b04d650956714b081fd7d29708ac4b387f74c96be422b5fb25af8881",
+      "triggers": [
+        "push",
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "concurrency": {
+        "group": "public-svg-collector",
+        "cancel-in-progress": "true"
+      },
+      "permissions": {
+        "contents": "read"
+      },
+      "publication_scopes": [
+        "private:data/inbox/public_collector"
+      ]
+    },
+    {
+      "path": ".github/workflows/collector-watchdog.yml",
+      "role": "acquisition_dispatch",
+      "source_control_sha256": "a7d874c2c7729f0a165a32c8a1fe0ea0509ed86d3a28295ea9148be71a83fa00",
+      "triggers": [
+        "workflow_dispatch"
+      ],
+      "concurrency": {
+        "group": "public-collector-external-watchdog",
+        "cancel-in-progress": "true"
+      },
+      "permissions": {
+        "contents": "read",
+        "actions": "write"
+      },
+      "publication_scopes": [
+        "none_direct"
+      ]
+    },
+    {
+      "path": ".github/workflows/dev03-v3-live-proof.yml",
+      "role": "evaluation_replay",
+      "source_control_sha256": "acbb03f42c2064ff9b6d99d786b487cf1078eacaf0636f27714e43ed03e4053d",
+      "triggers": [
+        "push",
+        "workflow_dispatch"
+      ],
+      "concurrency": {
+        "group": "dev03-wp03-i10-public-live-proof",
+        "cancel-in-progress": "false"
+      },
+      "permissions": {
+        "contents": "read"
+      },
+      "publication_scopes": [
+        "private:data/inbox/public_collector_v3"
+      ]
+    },
+    {
+      "path": ".github/workflows/private-transfer-smoke.yml",
+      "role": "CI_governance",
+      "source_control_sha256": "2db6ff643cc82008b42b82206f46daa351739c9e928a4875171e645a364b65b2",
+      "triggers": [
+        "push"
+      ],
+      "concurrency": null,
+      "permissions": {
+        "contents": "read"
+      },
+      "publication_scopes": [
+        "private:data/inbox/public_collector"
+      ]
+    },
+    {
+      "path": ".github/workflows/reject-external-contributions.yml",
+      "role": "CI_governance",
+      "source_control_sha256": "ab96da3d5603486fa8b390cfa5cac5fbddba55625ef94d739b2d2125815a2110",
+      "triggers": [
+        "issues",
+        "pull_request_target"
+      ],
+      "concurrency": null,
+      "permissions": {
+        "contents": "read",
+        "pull-requests": "write",
+        "issues": "write"
+      },
+      "publication_scopes": [
+        "none_direct"
+      ]
+    },
+    {
+      "path": ".github/workflows/validate.yml",
+      "role": "CI_governance",
+      "source_control_sha256": "19c3dcd2be98a628c15c243a8a4cb914b4a773d1a3fc1f8577dfa1c621de26f4",
+      "triggers": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "concurrency": null,
+      "permissions": {
+        "contents": "read"
+      },
+      "publication_scopes": [
+        "none_direct"
+      ]
+    }
+  ]
+}
