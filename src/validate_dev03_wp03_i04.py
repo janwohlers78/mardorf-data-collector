@@ -89,7 +89,7 @@ def main():
     check(request_policy.get("retry_requires_new_v3_attempt") is True,
           "retry must be a new causal v3 attempt", problems)
 
-    source = (ROOT / "src" / "dev03_v3_convective_acquisition.py").read_text()
+    source = (ROOT / "src/mardorf_collector/providers/dev03_v3_convective_acquisition.py").read_text()
     check(source.index("load_verified_parent_payload(") < source.index("build_parent_cycle_inventory("),
           "exact parent payload verification must precede cycle inventory", problems)
     for token in ("discover_cycle(", "discover_gfs_cycle(", "latest_dwd_icon_d2_cycle(", "HTTPAdapter(", "Retry("):

@@ -3,3 +3,7 @@ __pycache__/
 *.pyc
 .env
 .env.*
+
+# Python artifacts are never project sources
+__pycache__/
+*.py[cod]

@@ -45,7 +45,7 @@ jobs:
         env:
           PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
           PRIVATE_REPO: janwohlers78/mardorf-kitevorhersage
-        run: python3 src/check_collection_due.py --kind svg --max-age-minutes 40
+        run: PYTHONPATH=src python3 -m mardorf_collector check-collection-due --kind svg --max-age-minutes 40
 
       - name: Report skipped routine trigger
         if: (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.watchdog == true)) && steps.due.outputs.due != 'true'
@@ -75,12 +75,12 @@ jobs:
         env:
           WEATHERLINK_API_KEY: ${{ secrets.WEATHERLINK_API_KEY }}
           WEATHERLINK_API_SECRET: ${{ secrets.WEATHERLINK_API_SECRET }}
-        run: python src/fetch_svg_weatherlink.py
+        run: PYTHONPATH=src python -m mardorf_collector fetch-svg-weatherlink
 
       - name: Audit endpoint results, observation age and five-minute archive continuity
         if: always() && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || steps.due.outputs.due == 'true')
         run: |
-          python src/audit_integrity.py \
+          PYTHONPATH=src python -m mardorf_collector audit-integrity \
             --kind svg \
             --input work/svg_bundle.json \
             --json-out work/svg_integrity.json \
@@ -89,13 +89,13 @@ jobs:
       - name: Fetch optional SKM MeteoMap station 898
         if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || steps.due.outputs.due == 'true'
         continue-on-error: true
-        run: python src/fetch_skm_optional.py
+        run: PYTHONPATH=src python -m mardorf_collector fetch-skm-optional
 
       - name: Audit optional SKM without gating SVG
         if: always() && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || steps.due.outputs.due == 'true')
         continue-on-error: true
         run: |
-          python src/audit_integrity.py \
+          PYTHONPATH=src python -m mardorf_collector audit-integrity \
             --kind skm \
             --input work/skm_bundle.json \
             --json-out work/skm_integrity.json \
@@ -146,7 +146,7 @@ jobs:
           if [ -f work/svg_bundle.json ]; then
             args+=(--file work/svg_bundle.json)
           fi
-          python src/push_private.py "${args[@]}"
+          PYTHONPATH=src python -m mardorf_collector push-private "${args[@]}"
 
       - name: Transfer optional SKM payload and health to private repository
         if: always() && steps.skm_transfer_gate.outputs.ready == 'true' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || steps.due.outputs.due == 'true') && (github.event_name != 'push' || contains(github.event.head_commit.message, '[full-svg-validation]'))
@@ -164,7 +164,7 @@ jobs:
           if [ -f work/skm_bundle.json ]; then
             args+=(--file work/skm_bundle.json)
           fi
-          python src/push_private.py "${args[@]}"
+          PYTHONPATH=src python -m mardorf_collector push-private "${args[@]}"
 
       - name: Report optional SKM status without gating primary evaluation
         if: always() && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || steps.due.outputs.due == 'true')

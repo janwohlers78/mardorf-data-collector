@@ -27,11 +27,11 @@ jobs:
         env:
           WEATHERLINK_API_KEY: ${{ secrets.WEATHERLINK_API_KEY }}
           WEATHERLINK_API_SECRET: ${{ secrets.WEATHERLINK_API_SECRET }}
-        run: python src/fetch_svg_weatherlink.py
+        run: PYTHONPATH=src python -m mardorf_collector fetch-svg-weatherlink
       - name: Audit SVG payload
         if: always()
         run: |
-          python src/audit_integrity.py             --kind svg             --input work/svg_bundle.json             --json-out work/svg_integrity.json             --md-out work/svg_integrity.md
+          PYTHONPATH=src python -m mardorf_collector audit-integrity             --kind svg             --input work/svg_bundle.json             --json-out work/svg_integrity.json             --md-out work/svg_integrity.md
           cat work/svg_integrity.md >> "$GITHUB_STEP_SUMMARY"
       - name: Transfer SVG attempt atomically
         if: always()
@@ -43,7 +43,7 @@ jobs:
           test -n "$PRIVATE_REPO_TOKEN"
           args=(--kind svg --integrity-json work/svg_integrity.json --integrity-md work/svg_integrity.md)
           if [ -f work/svg_bundle.json ]; then args+=(--file work/svg_bundle.json); fi
-          python src/push_private.py "${args[@]}"
+          PYTHONPATH=src python -m mardorf_collector push-private "${args[@]}"
       - name: Enforce SVG integrity
         if: always()
         run: |
@@ -74,20 +74,20 @@ jobs:
       - run: 'python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-runtime.txt'
       - name: Fetch ICON-D2 and GFS full production horizon
         continue-on-error: true
-        run: python src/fetch_model_data.py
+        run: PYTHONPATH=src python -m mardorf_collector fetch-model-data
       - name: Fetch ECMWF-IFS and GEFS full production horizon
         continue-on-error: true
-        run: python src/fetch_extra_models.py
+        run: PYTHONPATH=src python -m mardorf_collector fetch-extra-models
       - name: Fetch ICON-EU and ICON-D2-EPS full production horizon
         continue-on-error: true
-        run: python src/fetch_dwd_additional_models.py
+        run: PYTHONPATH=src python -m mardorf_collector fetch-dwd-additional-models
       - name: Extend eligible medium-range models to provider cycle horizon
         continue-on-error: true
-        run: python src/extend_model_horizon.py
+        run: PYTHONPATH=src python -m mardorf_collector extend-model-horizon
       - name: Audit full model payload
         if: always()
         run: |
-          python src/audit_integrity.py             --kind models             --input work/model_snapshot.json             --json-out work/model_integrity.json             --md-out work/model_integrity.md
+          PYTHONPATH=src python -m mardorf_collector audit-integrity             --kind models             --input work/model_snapshot.json             --json-out work/model_integrity.json             --md-out work/model_integrity.md
           cat work/model_integrity.md >> "$GITHUB_STEP_SUMMARY"
       - name: Transfer model attempt atomically
         if: always()
@@ -99,7 +99,7 @@ jobs:
           test -n "$PRIVATE_REPO_TOKEN"
           args=(--kind models --integrity-json work/model_integrity.json --integrity-md work/model_integrity.md)
           if [ -f work/model_snapshot.json ]; then args+=(--file work/model_snapshot.json); fi
-          python src/push_private.py "${args[@]}"
+          PYTHONPATH=src python -m mardorf_collector push-private "${args[@]}"
       - name: Enforce model integrity
         if: always()
         run: |

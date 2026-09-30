@@ -44,7 +44,7 @@ jobs:
         env:
           PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
           PRIVATE_REPO: janwohlers78/mardorf-kitevorhersage
-        run: python3 src/check_collection_due.py --kind secondary --max-age-minutes 240
+        run: PYTHONPATH=src python3 -m mardorf_collector check-collection-due --kind secondary --max-age-minutes 240
 
       - name: Report skipped routine secondary trigger
         if: (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.watchdog == true)) && steps.due.outputs.due != 'true'
@@ -71,34 +71,34 @@ jobs:
       - name: Fetch DWD Wunstorf historical reference
         if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || steps.due.outputs.due == 'true'
         continue-on-error: true
-        run: python src/fetch_wunstorf.py
+        run: PYTHONPATH=src python -m mardorf_collector fetch-wunstorf
 
       - name: Audit Wunstorf
         if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || steps.due.outputs.due == 'true'
-        run: python src/audit_secondary_integrity.py --kind wunstorf --input work/wunstorf_bundle.json --json-out work/wunstorf_integrity.json --md-out work/wunstorf_integrity.md
+        run: PYTHONPATH=src python -m mardorf_collector audit-secondary-integrity --kind wunstorf --input work/wunstorf_bundle.json --json-out work/wunstorf_integrity.json --md-out work/wunstorf_integrity.md
 
       - name: Fetch ETNW METAR redundancy
         if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || steps.due.outputs.due == 'true'
         continue-on-error: true
-        run: python src/fetch_etnw_metar.py
+        run: PYTHONPATH=src python -m mardorf_collector fetch-etnw-metar
 
       - name: Audit ETNW
         if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || steps.due.outputs.due == 'true'
-        run: python src/audit_secondary_integrity.py --kind etnw --input work/etnw_bundle.json --json-out work/etnw_integrity.json --md-out work/etnw_integrity.md
+        run: PYTHONPATH=src python -m mardorf_collector audit-secondary-integrity --kind etnw --input work/etnw_bundle.json --json-out work/etnw_integrity.json --md-out work/etnw_integrity.md
 
       - name: Transfer Wunstorf payload and integrity
         if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || steps.due.outputs.due == 'true'
         env:
           PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
           PRIVATE_REPO: janwohlers78/mardorf-kitevorhersage
-        run: python src/push_private.py --kind wunstorf --file work/wunstorf_bundle.json --integrity-json work/wunstorf_integrity.json --integrity-md work/wunstorf_integrity.md
+        run: PYTHONPATH=src python -m mardorf_collector push-private --kind wunstorf --file work/wunstorf_bundle.json --integrity-json work/wunstorf_integrity.json --integrity-md work/wunstorf_integrity.md
 
       - name: Transfer ETNW payload and integrity
         if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || steps.due.outputs.due == 'true'
         env:
           PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
           PRIVATE_REPO: janwohlers78/mardorf-kitevorhersage
-        run: python src/push_private.py --kind etnw --file work/etnw_bundle.json --integrity-json work/etnw_integrity.json --integrity-md work/etnw_integrity.md
+        run: PYTHONPATH=src python -m mardorf_collector push-private --kind etnw --file work/etnw_bundle.json --integrity-json work/etnw_integrity.json --integrity-md work/etnw_integrity.md
 
       - name: Gate Wunstorf integrity
         if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || steps.due.outputs.due == 'true'
@@ -114,6 +114,6 @@ jobs:
           PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
           PRIVATE_REPO: janwohlers78/mardorf-kitevorhersage
         run: |
-          python src/finalize_secondary_batch.py \
+          PYTHONPATH=src python -m mardorf_collector finalize-secondary-batch \
             --wunstorf-integrity work/wunstorf_integrity.json \
             --etnw-integrity work/etnw_integrity.json

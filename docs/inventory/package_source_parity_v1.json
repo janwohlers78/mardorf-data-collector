@@ -1,0 +1,235 @@
+{
+  "schema_version": 1,
+  "method": "normalized-python-ast-migration-parity-v1",
+  "source_commit": "36c27f6b710a714e507e8d0fc2bfd077eb21f9a3",
+  "status": "PASS",
+  "normalizations": [
+    "repository import prefixes and their equivalent binding aliases",
+    "repository-root expression centralized in package paths"
+  ],
+  "modules": [
+    {
+      "implementation_path": "src/fetch_model_data.py",
+      "baseline_sha256": "0c2c020ff2d6b69e7e038ab3fa71e90a664abedfc11a433bc87819eadb8a1bf6",
+      "normalized_ast_sha256": "ec4fbaaec40ccfdd1f387055600e75c8d89b1e8f0dc1291e3fc0a8c792764b1a",
+      "kind": "protected_implementation_bridge"
+    },
+    {
+      "implementation_path": "src/mardorf_collector/providers/fetch_extra_models.py",
+      "baseline_sha256": "92ea251903f65c1c11db02d11b2379f6ac151a7e6eb0ebf97d367d7030f5fa1d",
+      "normalized_ast_sha256": "5d0c143ade871167eb397c800102ab95d27e8a1d86d43d1de35d702b5e1532d6",
+      "kind": "relocated_implementation"
+    },
+    {
+      "implementation_path": "src/fetch_dwd_additional_models.py",
+      "baseline_sha256": "c9288497fcee93487291a1ad54cb4dae68d07d139b303611f43733656ef26fe9",
+      "normalized_ast_sha256": "a924517a2ebf6750666230375132133012ebbf9309fdf3346206ee2d89230279",
+      "kind": "protected_implementation_bridge"
+    },
+    {
+      "implementation_path": "src/mardorf_collector/providers/fetch_svg_weatherlink.py",
+      "baseline_sha256": "c6c20ac1d716c7170b232f2eb903ea777e08e41267697751201738d73da989e6",
+      "normalized_ast_sha256": "e715ee5140e7fc2a40a5b48bc152ea701eb139f53a9ab3dbf55fcd3110ee96f1",
+      "kind": "relocated_implementation"
+    },
+    {
+      "implementation_path": "src/mardorf_collector/providers/fetch_skm_optional.py",
+      "baseline_sha256": "72e2adbc4a8cb5d2b635e19d066eed6895048a8d4d4a1da3d296d199f690efd6",
+      "normalized_ast_sha256": "017d06db0fee16a52883d278fb2bd40b3f57efcbfab3aa8e0a6fc39dab1f6628",
+      "kind": "relocated_implementation"
+    },
+    {
+      "implementation_path": "src/mardorf_collector/providers/fetch_wunstorf.py",
+      "baseline_sha256": "20e1350b5d000f704d6faa8e80f865fa346cab3e44a584750b181e3280523ee5",
+      "normalized_ast_sha256": "9ba695b541e15e09ca7cb0dba8672e470c865377365c562352a8175bcafada6a",
+      "kind": "relocated_implementation"
+    },
+    {
+      "implementation_path": "src/mardorf_collector/providers/fetch_etnw_metar.py",
+      "baseline_sha256": "8ac5346509318305452e18be8f3d94584711c716d6c4781e65dc930028decc11",
+      "normalized_ast_sha256": "1c32df213659ebe9090900bfc1fe5309e0a9f33df13a12c75f46ea43773ed468",
+      "kind": "relocated_implementation"
+    },
+    {
+      "implementation_path": "src/mardorf_collector/providers/provider_fetch.py",
+      "baseline_sha256": "9cfd61a31932b08bc1db1c6940878e20ae9362269864cb535308ba3c64ec7d3d",
+      "normalized_ast_sha256": "9d4d94da5e414b5bbfe2f8fd79fc1aab1e75c9d50d34fe529cc642331b3d4361",
+      "kind": "relocated_implementation"
+    },
+    {
+      "implementation_path": "src/mardorf_collector/providers/gefs_full_members.py",
+      "baseline_sha256": "fefb9f772c947e1ec1e6c9bf4995c84c8b16cfaa3b83b6483b649e7e1889e540",
+      "normalized_ast_sha256": "aeb04518c550990f1b374291f7e66c1abedd4caf2661fa4fda0b5bb5bbbb07b6",
+      "kind": "relocated_implementation"
+    },
+    {
+      "implementation_path": "src/mardorf_collector/providers/noaa_weather_context.py",
+      "baseline_sha256": "78e21f2aa1ede3c75809ca180c0d43736d7b29195131a349a21867364cbb5af2",
+      "normalized_ast_sha256": "5d26ab8b8cdcc346f38cbbd46a7d85062449a2d7c22b218069fce763c6cf16f0",
+      "kind": "relocated_implementation"
+    },
+    {
+      "implementation_path": "src/mardorf_collector/providers/ecmwf_registry.py",
+      "baseline_sha256": "68adb2f898e8e41067964e2510b1b450afe557591326df0d12f7ba808cca19a4",
+      "normalized_ast_sha256": "15b92f9678ecbf8a2530c684bc7001a879375d03a633a4a370b698e35738b611",
+      "kind": "relocated_implementation"
+    },
+    {
+      "implementation_path": "src/mardorf_collector/providers/grib_identity.py",
+      "baseline_sha256": "09789e3a38e1822ad19476ef0640a89dce0e55f748079fd6c89a893dacf5015b",
+      "normalized_ast_sha256": "0b5ae32cfb84644e1c539ad50f2262bc2bcdfe9924efdde369b3e5650a4dba4c",
+      "kind": "relocated_implementation"
+    },
+    {
+      "implementation_path": "src/mardorf_collector/providers/icon_parameter_probe.py",
+      "baseline_sha256": "7dc6b73ffd4f2eed000e1c55d617a6776c4f946f6345cf42bcc8ba606f50030e",
+      "normalized_ast_sha256": "2827eac0612d0fc90e39b55274dd9c63b6db6602fad14f5302e40fa308987071",
+      "kind": "relocated_implementation"
+    },
+    {
+      "implementation_path": "src/mardorf_collector/providers/dev03_v3_convective_acquisition.py",
+      "baseline_sha256": "a5abb4f114aaa2098db194d8040ebb5aa6afcd12a0bc4cadd7bceb89d5e201e9",
+      "normalized_ast_sha256": "f70b7e706831226b702bf203041099913c1664c07ec15342b807f0be0f11b9b9",
+      "kind": "relocated_implementation"
+    },
+    {
+      "implementation_path": "src/mardorf_collector/contracts/availability_contract.py",
+      "baseline_sha256": "f7ad28fce8a552c38d7bdc697ad7756b8b71b7402bd72180376861c390723995",
+      "normalized_ast_sha256": "8e8af42c8ab8de2b2bee81374523d5e3b20e5149725623a00d94c7f5f15b39bc",
+      "kind": "relocated_implementation"
+    },
+    {
+      "implementation_path": "src/mardorf_collector/contracts/availability_contract_v3.py",
+      "baseline_sha256": "8682940902cd96b09958550670b7ccd29beaa0257c4f779bbb56e32638d03cdc",
+      "normalized_ast_sha256": "d89f06a3fff9584797b9d1ef2c323e15404991f2f85231de8696cbe65dd1822a",
+      "kind": "relocated_implementation"
+    },
+    {
+      "implementation_path": "src/mardorf_collector/contracts/cape_native_identity.py",
+      "baseline_sha256": "ec4802b531b9bbc80d2bcd9a8eabb84d3bb8dd83a1dc6a1255ba2f0506e5d2b4",
+      "normalized_ast_sha256": "3f7fcc57ce0ac47853176d353416a77ecb4261127214ab9a569c55c44c1b6188",
+      "kind": "relocated_implementation"
+    },
+    {
+      "implementation_path": "src/mardorf_collector/contracts/forecast_lead_identity.py",
+      "baseline_sha256": "0ba7a01423d254a38e9394bbdb6615396679310ed9164bcb17611be36ee9bbbc",
+      "normalized_ast_sha256": "7db625a8aa3531784fbd4aa764b1f10631729296a98b08c286f04bf8f2642ba6",
+      "kind": "relocated_implementation"
+    },
+    {
+      "implementation_path": "src/mardorf_collector/contracts/full_horizon_contract.py",
+      "baseline_sha256": "734c442c0d864dd2c46146c5a789d9c95a1c3b76879be0d8e02bc8092e847885",
+      "normalized_ast_sha256": "d49febb579c396ba7ec97d583fe1707c3ed43ab3800fc5626d854c7ace56b679",
+      "kind": "relocated_implementation"
+    },
+    {
+      "implementation_path": "src/mardorf_collector/contracts/relevant_meteorology_registry.py",
+      "baseline_sha256": "4216aa3531a3407549b759a68ad170e56b6983d7204884b549e30726bacfe843",
+      "normalized_ast_sha256": "ee977bba238843d8f5bf7f39d7bd16fddf1a0602a1e1e6deeeec0449c7afd21c",
+      "kind": "relocated_implementation"
+    },
+    {
+      "implementation_path": "src/mardorf_collector/contracts/relevant_meteorology_registry_v2.py",
+      "baseline_sha256": "1d8f4efaddbc250388973d7ab2ac00f6dcbebdaeb8d333cf3b15601fc7ebf393",
+      "normalized_ast_sha256": "d79f660ab813c006ece1d66cbe0401f684cfa9a7d01c8556fe17c9edae7ae84e",
+      "kind": "relocated_implementation"
+    },
+    {
+      "implementation_path": "src/mardorf_collector/contracts/relevant_meteorology_registry_v3.py",
+      "baseline_sha256": "8132862952ff62fc25f44185a06fbe49a2cc29f89be48597518fb82d7e0a531a",
+      "normalized_ast_sha256": "70c50a12b2db0d286ddc424facbc63c4d9276550aedc25f0647629f61a469b2d",
+      "kind": "relocated_implementation"
+    },
+    {
+      "implementation_path": "src/mardorf_collector/contracts/dev03_v3_parent_binding.py",
+      "baseline_sha256": "9e4073b400cfc110a11c4b4e59ea5152f19c8b1b8111dc49c0ddc3b6eea314f1",
+      "normalized_ast_sha256": "db3caef53c9ef7160d68252956d446ceecf56a3b09f9ffc71a4a8b7f5dfa920e",
+      "kind": "relocated_implementation"
+    },
+    {
+      "implementation_path": "src/mardorf_collector/integrity/audit_integrity.py",
+      "baseline_sha256": "c0390a0f886d1104a73857e91dea6a63e4f24e5ac7e3adab3e36f480e56f366b",
+      "normalized_ast_sha256": "feace7bf13281c7789dbf3ad4ce5dba9971e3003e5ef8673dec8ba5fc26a7ac0",
+      "kind": "relocated_implementation"
+    },
+    {
+      "implementation_path": "src/mardorf_collector/integrity/audit_secondary_integrity.py",
+      "baseline_sha256": "8e118c8b08d715f17ee190357e1a3d0a544d24cb4cb98baf80c31c43794cf647",
+      "normalized_ast_sha256": "a4a669046c35dda420de8b18dd21d199d4ad14fe9e096489406facfafbd116be",
+      "kind": "relocated_implementation"
+    },
+    {
+      "implementation_path": "src/mardorf_collector/transfer/push_private.py",
+      "baseline_sha256": "62e2b1b14f2f18cd958e56ea8770d5c355a049d049c30087a98220ddae08d395",
+      "normalized_ast_sha256": "3599cab97e556ed167b9dfe4793aeb7847754b8d97a46342df2b2c393c1a28a7",
+      "kind": "relocated_implementation"
+    },
+    {
+      "implementation_path": "src/mardorf_collector/transfer/push_private_v3.py",
+      "baseline_sha256": "dc47bdad02381fbf0f5449505c5b22ace45443f5763f584423fca43d78110f18",
+      "normalized_ast_sha256": "eca44ac0c9c890d4d91b681dab3bfacb05fc6abbb0143214e932f9d2a9adf1a6",
+      "kind": "relocated_implementation"
+    },
+    {
+      "implementation_path": "src/mardorf_collector/transfer/dev03_v3_transfer_shell.py",
+      "baseline_sha256": "501a461b008365dc3d3774cd69295d4226b7d395b6d78b312b4959134ea441f7",
+      "normalized_ast_sha256": "bdafad069f05c5daf4d795ff5d2fd85ebac00c02bf05a2c0fe2bbcfa9680eb14",
+      "kind": "relocated_implementation"
+    },
+    {
+      "implementation_path": "src/mardorf_collector/transfer/finalize_secondary_batch.py",
+      "baseline_sha256": "1fe760ef0e92a7b58110693f2ebd39253b0054319c30c059cdb38b7ae05925eb",
+      "normalized_ast_sha256": "0524cd9d9a3a02e8108455b04c022d7384d9f824f41628d3cc1c696ee17cd3c8",
+      "kind": "relocated_implementation"
+    },
+    {
+      "implementation_path": "src/mardorf_collector/runtime/check_collection_due.py",
+      "baseline_sha256": "c085bb1fca0252becc6f5d3326d2d561939e569aaae6ecd2bec960152cca9e81",
+      "normalized_ast_sha256": "d943950416e6e4b564b6d35c2aeef1559d6a25000f0057d6ef92e3fe8242914b",
+      "kind": "relocated_implementation"
+    },
+    {
+      "implementation_path": "src/mardorf_collector/runtime/provider_cycle_gate.py",
+      "baseline_sha256": "e7baccb50c33150ac3667e8a46eff6ac503eff9175623ba5fe58a5b228ffb2e5",
+      "normalized_ast_sha256": "66548dc98d696190ecf1f5eb1e035b49311ab619762687a74fd070a0bfb56a64",
+      "kind": "relocated_implementation"
+    },
+    {
+      "implementation_path": "src/mardorf_collector/runtime/collect_full_horizon.py",
+      "baseline_sha256": "bd01480ee6be38f4d95af59d96e69f303c7a28d9e3b5a5ffafe278731d74a6d3",
+      "normalized_ast_sha256": "a2a3f76ef89342ea21bf97ad866d495b13d1e372ce1ca9ea4dad0920c37c136b",
+      "kind": "relocated_implementation"
+    },
+    {
+      "implementation_path": "src/mardorf_collector/runtime/collect_icon_tier_a.py",
+      "baseline_sha256": "3ca45523a3e7c09f4787274bfdefb0bc6d0cc53bc9c565cc52837ccbfe1dc27b",
+      "normalized_ast_sha256": "f8164870e94cc0b52738ba400dab1cf5a1b965cbb9f7340cda5c6f5366161547",
+      "kind": "relocated_implementation"
+    },
+    {
+      "implementation_path": "src/extend_model_horizon.py",
+      "baseline_sha256": "cbfcf33ceb61b093e6cfad86654299b3e518c5ca936cf30056061084a82ad8f5",
+      "normalized_ast_sha256": "a9617c1d625f8b24b3faccf90d66ee9c2bf145587a939abd061dc8ee25b6a180",
+      "kind": "protected_implementation_bridge"
+    },
+    {
+      "implementation_path": "src/mardorf_collector/runtime/run_dev03_wp03_i10_public.py",
+      "baseline_sha256": "9f49c1d6c51d5329e87a0647f83b6753fcaa23a6c128dc27ecdf34785d7be6c8",
+      "normalized_ast_sha256": "b79902d87cb53390c3f314b66c13c3aa6acf7f988714fbfca7f6422d24d2e159",
+      "kind": "relocated_implementation"
+    },
+    {
+      "implementation_path": "src/mardorf_collector/runtime/measure_gefs_sparse_policy.py",
+      "baseline_sha256": "4833f124f24d6a86702873b5e940060c836bbe7b08fb28adbd8ee2306acb6e40",
+      "normalized_ast_sha256": "fae609547ab04a5a0c7ce6ceda10569d3bfd3c270e6e4eeb2c4ff8b439040357",
+      "kind": "relocated_implementation"
+    },
+    {
+      "implementation_path": "src/mardorf_collector/runtime/measure_gefs_summary_qa.py",
+      "baseline_sha256": "e59cf405b4f47910df29b7253e400ed1265e938bd295f7811ac0974070c73423",
+      "normalized_ast_sha256": "7be0b6b01aa2761b611db3049ca7cab9dd1feebb1229066163288c42310b41e8",
+      "kind": "relocated_implementation"
+    }
+  ],
+  "limits": "Proves preserved code structure after documented mechanical changes; runtime tests and representative output parity are separate required evidence."
+}

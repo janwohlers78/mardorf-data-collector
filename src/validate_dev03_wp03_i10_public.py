@@ -24,8 +24,8 @@ def validate(root=ROOT):
     frozen=json.loads((root/"config/dev03_shadow_channels_v1.json").read_text())["controls"]
     controls=json.loads((root/"config/dev03_wp03_i10_runtime_controls_v1.json").read_text())["controls"]
     workflow=(root/".github/workflows/dev03-v3-live-proof.yml").read_text()
-    runner=(root/"src/run_dev03_wp03_i10_public.py").read_text()
-    publisher=(root/"src/push_private_v3.py").read_text()
+    runner=(root/"src/mardorf_collector/runtime/run_dev03_wp03_i10_public.py").read_text()
+    publisher=(root/"src/mardorf_collector/transfer/push_private_v3.py").read_text()
 
     check(cfg.get("artifact_version")=="dev03-wp03-i10-live-proof-v1","I10 public contract drift")
     check(cfg.get("trigger_policy")=="workflow_dispatch_or_versioned_runtime_control_push_no_cron","I10 public contract trigger label drift")
