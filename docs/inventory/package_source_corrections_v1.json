@@ -47,6 +47,17 @@
         "PREP-DATA-01-metadata-observability"
       ],
       "scope": "Append detached exact-payload-bound metadata diagnostics in existing audit CLI only; frozen acquisition workflow and meteorological integrity decisions unchanged."
+    },
+    {
+      "implementation_path": "src/mardorf_collector/runtime/collect_icon_tier_a.py",
+      "baseline_normalized_ast_sha256": "f8164870e94cc0b52738ba400dab1cf5a1b965cbb9f7340cda5c6f5366161547",
+      "baseline_source_sha256": "3ca45523a3e7c09f4787274bfdefb0bc6d0cc53bc9c565cc52837ccbfe1dc27b",
+      "corrected_normalized_ast_sha256": "be0a33405acd80f2fd19eef4444359af1169a03d464399c8f766c98a9ce4f072",
+      "corrected_source_sha256": "29deb0098ed91150fc2fb142be75081c129bd5aad401b0cf2e31767102af0ce7",
+      "finding_ids": [
+        "FIX-DATA-03-DWD-WIND-NATIVE-METADATA"
+      ],
+      "scope": "Versioned metadata capture for existing DWD critical wind via exact persisted URL/run/valid/value/point join. Frozen fetcher sources, wind values, forecast derivations and workflows unchanged; metadata clocks remain later."
     }
   ],
   "workflow_ci_path_corrections": [

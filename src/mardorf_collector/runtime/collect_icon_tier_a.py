@@ -53,7 +53,8 @@ def url_inventory(provider_model,cycle,param):
 def fetch_field(provider_model,cycle,lead,param,url,run,valid):
     started=time.monotonic()
     checked=datetime.now(timezone.utc).isoformat()
-    stable={"parameter_native":param,"semantic_id":CANONICAL[param],"registry_version":REGISTRY_VERSION,"value":None,"availability_status":"fetch_error","error_type":"OptionalFieldUnavailable","availability_observed_at_utc":checked}
+    semantic = CANONICAL.get(param) or WIND_SEMANTICS[param]
+    stable={"parameter_native":param,"semantic_id":semantic,"registry_version":REGISTRY_VERSION,"value":None,"availability_status":"fetch_error","error_type":"OptionalFieldUnavailable","availability_observed_at_utc":checked}
     diagnostic={"parameter":param,"lead_hours":lead,"status":"fetch_error"}
     if not url:
         stable["availability_status"]="not_yet_published"
@@ -80,7 +81,7 @@ def fetch_field(provider_model,cycle,lead,param,url,run,valid):
         for m,p in zip(meta,nearest):
             values.append({
                 **m,
-                "semantic_id":CANONICAL[param],
+                "semantic_id":semantic,
                 "registry_version":REGISTRY_VERSION,
                 "value":p["value"],
                 "latitude":p["lat"],
@@ -122,12 +123,14 @@ def annotate_registry_semantics(row):
 
 
 def attach(snapshot,workers=4,models=None):
+    from mardorf_collector.providers.wind_metadata_v1 import capture_jobs, merge_exact_metadata, VERSION as WIND_METADATA_VERSION
     started=datetime.now(timezone.utc)
     selected=set(models or MODEL_MAP)
     unknown=selected-set(MODEL_MAP)
     if unknown:
         raise ValueError(f"unsupported Tier-A models: {sorted(unknown)}")
     jobs=[]
+    wind_jobs=[]
     inventories={}
     for model,provider_model in MODEL_MAP.items():
         if model not in selected:
@@ -146,6 +149,8 @@ def attach(snapshot,workers=4,models=None):
             run=utc(row["run_time_utc"]); valid=utc(row["valid_time_utc"]); lead=int(row["forecast_lead_hours"])
             if abs((valid-run).total_seconds()/3600-lead)>1e-6:
                 raise RuntimeError(f"{model} lead/time mismatch at {lead}")
+            for param,url in capture_jobs(model,row):
+                wind_jobs.append((model,idx,param,provider_model,cycle,lead,run,valid,url))
             for param in TIER_A:
                 jobs.append((model,idx,param,provider_model,cycle,lead,run,valid,inventories[(model,param)].get(lead)))
 
@@ -161,6 +166,22 @@ def attach(snapshot,workers=4,models=None):
             value,diag,url=future.result()
             results[key]=(value,url)
             diagnostics.append({"model":key[0],**diag})
+
+    wind_diagnostics=[]
+    with ThreadPoolExecutor(max_workers=max(1,int(workers))) as pool:
+        futures={pool.submit(fetch_field,provider_model,cycle,lead,param,url,run,valid):(model,idx,param,url)
+                 for model,idx,param,provider_model,cycle,lead,run,valid,url in wind_jobs}
+        for future in as_completed(futures):
+            model,idx,param,url=futures[future]
+            value,diag,_=future.result()
+            merged=merge_exact_metadata(snapshot['models'][model][idx],param,value,source_url=url)
+            wind_diagnostics.append({'model':model,**diag,'metadata_join':merged})
+    snapshot['wind_native_metadata_capture_v1']={
+        'method_version':WIND_METADATA_VERSION,'requested_fields':len(wind_jobs),
+        'verified_metadata_fields':sum(d['metadata_join']['joined_fields'] for d in wind_diagnostics),
+        'response_bytes':sum(d.get('response_bytes',0) for d in wind_diagnostics),
+        'diagnostics':sorted(wind_diagnostics,key=lambda d:(d['model'],d['lead_hours'],d['parameter'])),
+        'forecast_values_changed':False,'historical_backfill':False}
 
     for (model,idx,param),(value,url) in results.items():
         row=snapshot["models"][model][idx]
