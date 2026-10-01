@@ -110,12 +110,13 @@ def acquisition_inventory(payload):
                     continue
                 if key == 'values' and type(item) is dict:
                     for parameter, fields in sorted(item.items()):
-                        if type(fields) is not list:
-                            raise ValueError('native values must be field lists')
-                        for index, field in enumerate(fields):
-                            if type(field) is not dict:
-                                raise ValueError('native field must be an object')
-                            append(field, f'{path}/values/{parameter}/{index}', context, 'native_field')
+                        sequence = fields if type(fields) is list else [fields]
+                        for index, field in enumerate(sequence):
+                            grain = 'native_field' if type(field) is dict else 'native_value_without_dimensions'
+                            # Frozen parents also carry bare scalar values. Preserve
+                            # their missing identity; do not derive it from the map key.
+                            native = field if type(field) is dict else {'value': field}
+                            append(native, f'{path}/values/{parameter}/{index}', context, grain)
                 elif key == 'fields' and type(item) is list:
                     for index, field in enumerate(item):
                         if type(field) is dict and ('value_native' in field or 'parameter_native' in field):
