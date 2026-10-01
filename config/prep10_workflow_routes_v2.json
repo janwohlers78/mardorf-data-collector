@@ -1,0 +1,14 @@
+{
+  "schema_version": 2,
+  "work_package": "DEV03-PREP10",
+  "baseline_sha256": "18adb15e17cd22efc5964e305f227d1cfc3c2766cb142bc1da88ad573dc23ced",
+  "workflows": [
+    {
+      "path": ".github/workflows/backfill-svg-history-v2.yml",
+      "baseline_control_sha256": null,
+      "source_control_sha256": "121e3f32bb5c7bc751d4df4af627129012fb52a2e3511d8a2ad5fa4cb0d9631e",
+      "frozen_git_blob": "cb6f8f795047db90572259ad6f0ab7331f5643d0",
+      "reason": "I03 manual public source acquisition with immutable private-only transfer; no schedule"
+    }
+  ]
+}
