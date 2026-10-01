@@ -1325,6 +1325,9 @@ def main():
     if args.kind=="models":report=audit_models(Path(args.input),cfg,now)
     elif args.kind=="svg":report=audit_svg(Path(args.input),cfg,now)
     else:report=audit_skm(Path(args.input),cfg,now)
+    if args.kind=="models" and Path(args.input).is_file():
+        from prep_data01_metadata import attach_metadata
+        report=attach_metadata(report,Path(args.input).read_bytes())
     jp=Path(args.json_out);mp=Path(args.md_out);jp.parent.mkdir(parents=True,exist_ok=True);mp.parent.mkdir(parents=True,exist_ok=True)
     jp.write_text(json.dumps(report,indent=2,ensure_ascii=False,allow_nan=False)+"\n",encoding="utf-8")
     mp.write_text(markdown(report),encoding="utf-8")
@@ -1336,4 +1339,3 @@ def main():
 
 if __name__=="__main__":
     main()
-

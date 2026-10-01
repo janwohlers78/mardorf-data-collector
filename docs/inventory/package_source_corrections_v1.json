@@ -36,6 +36,17 @@
         "AUD-20260930-01-F02",
         "AUD-20260930-01-F04"
       ]
+    },
+    {
+      "implementation_path": "src/mardorf_collector/integrity/audit_integrity.py",
+      "baseline_normalized_ast_sha256": "feace7bf13281c7789dbf3ad4ce5dba9971e3003e5ef8673dec8ba5fc26a7ac0",
+      "baseline_source_sha256": "c0390a0f886d1104a73857e91dea6a63e4f24e5ac7e3adab3e36f480e56f366b",
+      "corrected_normalized_ast_sha256": "c1b7f2429872dd407fc7557fa3f9a3ad5ab05c6254bd5414407a16fc5bccb3b7",
+      "corrected_source_sha256": "e9c0bda9ee0be5129d9c3e3faa0ed952eeaba6c9d3b1629018fc96c669c0c78c",
+      "finding_ids": [
+        "PREP-DATA-01-metadata-observability"
+      ],
+      "scope": "Append detached exact-payload-bound metadata diagnostics in existing audit CLI only; frozen acquisition workflow and meteorological integrity decisions unchanged."
     }
   ],
   "workflow_ci_path_corrections": [

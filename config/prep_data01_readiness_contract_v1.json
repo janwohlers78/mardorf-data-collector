@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "artifact_version": "prep-data01-readiness-v1",
+  "scope": "Read-only acquisition/archive diagnostics and pre-WP06 cohort partitioning; no calibration authorization",
+  "required_native_dimensions": ["parameter_native", "unit_native", "type_of_level_native", "level_native", "step_type_native"],
+  "unknown_spellings": ["unknown", "UNKNOWN", "missing", "MISSING", "undefined", "not_available", "N/A"],
+  "known_level_types": ["heightAboveGround", "heightAboveGroundLayer", "surface", "meanSea", "entireAtmosphere", "atmosphere", "pressureFromGroundLayer", "isobaricInhPa", "isobaricInPa", "depthBelowLandLayer", "mixedLayer", "nominalTop"],
+  "known_step_types": ["instant", "accum", "avg", "max", "min"],
+  "specific_levels": {
+    "air_temperature_2m": ["heightAboveGround", 2],
+    "dewpoint_temperature_2m": ["heightAboveGround", 2],
+    "relative_humidity_2m": ["heightAboveGround", 2],
+    "wind_u_10m": ["heightAboveGround", 10],
+    "wind_v_10m": ["heightAboveGround", 10],
+    "wind_speed_10m": ["heightAboveGround", 10],
+    "wind_direction_10m": ["heightAboveGround", 10],
+    "mean_sea_level_pressure": ["meanSea", 0],
+    "surface_pressure": ["surface", 0]
+  },
+  "metadata_sources": {
+    "native": "Persisted exact native dimension aliases only; conflicts fail closed",
+    "extraction_api": "Persisted product/field specifications are separate product_metadata evidence. No GRIB dimensions inferred from parameter names, interval descriptions or requested coordinates.",
+    "historical": "Immutable parent/field evidence and clocks remain unchanged; diagnostics never repair or relabel data"
+  },
+  "completeness": "Report schema_present independently from scientifically_known. Compare existing canonical/reader labels without rewriting them.",
+  "cohort_partition": ["semantic_id", "quantity_kind", "unit_si", "parameter_native", "type_of_level_native", "level_native", "step_type_native", "interval_seconds", "grid_id", "latitude", "longitude", "model", "provider_product", "source_archive_version"],
+  "lineage": "Retain full source/member/source-set identity; never compose v5/v6 or source sets. Archive copies, ensemble members and model relatives are not independent votes.",
+  "truth": "Truth join, observation representativeness, missingness selection and effective sample size require an explicitly versioned WP06 contract; absent here",
+  "replacement": "whole_transaction_v1_retained; record-selective successor deferred until explicit parity, causal publication, source-set atomicity and rollback proof",
+  "calibration_authorized": false,
+  "operational_authority": "v16-c3-v9"
+}
