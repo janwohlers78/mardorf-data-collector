@@ -140,6 +140,14 @@ def acquisition_inventory(payload):
             'calibration_authorized': False}
 
 
+def attach_metadata(report, raw):
+    if report.get('input_payload_sha256') != hashlib.sha256(raw).hexdigest():
+        raise ValueError('metadata report must bind the exact audited payload')
+    inventory = acquisition_inventory(json.loads(raw))
+    inventory['input_payload_raw_sha256'] = hashlib.sha256(raw).hexdigest()
+    return {**report, 'prep_data01_metadata': inventory}
+
+
 def main():
     import argparse
     parser = argparse.ArgumentParser(description=__doc__)
@@ -148,11 +156,8 @@ def main():
     args = parser.parse_args()
     raw = args.input.read_bytes()
     report = json.loads(args.integrity_json.read_bytes())
-    if report.get('input_payload_sha256') != hashlib.sha256(raw).hexdigest():
-        raise ValueError('metadata report must bind the exact audited payload')
-    inventory = acquisition_inventory(json.loads(raw))
-    inventory['input_payload_raw_sha256'] = hashlib.sha256(raw).hexdigest()
-    report['prep_data01_metadata'] = inventory
+    report = attach_metadata(report, raw)
+    inventory = report['prep_data01_metadata']
     args.integrity_json.write_text(json.dumps(report, sort_keys=True, allow_nan=False) + '\n')
     print(json.dumps({'metadata_records': inventory['record_count'],
                       'dimension_counts': inventory['dimension_counts'], 'calibration_authorized': False}))
