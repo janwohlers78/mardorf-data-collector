@@ -304,6 +304,13 @@ jobs:
         run: |
           python src/audit_integrity.py             --kind models             --input work/model_snapshot.json             --json-out work/model_integrity.json             --md-out work/model_integrity.md
 
+      - name: Persist PREP-DATA-01 native and product metadata diagnostics in integrity history
+        if: always() && ((github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || (steps.due.outputs.due == 'true' && steps.cycle_gate.outputs.any_work == 'true'))
+        run: |
+          if [ -f work/model_snapshot.json ]; then
+            python src/prep_data01_metadata.py --input work/model_snapshot.json --integrity-json work/model_integrity.json
+          fi
+
       - name: Publish detailed integrity report in Actions summary
         if: always() && ((github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || (steps.due.outputs.due == 'true' && steps.cycle_gate.outputs.any_work == 'true'))
         run: cat work/model_integrity.md >> "$GITHUB_STEP_SUMMARY"
