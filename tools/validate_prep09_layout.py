@@ -95,6 +95,19 @@ def validate(root):
             raise ValueError(f'legacy adapter drift: {item["legacy_path"]}')
     workflows = {p.name: p for p in (root / '.github/workflows').glob('*.yml')}
     expected = {Path(w['path']).name: w for w in routes['workflows']}
+    successor_path = root / 'config/prep10_workflow_routes_v2.json'
+    if successor_path.exists():
+        successor = json.loads(successor_path.read_text())
+        if successor.get('baseline_sha256') != hashlib.sha256((root / 'config/prep09_workflow_routes_v1.json').read_bytes()).hexdigest():
+            raise ValueError('workflow successor baseline mismatch')
+        for reviewed in successor['workflows']:
+            name = Path(reviewed['path']).name
+            baseline = expected.get(name, {})
+            if reviewed.get('baseline_control_sha256') != baseline.get('source_control_sha256'):
+                raise ValueError('workflow successor control binding mismatch')
+            if not reviewed.get('reason') or not reviewed.get('frozen_git_blob'):
+                raise ValueError('workflow successor requires reason and exact source bytes')
+            expected[name] = reviewed
     if workflows.keys() != expected.keys():
         raise ValueError('workflow added/removed without route review')
     for name, path in workflows.items():
