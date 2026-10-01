@@ -56,6 +56,15 @@ class MetadataTests(unittest.TestCase):
         self.assertEqual(report['records'][0]['model'], 'GFS')
         self.assertTrue(report['records'][0]['scientifically_known'])
 
+    def test_frozen_scalar_values_remain_explicitly_without_native_dimensions(self):
+        payload = {'models': {'ICON-D2': [{'values': {'u10': 3.0, 'gust': None}}]}}
+        before = deepcopy(payload)
+        report = acquisition_inventory(payload)
+        self.assertEqual(report['record_count'], 2)
+        self.assertTrue(all(r['grain'] == 'native_value_without_dimensions' for r in report['records']))
+        self.assertTrue(all(set(r['dimension_states'].values()) == {'missing'} for r in report['records']))
+        self.assertEqual(payload, before)
+
     def test_cli_preserves_payload_and_existing_integrity_and_rejects_stale_audit(self):
         script = Path(__file__).resolve().parents[1] / 'src/prep_data01_metadata.py'
         with tempfile.TemporaryDirectory() as td:
