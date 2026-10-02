@@ -1,4 +1,5 @@
 import base64
+import hashlib
 import json
 import unittest
 from unittest.mock import patch
@@ -13,6 +14,61 @@ class FakePatchResponse:
 
 
 class ParentBoundTransferTests(unittest.TestCase):
+    def pointer_fixture(self,raw=None):
+        raw=raw or (b'{"generated_at_utc":"2026-09-23T10:00:00+00:00"}'+b' '*1100000)
+        sha=hashlib.sha1(f"blob {len(raw)}\0".encode()+raw).hexdigest()
+        meta={"type":"file","encoding":"none","content":"","sha":sha,"size":len(raw)}
+        blob={"encoding":"base64","content":base64.b64encode(raw).decode(),"sha":sha,"size":len(raw)}
+        return meta,blob
+
+    def test_large_pointer_blob_is_parent_bound_and_rejects_older_writer(self):
+        meta,blob=self.pointer_fixture()
+        item={"monotonic_guard":{"path":"latest.json","field":"generated_at_utc",
+                                 "incoming_time":"2026-09-23T09:00:00+00:00"}}
+        with patch.object(pp,"content_meta",return_value=meta) as cm, \
+             patch.object(pp,"req",return_value=blob) as request:
+            self.assertFalse(pp.monotonic_allows("owner/private",item,{},ref="fixed-parent"))
+        cm.assert_called_once_with("owner/private","latest.json",{},ref="fixed-parent")
+        request.assert_called_once_with("GET",f"{pp.API}/repos/owner/private/git/blobs/{meta['sha']}",{})
+
+    def test_large_pointer_corrupt_blob_cannot_bypass_monotonic_guard(self):
+        meta,blob=self.pointer_fixture()
+        cases=[{**blob,"sha":"0"*40},{**blob,"size":blob["size"]-1},
+               {**blob,"encoding":"none"},{**blob,"content":"not base64"},
+               {**blob,"content":base64.b64encode(b'x'*blob['size']).decode()}]
+        for bad in cases:
+            with self.subTest(bad=list(bad)),patch.object(pp,"content_meta",return_value=meta), \
+                 patch.object(pp,"req",return_value=bad),self.assertRaises(RuntimeError):
+                pp.read_json_pointer("owner/private","latest.json",{},ref="fixed-parent")
+
+    def test_large_pointer_duplicate_keys_remain_rejected(self):
+        meta,blob=self.pointer_fixture(b'{"generated_at_utc":"old","generated_at_utc":"new"}'+b' '*1100000)
+        with patch.object(pp,"content_meta",return_value=meta),patch.object(pp,"req",return_value=blob), \
+             self.assertRaisesRegex(RuntimeError,"pointer cannot be verified"):
+            pp.read_json_pointer("owner/private","latest.json",{},ref="fixed-parent")
+
+    def test_absent_and_unreadable_small_pointers_keep_distinct_semantics(self):
+        with patch.object(pp,"content_meta",return_value=None),patch.object(pp,"req") as request:
+            self.assertIsNone(pp.read_json_pointer("owner/private","latest.json",{}))
+            request.assert_not_called()
+        with patch.object(pp,"content_meta",return_value={"encoding":"base64","content":""}), \
+             patch.object(pp,"req") as request,self.assertRaises(RuntimeError):
+            pp.read_json_pointer("owner/private","latest.json",{})
+        request.assert_not_called()
+
+    def test_large_pointer_fallback_used_for_descendant_validation(self):
+        meta,blob=self.pointer_fixture()
+        item={"path":"latest.json","content":b'{}',"immutable":False,
+              "monotonic_guard":{"path":"latest.json","field":"generated_at_utc",
+                                 "incoming_time":"2026-09-23T09:00:00+00:00"}}
+        def response(method,url,h,**kwargs):
+            if "/compare/" in url:return {"status":"ahead"}
+            if "/git/blobs/" in url:return blob
+            raise AssertionError(url)
+        with patch.object(pp,"content_meta",return_value=meta) as cm,patch.object(pp,"req",side_effect=response):
+            self.assertTrue(pp.descendant_preserves("owner/private","published","new-head",[item],{}))
+        self.assertEqual(cm.call_args.kwargs["ref"],"new-head")
+
     def test_atomic_commit_binds_guards_and_exact_checks_to_parent(self):
         item={
             "path":"data/inbox/public_collector/integrity/models/latest.json",
