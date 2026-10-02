@@ -38,11 +38,12 @@ class WatchdogWorkflowTests(unittest.TestCase):
         self.assertIn("cron: '23 */3 * * *'",models)
         self.assertIn("cron: '47 0,4,10,16,22 * * *'",secondary)
 
-    def test_failed_optional_skm_is_not_persisted_privately(self):
+    def test_svg_collector_does_not_probe_or_transfer_retired_skm(self):
         s=self.text("collect-svg.yml")
-        self.assertIn("id: skm_transfer_gate",s)
-        self.assertIn("bundle_ready_for_private_revalidation",s)
-        self.assertIn("steps.skm_transfer_gate.outputs.ready == 'true'",s)
+        self.assertNotIn("fetch-skm-optional",s)
+        self.assertNotIn("--kind skm",s)
+        self.assertNotIn("skm_transfer_gate",s)
+        self.assertIn("--kind svg",s)
 
     def test_svg_watchdog_is_freshness_gated(self):
         s=self.text("collect-svg.yml")
