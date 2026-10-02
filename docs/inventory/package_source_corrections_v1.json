@@ -30,12 +30,14 @@
       "implementation_path": "src/mardorf_collector/transfer/push_private.py",
       "baseline_normalized_ast_sha256": "3599cab97e556ed167b9dfe4793aeb7847754b8d97a46342df2b2c393c1a28a7",
       "baseline_source_sha256": "62e2b1b14f2f18cd958e56ea8770d5c355a049d049c30087a98220ddae08d395",
-      "corrected_normalized_ast_sha256": "4951cd032343b017d16dc50ea1c48a69d48f37a743863f9b607a495d16cf2067",
-      "corrected_source_sha256": "e73225ce7c9e0288c025a8ab26c5492f1710b84c7ef382aae5e83b40dde7aa8e",
+      "corrected_normalized_ast_sha256": "9cbfc978009e151f1aa0f1238a5cd287b4ceb0411a24862acd43e1256d38488c",
+      "corrected_source_sha256": "d5455905c86d07c7a237315e777848d6620a94c6b6c1d26918483e07aa874eef",
       "finding_ids": [
         "AUD-20260930-01-F02",
-        "AUD-20260930-01-F04"
-      ]
+        "AUD-20260930-01-F04",
+        "WP06-I02-CONTENTS-METADATA-ONLY"
+      ],
+      "scope": "Preserve strict pointer JSON and monotonic/CAS checks; read metadata-only Contents responses through exact SHA/size-verified Git blob. No acquisition, pointer reset or workflow change."
     },
     {
       "implementation_path": "src/mardorf_collector/integrity/audit_integrity.py",

@@ -86,6 +86,37 @@ def decoded_json_content(meta):
     except (ValueError,TypeError,AttributeError) as exc:
         raise RuntimeError("existing pointer cannot be verified; publication stopped") from exc
 
+def read_json_pointer(repo,path,h,ref=None):
+    """Read a pointer, including GitHub's >1 MiB metadata-only responses.
+
+    The blob SHA comes from the requested ref's Contents response. Never read
+    an unpinned download URL or turn an unreadable existing pointer into absence.
+    """
+    meta=content_meta(repo,path,h,ref=ref)
+    if isinstance(meta,dict) and meta.get("encoding")=="none":
+        try:
+            sha=meta.get("sha")
+            size=meta.get("size")
+            if (meta.get("type")!="file" or type(size) is not int
+                    or not 0<size<=100*1024*1024
+                    or not isinstance(sha,str) or len(sha)!=40
+                    or any(c not in "0123456789abcdef" for c in sha)
+                    or meta.get("content") not in (None,"")):
+                raise ValueError("invalid metadata-only pointer response")
+            existing=req("GET",f"{API}/repos/{repo}/git/blobs/{sha}",h)
+            if (existing.get("sha")!=sha or existing.get("encoding")!="base64"
+                    or type(existing.get("size")) is not int or existing["size"]!=size
+                    or not isinstance(existing.get("content"),str)):
+                raise ValueError("pointer blob metadata mismatch")
+            raw=base64.b64decode(existing["content"].replace("\n",""),validate=True)
+            git_sha=hashlib.sha1(f"blob {len(raw)}\0".encode()+raw).hexdigest()
+            if len(raw)!=size or git_sha!=sha:
+                raise ValueError("pointer blob bytes do not bind the pinned SHA")
+            meta={**meta,"encoding":"base64","content":existing["content"]}
+        except (ValueError,TypeError,AttributeError) as exc:
+            raise RuntimeError("existing pointer blob cannot be verified; publication stopped") from exc
+    return decoded_json_content(meta)
+
 def same_existing(repo,path,content,h,gz=False,ref=None):
     """Return the existing blob SHA only when immutable bytes match exactly."""
     meta=content_meta(repo,path,h,ref=ref)
@@ -124,7 +155,7 @@ def monotonic_allows(repo,item,h,ref=None):
     guard=item.get("monotonic_guard")
     if not isinstance(guard,dict):return True
     parse_time(guard["incoming_time"])
-    current=decoded_json_content(content_meta(repo,guard["path"],h,ref=ref))
+    current=read_json_pointer(repo,guard["path"],h,ref=ref)
     if current is None:return True
     current_value=current.get(guard["field"])
     if not current_value:raise RuntimeError("existing pointer lacks monotonic timestamp; publication stopped")
@@ -152,7 +183,7 @@ def descendant_preserves(repo,new_commit_sha,current_sha,pending,h):
             continue
         guard=item.get("monotonic_guard")
         if isinstance(guard,dict):
-            current=decoded_json_content(content_meta(repo,guard["path"],h,ref=current_sha))
+            current=read_json_pointer(repo,guard["path"],h,ref=current_sha)
             if not current:
                 return False
             current_value=current.get(guard["field"])
@@ -336,7 +367,7 @@ def main():
     latest_path=f"data/inbox/public_collector/integrity/{args.kind}/latest.json"
     latest_success_path=f"data/inbox/public_collector/integrity/{args.kind}/latest_success.json"
     receipt_latest_path=f"data/inbox/public_collector/transfer_receipts/{args.kind}/latest.json"
-    previous=decoded_json_content(content_meta(repo,latest_path,h))
+    previous=read_json_pointer(repo,latest_path,h)
     nominal_minutes={"models":180,"svg":60,"skm":60,"wunstorf":300,"etnw":300}[args.kind]
     continuity={
         "nominal_target_interval_minutes":nominal_minutes,
