@@ -9,6 +9,13 @@
       "source_control_sha256": "121e3f32bb5c7bc751d4df4af627129012fb52a2e3511d8a2ad5fa4cb0d9631e",
       "frozen_git_blob": "cb6f8f795047db90572259ad6f0ab7331f5643d0",
       "reason": "I03 manual public source acquisition with immutable private-only transfer; no schedule"
+    },
+    {
+      "path": ".github/workflows/collect-svg.yml",
+      "baseline_control_sha256": "f4ba06e1b04d650956714b081fd7d29708ac4b387f74c96be422b5fb25af8881",
+      "source_control_sha256": "72bff2b25a6a5617bb64c3f0d3a8df4343142fbf9bc82e19c0dc6689a6ec63b1",
+      "frozen_git_blob": "0a4a5b6037ffb2f5a7d76b2f86e52be482b58c0d",
+      "reason": "I06 removes the retired SKM probe, audit and private transfer from routine SVG collection; historical source remains inspectable"
     }
   ]
 }
