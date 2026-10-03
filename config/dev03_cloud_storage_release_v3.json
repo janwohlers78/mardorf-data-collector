@@ -1,0 +1,14 @@
+{
+  "schema_version": 3,
+  "artifact_version": "dev03-cloud-object-transport-v3",
+  "predecessor": "config/dev03_cloud_storage_release_v2.json",
+  "predecessor_sha256": "5141591248a22547d57de0eb84d18e402a1fa211a3fc69015f90cf75ae260b7e",
+  "artifact_sha256": {
+    "src/mardorf_collector/storage/__init__.py": "e0e54006b9540036e9517a391654df71c8e9d06d33b5e00e5598fe0aa12dbe1d",
+    "src/mardorf_collector/storage/objects.py": "cb57533bfcd09474a826ca4cb6648d75c9f17ce6c08fb9eda35b40c7ac551674",
+    "src/mardorf_collector/storage/archive.py": "4e39571ceabc7c2b25eb610529d29906b4b2ce0e4d486b32a4df15e595a9703d",
+    "src/mardorf_collector/storage/workspace.py": "b892cc93d379f92e4cdb52b434b4089ae3d6553fd35c9972d1efc477fccff49d",
+    "src/mardorf_collector/storage/head.py": "7074c8af8cda1f31a303bd4a2cb00012e1f2cbb7c01d24a49bc8f27b07bc8550"
+  },
+  "scope": "Copy-on-write archive workspace and exact-readback non-forced Git metadata CAS; V1/V2 bytes unchanged; no weather values in Git control refs"
+}
