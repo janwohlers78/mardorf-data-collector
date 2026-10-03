@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "artifact_version": "dev03-wp15-native-aliases-v1",
+  "status": "explicit_native_header_binding",
+  "predecessor_artifact_sha256": {
+    "src/mardorf_collector/wp13/core_v1.py": "ba2607d2845706bff894877953da0dcd51cd7ffe9bcf62b1f43d09f7bd6fa1e2",
+    "src/mardorf_collector/wp13/adapters_v1.py": "e71c26e60515d5421d98592c34cab64b1adc9624019fd782b1b750388d91e595"
+  },
+  "bindings": [
+    {
+      "id": "dwd-icon-d2-max-i10fg-v1",
+      "provider_binding_id": "dwd-icon-d2-v1",
+      "requested_parameter": "vmax_10m",
+      "short_name": "max_i10fg",
+      "paramId": 237318,
+      "units": "m s**-1",
+      "typeOfLevel": "heightAboveGround",
+      "level": 10,
+      "stepType": "max",
+      "quantity_id": "wind_gust",
+      "evidence": "Official DWD vmax_10m GRIB response; original ecCodes name Time-maximum 10 metre wind gust, paramId 237318, native height/unit/max support; WP15 real source SHA bound in private canary."
+    }
+  ]
+}
