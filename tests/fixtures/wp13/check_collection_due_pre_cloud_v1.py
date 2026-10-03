@@ -38,8 +38,7 @@ def state_pointer(kind):
     return (f"data/inbox/public_collector/integrity/{kind}/latest_success.json","generated_at_utc")
 
 def fetch_latest(repo,kind,token):
-    from .private_state import due_pointer
-    path,stamp_field=due_pointer(repo,kind)
+    path,_=state_pointer(kind)
     url=f"{API}/repos/{repo}/contents/{path}?ref=main"
     req=urllib.request.Request(url,headers={
         "Authorization":f"Bearer {token}",
@@ -50,20 +49,7 @@ def fetch_latest(repo,kind,token):
     with urllib.request.urlopen(req,timeout=20) as r:
         meta=json.loads(r.read().decode("utf-8"))
     raw=base64.b64decode(meta["content"].replace("\n",""))
-    value=json.loads(raw.decode("utf-8"))
-    if path.startswith('config/cloud_refs/'):
-        if (value.get('schema_version')!=1 or value.get('artifact_version')!='cloud-collector-ref-v1' or
-                value.get('kind')!=kind or value.get('bundle_ready') is not True or
-                value.get('readback_verified') is not True):
-            raise ValueError('Cloud acquisition control is not verified')
-        from mardorf_collector.storage.objects import ObjectRef
-        ObjectRef.parse(value['snapshot'])
-        when=datetime.fromisoformat(value['generated_at_utc'].replace('Z','+00:00'))
-        if when.tzinfo is None:
-            raise ValueError('Cloud acquisition control lacks timezone')
-    # Retain the unchanged caller's stamp contract, including secondary batches.
-    _,original_field=state_pointer(kind)
-    return {**value,original_field:value.get(stamp_field)}
+    return json.loads(raw.decode("utf-8"))
 
 def main():
     ap=argparse.ArgumentParser()
