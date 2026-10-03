@@ -128,7 +128,7 @@ def validate(root):
         elif package_steps:
             raise ValueError('package validation signature exception outside its approved CI path')
         if signature(data) != expected[name]['source_control_sha256']:
-            # The only approved new trigger is public CI coverage for its test-only lockfile.
+            # Explicit successors bind approved CI-only paths to the frozen controls.
             correction = next((item for item in corrections_doc.get('workflow_ci_path_corrections', [])
                                if item.get('path') == '.github/workflows/' + name), None)
             baseline_data = json.loads(json.dumps(data))
@@ -137,9 +137,15 @@ def validate(root):
                     correction is None or paths.count('requirements-ci.txt') != 1):
                 raise ValueError(f'trigger/permission/concurrency/guard drift: {name}')
             paths.remove('requirements-ci.txt')
+            wp13_path=root/'docs/inventory/wp13_ci_contract_v1.json'
+            wp13=json.loads(wp13_path.read_text()) if wp13_path.exists() else None
+            if wp13 is not None:
+                if (wp13.get('predecessor_sha256')!=hashlib.sha256(corrections_path.read_bytes()).hexdigest() or wp13.get('baseline_control_sha256')!=expected[name]['source_control_sha256'] or wp13.get('workflow_sha256')!=hashlib.sha256(path.read_bytes()).hexdigest() or paths.count('requirements-wp13-grib.txt')!=1):
+                    raise ValueError('unverified WP13 CI successor')
+                paths.remove('requirements-wp13-grib.txt')
             if (signature(baseline_data) != expected[name]['source_control_sha256'] or
                     correction.get('baseline_control_sha256') != expected[name]['source_control_sha256'] or
-                    correction.get('corrected_source_sha256') != hashlib.sha256(path.read_bytes()).hexdigest() or
+                    (wp13 is None and correction.get('corrected_source_sha256') != hashlib.sha256(path.read_bytes()).hexdigest()) or
                     not correction.get('finding_ids')):
                 raise ValueError(f'unverified CI path correction: {name}')
         if expected[name].get('frozen_git_blob'):

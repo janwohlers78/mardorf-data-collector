@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "artifact_version": "dev03-wp13-ci-contract-v1",
+  "predecessor": "docs/inventory/package_source_corrections_v1.json",
+  "predecessor_sha256": "d866971285951d55e29bfebe49ec751316e13eca2b5583905272615319a38006",
+  "baseline_control_sha256": "19c3dcd2be98a628c15c243a8a4cb914b4a773d1a3fc1f8577dfa1c621de26f4",
+  "workflow_sha256": "bfdf2904efbbd85924fe9bd7550ee4ca41ca215975ffed13dcb4101279e25888",
+  "scope": "Existing validation workflow: optional native GRIB lock install and exact PR path coverage only. No acquisition, workflow, job, permission or guard proliferation."
+}

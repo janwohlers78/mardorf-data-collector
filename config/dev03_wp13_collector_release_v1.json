@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "artifact_version": "dev03-wp13-collector-release-v1",
+  "status": "prepared_inactive",
+  "collection_enabled": false,
+  "entrypoint": "python -m mardorf_collector wp13-prepare",
+  "private_contract_commit": "34641f4b3e638fba482d04dd6070ded468a37e98",
+  "required_consumer_capabilities": [
+    "wp12-native-field-v1",
+    "wp12-strict-validation-v2",
+    "wp12-ensemble-atomic-v1"
+  ],
+  "activation_requires": [
+    "WP14-I08 deployed consumer readiness",
+    "WP15-I01 real bounded canary",
+    "WP15-I02 versioned acquisition activation release"
+  ],
+  "artifact_sha256": {
+    ".github/workflows/validate.yml": "bfdf2904efbbd85924fe9bd7550ee4ca41ca215975ffed13dcb4101279e25888",
+    "config/dev03_wp13_contract_bundle_v1.json": "c726d79a4cf3301720c483d0bcf459b6dc0e73a3ff6a35eb0cff2037a25c7aca",
+    "docs/inventory/wp13_ci_contract_v1.json": "9ba7576b1829bcf0f8a378596f99a671a65dc08a523b1eb2809f0de7f9475dfb",
+    "requirements-wp13-grib.txt": "6be06258af53aea46e772e8a21715e495437214d8c63d1fc09b4da2b86f41ae0",
+    "src/mardorf_collector/__main__.py": "6acab8a1a75a79baf58f30cd1ce8a214c2351b331f546453f575f20253a9df59",
+    "src/mardorf_collector/wp13/__init__.py": "916c8acbd8d079e6a1ad3dac3bcf824cf356d6297ac40bc222cbc2a7103c440e",
+    "src/mardorf_collector/wp13/adapters_v1.py": "e71c26e60515d5421d98592c34cab64b1adc9624019fd782b1b750388d91e595",
+    "src/mardorf_collector/wp13/core_v1.py": "ba2607d2845706bff894877953da0dcd51cd7ffe9bcf62b1f43d09f7bd6fa1e2",
+    "src/mardorf_collector/wp13/history_v1.py": "dea612dc8d4930ca7598ad72d853f5fa21869785bc609b3fadb97ca08214098c",
+    "src/mardorf_collector/wp13/store_v1.py": "2191bd5bd7fa996a38a738c54d511101b4b41b08eaced0e95235b5318d838186",
+    "tests/fixtures/wp13/domain_two_sites_v1.json": "956f384d8e794a0444d0cf42bcfcf0d5393094d0413ef56e59d8587ec973f6f3",
+    "tests/fixtures/wp13/fixture_manifest_v1.json": "4933e00ffa4168ad6c5253f7bf82625b77861ad86aa6337be9e66d22181efa6b",
+    "tests/fixtures/wp13/native_weather_v1.grib2": "69e61a91cd99a4494ebd0190f700ef863bcb44a6c11b0d22d6cdd8e1eb881294",
+    "tests/fixtures/wp13/svg_current_v1.json": "56adf39703d61234b54d7175b0267da367f59a31c00bd2ee1c9574ed1c22f90f",
+    "tests/fixtures/wp13/svg_historic_v1.json": "d9acaeee9ca4ddef6102791fa496b019043f9e071cdd5c7002e39d71fee6a125",
+    "tests/test_wp13_audit_v1.py": "e08ceea838b148356e8f792b886076196254d0e7c73ffeee36c3878e58fe8035",
+    "tests/test_wp13_collector_v1.py": "3adbccddce9a580dea4c3948b39168b327d1d898ee46944c13d51567351a7a4f",
+    "tests/test_wp13_history_v1.py": "3a9b1022603d6be86440ba5b63da5a9ab2a859ab8d0b9ef746a28779bf1b9a35",
+    "tools/validate_prep09_layout.py": "cad43b28aa2c2712e335597eefc3585683aec16f5a8d2fd9053a791694961dba"
+  },
+  "structure": {
+    "runtime_modules": 4,
+    "new_workflows": 0,
+    "provider_specific_entrypoints": 0,
+    "contract_bundles": 1,
+    "forecast_systems_added": 0
+  },
+  "legacy_retirement": [
+    {
+      "owner": "WP14",
+      "legacy": "existing transfer/promotion path",
+      "replacement": "verified native transfer receiver + L2 projections",
+      "delete_after": [
+        "consumer capability parity",
+        "bounded real canary",
+        "pointer/readback parity"
+      ]
+    },
+    {
+      "owner": "WP15",
+      "legacy": "fixed-site runtime collector adapters",
+      "replacement": "configured WP13 shared collector",
+      "delete_after": [
+        "routine acquisition parity",
+        "raw and native metadata completeness",
+        "operational monitoring and replay proof"
+      ]
+    },
+    {
+      "owner": "L5-WORK",
+      "legacy": "old wind-only analysis/decision and SVG normalization adapter",
+      "replacement": "one EMOS weather synthesis and optional comparison view",
+      "delete_after": [
+        "calibrated L3 and accepted L4",
+        "operational cutover evidence",
+        "shadow evaluation complete"
+      ]
+    }
+  ],
+  "limitations": [
+    "No live provider acquisition/download proof in WP13; synthetic GRIB fixtures are labelled.",
+    "Open-Meteo single point response: request each configured site separately.",
+    "HTTP-200 invalid native payload remains cached as evidence; explicit refresh_id creates a new request revision.",
+    "Missing archive values stay raw_only/not_returned/native_null; no invented calibration targets.",
+    "Legacy adapters remain until versioned cutover gates pass."
+  ]
+}
