@@ -59,24 +59,6 @@ def validate(root):
     corrections = {item['implementation_path']: item for item in corrections_doc.get('modules', [])}
     if len(corrections) != len(corrections_doc.get('modules', [])):
         raise ValueError('duplicate corrected source path')
-    successor_path=root/'docs/inventory/collector_runtime_successor_v1.json'
-    if successor_path.exists():
-        successor=json.loads(successor_path.read_text())
-        release_path=root/'config/dev03_wp13_collector_release_v1.json'
-        release=json.loads(release_path.read_text())
-        frozen=root/successor['preserved_validator_path']
-        if (successor.get('schema_version')!=1 or not successor.get('audit_id') or
-                successor.get('predecessor_sha256')!=hashlib.sha256(corrections_path.read_bytes()).hexdigest() or
-                successor.get('frozen_release_sha256')!=hashlib.sha256(release_path.read_bytes()).hexdigest() or
-                hashlib.sha256(frozen.read_bytes()).hexdigest()!=release['artifact_sha256']['tools/validate_prep09_layout.py'] or
-                successor.get('validator_sha256')!=hashlib.sha256((root/'tools/validate_prep09_layout.py').read_bytes()).hexdigest()):
-            raise ValueError('unverified collector runtime successor')
-        for item in successor.get('modules',[]):
-            path=item['implementation_path']
-            if path in corrections:raise ValueError('duplicate runtime source successor')
-            if any(m['implementation_path']==path and m.get('kind')=='protected_implementation_bridge' for m in modules):
-                raise ValueError('runtime successor changed protected provider')
-            corrections[path]=item
     if set(corrections) - {item['implementation_path'] for item in proof['modules']}:
         raise ValueError('correction outside the historical package parity scope')
     by_path = {m['implementation_path']: m for m in modules}

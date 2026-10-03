@@ -69,6 +69,35 @@ def quality_one(d,model,expected):
     families={("DWD-ICON" if n.startswith("ICON-") else "GFS" if n in ("GFS","GEFS-control") else n) for n in success}
     d["quality"]["minimum_two_independent_models_met"]=len(families)>=2
 
+def fetch_eps_when_settled(leads, *, max_wait_seconds=180, poll_seconds=30):
+    """Bridge short publication transitions without changing the frozen fetcher.
+
+    Every poll reads current provider metadata. The monotonic deadline never
+    resets when a cycle changes, and the original acquisition still independently
+    verifies settling, bracketed metadata, member identity and spatial evidence.
+    """
+    if (type(max_wait_seconds) not in (int,float) or not 0<=max_wait_seconds<=180 or
+            type(poll_seconds) not in (int,float) or not 0<poll_seconds<=60):
+        raise ValueError("Invalid bounded provider readiness budget")
+    deadline=time.monotonic()+max_wait_seconds
+    while True:
+        metadata=dwd.fetch_eps_metadata()
+        availability_time=dwd._meta_dt(metadata,'last_run_availability_time_utc')
+        age=(datetime.now(timezone.utc)-availability_time).total_seconds()
+        remaining=dwd.EPS_SETTLING_SECONDS-age
+        if remaining<=0:
+            return dwd.fetch_icon_d2_eps_bundle(leads)
+        budget=deadline-time.monotonic()
+        if age<0 or remaining>budget:
+            raise RuntimeError(
+                "ICON-D2-EPS readiness exceeds bounded wait: "
+                f"remaining_seconds={round(remaining,1)} budget_seconds={round(max(0,budget),1)}")
+        pause=min(remaining,poll_seconds,budget)
+        print(json.dumps({"model":"ICON-D2-EPS","stage":"publication_readiness",
+                          "status":"waiting","wait_seconds":round(pause,3),
+                          "settling_required_seconds":dwd.EPS_SETTLING_SECONDS}),flush=True)
+        time.sleep(pause)
+
 def fetch_base(d,model,test):
     leads=base_leads(model,test)
     if model=="ICON-D2":
@@ -91,7 +120,7 @@ def fetch_base(d,model,test):
         else:
             rows=dwd.fetch_icon_eu(leads,required_cycle_lead=None if test else 120)
     elif model=="ICON-D2-EPS":
-        rows,hourly_source=dwd.fetch_icon_d2_eps_bundle(leads)
+        rows,hourly_source=fetch_eps_when_settled(leads)
         d["ensemble_hourly_source"]=hourly_source
     else:
         raise ValueError(model)
