@@ -59,8 +59,6 @@ def validate(root):
     corrections = {item['implementation_path']: item for item in corrections_doc.get('modules', [])}
     if len(corrections) != len(corrections_doc.get('modules', [])):
         raise ValueError('duplicate corrected source path')
-    successor_v4_path=root/'docs/inventory/collector_runtime_successor_v4.json'
-    successor_v4=json.loads(successor_v4_path.read_text()) if successor_v4_path.exists() else None
     successor_v3_path = root/'docs/inventory/collector_runtime_successor_v3.json'
     successor_v3 = json.loads(successor_v3_path.read_text()) if successor_v3_path.exists() else None
     successor_v2_path = root/'docs/inventory/collector_runtime_successor_v2.json'
@@ -102,19 +100,12 @@ def validate(root):
                 successor_v3.get('artifact_version') != 'collector-runtime-successor-v3' or
                 successor_v3.get('predecessor_sha256') != hashlib.sha256(successor_v2_path.read_bytes()).hexdigest() or
                 successor_v3.get('preserved_validator_sha256') != hashlib.sha256((root/successor_v3['preserved_validator_path']).read_bytes()).hexdigest() or
-                successor_v3.get('validator_sha256') != hashlib.sha256((root/(successor_v4['preserved_validator_path'] if successor_v4 else 'tools/validate_prep09_layout.py')).read_bytes()).hexdigest()):
+                successor_v3.get('validator_sha256') != hashlib.sha256((root/'tools/validate_prep09_layout.py').read_bytes()).hexdigest()):
             raise ValueError('unverified collector workflow routing successor')
         for artifact in successor_v3.get('auxiliary_artifacts', []):
             if (hashlib.sha256((root/artifact['path']).read_bytes()).hexdigest() != artifact['sha256'] or
                     hashlib.sha256((root/artifact['preserved_path']).read_bytes()).hexdigest() != artifact['preserved_sha256']):
                 raise ValueError('unverified auxiliary workflow validation successor')
-    if successor_v4 is not None:
-        if (successor_v4.get('artifact_version')!='collector-runtime-successor-v4' or
-                successor_v4.get('predecessor_sha256')!=hashlib.sha256(successor_v3_path.read_bytes()).hexdigest() or
-                successor_v4.get('preserved_validator_sha256')!=hashlib.sha256((root/successor_v4['preserved_validator_path']).read_bytes()).hexdigest() or
-                successor_v4.get('preserved_validator_sha256')!=successor_v3.get('validator_sha256') or
-                successor_v4.get('validator_sha256')!=hashlib.sha256((root/'tools/validate_prep09_layout.py').read_bytes()).hexdigest()):
-            raise ValueError('unverified manual model canary successor')
     if set(corrections) - {item['implementation_path'] for item in proof['modules']}:
         raise ValueError('correction outside the historical package parity scope')
     by_path = {m['implementation_path']: m for m in modules}
@@ -183,25 +174,6 @@ def validate(root):
                     (expected[name].get('frozen_git_blob') and expected[name]['frozen_git_blob'] != blob)):
                 raise ValueError('cloud workflow original controls/bytes drift')
             expected[name] = reviewed
-    model_review_path=root/'config/prep10_workflow_routes_v4.json'
-    if model_review_path.exists():
-        review=json.loads(model_review_path.read_text());rows=review.get('workflows',[])
-        if review.get('baseline_sha256')!=hashlib.sha256(cloud_routes_path.read_bytes()).hexdigest() or len(rows)!=1:
-            raise ValueError('manual model canary predecessor drift')
-        row=rows[0];name='collect-models.yml'
-        previous=(root/row['preserved_workflow_path']).read_bytes()
-        if (row.get('path')!='.github/workflows/'+name or row.get('approved_scope')!='manual_isolated_model_canary_only' or
-                row.get('baseline_control_sha256')!=expected[name]['source_control_sha256'] or
-                row.get('preserved_git_blob')!=expected[name]['frozen_git_blob'] or
-                hashlib.sha1(b'blob '+str(len(previous)).encode()+b'\0'+previous).hexdigest()!=row['preserved_git_blob'] or not row.get('reason')):
-            raise ValueError('manual model canary scope/bytes drift')
-        current=previous.decode()
-        changes=[('      watchdog:\n', "      cloud_canary:\n        description: 'Manual isolated B2 delivery proof; no productive private branch changes'\n        type: boolean\n        default: false\n      watchdog:\n"), ('  group: public-model-collector\n', "  group: public-model-collector-${{ inputs.cloud_canary && 'b2-canary' || 'normal' }}\n"), ('          if python -c "import json,sys; sys.exit(0 if json.load(open(\'config/dev03_cloud_runtime_v1.json\'))[\'production_enabled\'] is True else 1)"; then', '          if [ \'${{ inputs.cloud_canary }}\' = \'true\' ] || python -c "import json,sys; sys.exit(0 if json.load(open(\'config/dev03_cloud_runtime_v1.json\'))[\'production_enabled\'] is True else 1)"; then'), (' && inputs.test_mode != true\n        shell: bash\n        env:', ' && (inputs.test_mode != true || inputs.cloud_canary == true)\n        shell: bash\n        env:'), ('          PYTHONPATH=src python -m mardorf_collector.transfer.dispatch publish "${args[@]}"', '          PYTHONPATH=src python -m mardorf_collector.transfer.dispatch publish --cloud-canary "${{ inputs.cloud_canary && \'true\' || \'false\' }}" "${args[@]}"')]
-        for pattern,replacement in changes:
-            if current.count(pattern)!=1:raise ValueError('ambiguous manual model canary scope')
-            current=current.replace(pattern,replacement)
-        if current!=(root/row['path']).read_text():raise ValueError('model canary changed acquisition or science gates')
-        expected[name]=row
     if workflows.keys() != expected.keys():
         raise ValueError('workflow added/removed without route review')
     for name, path in workflows.items():

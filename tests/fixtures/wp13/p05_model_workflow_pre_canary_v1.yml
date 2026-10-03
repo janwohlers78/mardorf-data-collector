@@ -14,10 +14,6 @@ on:
         description: 'Hard-validate the complete native horizon during a deliberate manual live proof'
         type: boolean
         default: false
-      cloud_canary:
-        description: 'Manual isolated B2 delivery proof; no productive private branch changes'
-        type: boolean
-        default: false
       watchdog:
         description: 'Routine external watchdog trigger; respects freshness gate'
         type: boolean
@@ -27,7 +23,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: public-model-collector-${{ inputs.cloud_canary && 'b2-canary' || 'normal' }}
+  group: public-model-collector
   cancel-in-progress: true
 
 jobs:
@@ -77,7 +73,7 @@ jobs:
         if: (github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || steps.due.outputs.due == 'true'
         run: |
           python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-runtime.txt
-          if [ '${{ inputs.cloud_canary }}' = 'true' ] || python -c "import json,sys; sys.exit(0 if json.load(open('config/dev03_cloud_runtime_v1.json'))['production_enabled'] is True else 1)"; then
+          if python -c "import json,sys; sys.exit(0 if json.load(open('config/dev03_cloud_runtime_v1.json'))['production_enabled'] is True else 1)"; then
             python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-cloud.txt
           fi
 
@@ -322,7 +318,7 @@ jobs:
         run: cat work/model_integrity.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Transfer payload and integrity history to private repository
-        if: always() && ((github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || (steps.due.outputs.due == 'true' && steps.cycle_gate.outputs.any_work == 'true')) && (inputs.test_mode != true || inputs.cloud_canary == true)
+        if: always() && ((github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || (steps.due.outputs.due == 'true' && steps.cycle_gate.outputs.any_work == 'true')) && inputs.test_mode != true
         shell: bash
         env:
           PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
@@ -340,7 +336,7 @@ jobs:
           args=(--kind models --integrity-json work/model_integrity.json --integrity-md work/model_integrity.md)
           if [ -f work/model_snapshot.json ]; then args+=(--file work/model_snapshot.json); fi
           args+=(--result-json work/model_transfer_result.json --receipt-copy work/model_transfer_receipt.json)
-          PYTHONPATH=src python -m mardorf_collector.transfer.dispatch publish --cloud-canary "${{ inputs.cloud_canary && 'true' || 'false' }}" "${args[@]}"
+          PYTHONPATH=src python -m mardorf_collector.transfer.dispatch publish "${args[@]}"
 
       - name: Fail workflow when granular integrity audit found errors
         if: always() && ((github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || (steps.due.outputs.due == 'true' && steps.cycle_gate.outputs.any_work == 'true'))
