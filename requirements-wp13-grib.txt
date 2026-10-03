@@ -1,0 +1,19 @@
+# Optional WP13 GRIB adapter environment: Python 3.12 / Linux x86_64.
+# Existing runtime lock remains unchanged. New writer remains offline.
+# Install with --require-hashes --only-binary=:all:.
+attrs==26.1.0 \
+    --hash=sha256:c647aa4a12dfbad9333ca4e71fe62ddc36f4e63b2d260a37a8b83d2f043ac309
+cffi==2.1.1 \
+    --hash=sha256:c1453022f490d2459a11819d83ad1d586e9ff65a12ac3e705ffebd46d3685dcf
+eccodes==2.49.0 \
+    --hash=sha256:b2a51d05fc97a0739cf38c18e181e7b99706961330a5f1df6e538a4365ab3d84
+eccodeslib==2.49.0.30 \
+    --hash=sha256:3af3dec6f4e5630dabc8cfa45346b38581ce5bd135944fc2b95d1040b75b5551
+eckitlib==2.3.0.30 \
+    --hash=sha256:71b4059a56d8b35d682b05b0929e848e34750bb4c9e8d7198aa6d0049171c984
+findlibs==0.1.3 \
+    --hash=sha256:9c14f8506cdcd37e38369259f8cd9aa3c002d58cd7c2beff4852bd205495c555
+numpy==2.5.3 \
+    --hash=sha256:b7e18c623bb5c95acb3b3328861272816ba199fb531921c5d6d0b675f1fde9e3
+pycparser==3.0 \
+    --hash=sha256:b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992

@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "status": "synthetic_eccodes_fixture_not_provider_receipt",
+  "sha256": "69e61a91cd99a4494ebd0190f700ef863bcb44a6c11b0d22d6cdd8e1eb881294",
+  "deterministic_bytes": 206,
+  "ensemble_members": 31,
+  "generated_with": "ecCodes 2.49.0, bounded 3x3 regular lat-lon field; one deterministic and 31 native perturbations"
+}
