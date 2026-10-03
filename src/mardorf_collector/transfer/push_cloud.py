@@ -106,7 +106,8 @@ def main():
     parser.add_argument('--file');parser.add_argument('--integrity-json',required=True);parser.add_argument('--integrity-md',required=True)
     parser.add_argument('--result-json');parser.add_argument('--receipt-copy')
     args=parser.parse_args()
-    runtime=load_runtime(Path.cwd())
+    from mardorf_collector.runtime.cloud_environment import environment
+    runtime=load_runtime(Path.cwd(),environ=environment(Path.cwd()))
     payload=Path(args.file).read_bytes() if args.file and Path(args.file).exists() else None
     integrity=json.loads(Path(args.integrity_json).read_text())
     result=publish_collector(runtime,kind=args.kind,payload=payload,integrity=integrity,

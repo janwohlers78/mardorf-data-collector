@@ -30,9 +30,10 @@ def enabled(repository, *, root=REPOSITORY_ROOT):
 @lru_cache(maxsize=1)
 def cloud():
     from mardorf_collector.storage.runtime import load_runtime
+    from .cloud_environment import environment
     # Public collectors already have a restricted WeatherWriter. Its read scope
     # is used here; private consumers require their separate read-only role.
-    return load_runtime(REPOSITORY_ROOT)
+    return load_runtime(REPOSITORY_ROOT,environ=environment())
 
 
 def read(repository, path, *, reader=None):

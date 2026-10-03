@@ -15,5 +15,11 @@
   },
   "authority_policy": "After explicit activation B2 only; ephemeral compatible files are reconstructed from pinned root, never a fallback Git weather tree",
   "scientific_gate": "OPEN",
-  "operational_authority": "v16-c3-v9"
+  "operational_authority": "v16-c3-v9",
+  "b2_location": {
+    "B2_ENDPOINT_URL": "https://s3.eu-central-003.backblazeb2.com",
+    "B2_REGION": "eu-central-003",
+    "B2_BUCKET": "52790b573aac0e16ae1e0010"
+  },
+  "b2_location_evidence": "Private readback-verified backup run 37144590951; only non-secret storage variables; exact bucket ID resolved through authenticated B2 metadata."
 }

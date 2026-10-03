@@ -129,7 +129,8 @@ def main():
     parser.add_argument('--etnw-integrity', required=True)
     args = parser.parse_args()
     reports = {kind: json.loads(Path(getattr(args, kind + '_integrity')).read_text()) for kind in CHILDREN}
-    print(json.dumps(publish_secondary(load_runtime(Path.cwd()), reports, workflow_provenance()), sort_keys=True))
+    from mardorf_collector.runtime.cloud_environment import environment
+    print(json.dumps(publish_secondary(load_runtime(Path.cwd(),environ=environment(Path.cwd())), reports, workflow_provenance()), sort_keys=True))
 
 
 if __name__ == '__main__':
