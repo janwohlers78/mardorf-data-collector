@@ -71,11 +71,7 @@ jobs:
           python-version: '3.12'
       - name: Install Python dependencies
         if: (github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || steps.due.outputs.due == 'true'
-        run: |
-          python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-runtime.txt
-          if python -c "import json,sys; sys.exit(0 if json.load(open('config/dev03_cloud_runtime_v1.json'))['production_enabled'] is True else 1)"; then
-            python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-cloud.txt
-          fi
+        run: 'python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-runtime.txt'
 
       - name: Plan provider-specific archived-cycle delta
         id: cycle_gate
@@ -83,11 +79,6 @@ jobs:
         env:
           PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
           PRIVATE_REPO: janwohlers78/mardorf-kitevorhersage
-          B2_APPLICATION_KEY_ID: ${{ secrets.B2_APPLICATION_KEY_ID }}
-          B2_APPLICATION_KEY: ${{ secrets.B2_APPLICATION_KEY }}
-          B2_ENDPOINT_URL: ${{ vars.B2_ENDPOINT_URL }}
-          B2_REGION: ${{ vars.B2_REGION }}
-          B2_BUCKET: ${{ vars.B2_BUCKET }}
         run: python src/provider_cycle_gate.py
 
       - name: Report provider-cycle no-op
@@ -323,11 +314,6 @@ jobs:
         env:
           PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
           PRIVATE_REPO: janwohlers78/mardorf-kitevorhersage
-          B2_APPLICATION_KEY_ID: ${{ secrets.B2_APPLICATION_KEY_ID }}
-          B2_APPLICATION_KEY: ${{ secrets.B2_APPLICATION_KEY }}
-          B2_ENDPOINT_URL: ${{ vars.B2_ENDPOINT_URL }}
-          B2_REGION: ${{ vars.B2_REGION }}
-          B2_BUCKET: ${{ vars.B2_BUCKET }}
         run: |
           if [ -z "$PRIVATE_REPO_TOKEN" ]; then
             echo 'PRIVATE_REPO_TOKEN is not configured; private transfer skipped.'
@@ -336,7 +322,7 @@ jobs:
           args=(--kind models --integrity-json work/model_integrity.json --integrity-md work/model_integrity.md)
           if [ -f work/model_snapshot.json ]; then args+=(--file work/model_snapshot.json); fi
           args+=(--result-json work/model_transfer_result.json --receipt-copy work/model_transfer_receipt.json)
-          PYTHONPATH=src python -m mardorf_collector.transfer.dispatch publish "${args[@]}"
+          python src/push_private.py "${args[@]}"
 
       - name: Fail workflow when granular integrity audit found errors
         if: always() && ((github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || (steps.due.outputs.due == 'true' && steps.cycle_gate.outputs.any_work == 'true'))

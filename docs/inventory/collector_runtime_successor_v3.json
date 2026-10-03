@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "artifact_version": "collector-runtime-successor-v3",
+  "audit_id": "B2-P05-WORKFLOW-ROUTES-20261003",
+  "predecessor_sha256": "995fa10a76789c25be5466fed5a858ee57a133c7d0e1d341cef6607e546f36a4",
+  "preserved_validator_path": "tests/fixtures/wp13/layout_validator_frozen_v3.py",
+  "preserved_validator_sha256": "5fd8f8229ef50295bc1df3ed92fd5c5f98add10cb1c3998bdf9bb30c1d46b0da",
+  "validator_sha256": "10500889865fea476dfcf46e5576df0822ea5e890532c7a4395cb292a0b58225",
+  "production_enabled": false,
+  "module_corrections": [],
+  "auxiliary_artifacts": [
+    {
+      "path": "src/validate_dev03_wp03_i10_public.py",
+      "sha256": "fa63cc9ea574212be991bde476f29f6c001b0f4582dadf73d04f13fd00aab539",
+      "preserved_path": "tests/fixtures/wp13/i10_validator_pre_cloud_v1.py",
+      "preserved_sha256": "7fe31b7227cd075c8067abbbfaa13188c0cacdb249f40ebcf25dd01f3888f2a8",
+      "reason": "I10 original model workflow bytes preserved; active cloud route validated independently, never reported as unchanged original workflow."
+    }
+  ]
+}
