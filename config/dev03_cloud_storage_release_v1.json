@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "artifact_version": "dev03-cloud-object-transport-v1",
+  "artifact_sha256": {
+    "src/mardorf_collector/storage/__init__.py": "e0e54006b9540036e9517a391654df71c8e9d06d33b5e00e5598fe0aa12dbe1d",
+    "src/mardorf_collector/storage/objects.py": "cb57533bfcd09474a826ca4cb6648d75c9f17ce6c08fb9eda35b40c7ac551674"
+  },
+  "production_acquisition_enabled": false,
+  "new_workflows": 0,
+  "science_implementation_included": false
+}
