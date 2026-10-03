@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "artifact_version": "collector-runtime-successor-v1",
+  "audit_id": "FIX-COLLECTOR-EPS-READINESS-20261003",
+  "predecessor": "docs/inventory/package_source_corrections_v1.json",
+  "predecessor_sha256": "d866971285951d55e29bfebe49ec751316e13eca2b5583905272615319a38006",
+  "frozen_release_sha256": "a4a9e4b61c376182d847b48834b932df1bcbb7244ce02b7ff0a47b6129fff0f4",
+  "preserved_validator_path": "tests/fixtures/wp13/layout_validator_frozen_v1.py",
+  "validator_sha256": "a19513c163efc703a8dda6bc4474809934b74c918f68f2b10da7787dc2eaf3c5",
+  "scope": "Existing mutable provider dispatcher gains bounded publication readiness. Only layout validation helper follows an explicit successor; original WP13 helper bytes retained. Frozen provider, WP12/WP13 runtime/contracts/workflows and scientific checks unchanged.",
+  "modules": [
+    {
+      "implementation_path": "src/mardorf_collector/providers/provider_fetch.py",
+      "baseline_normalized_ast_sha256": "9d4d94da5e414b5bbfe2f8fd79fc1aab1e75c9d50d34fe529cc642331b3d4361",
+      "baseline_source_sha256": "9cfd61a31932b08bc1db1c6940878e20ae9362269864cb535308ba3c64ec7d3d",
+      "corrected_normalized_ast_sha256": "a747353483e535a74dfd207fc8ba5cc26b99a2ca3cfabb4e5b9737c359ed0e30",
+      "corrected_source_sha256": "e1c3d9b3de7c37f76b95e1f4f6bdd3bb21f5b6825ff8751775c824779a1b96a9",
+      "finding_ids": [
+        "FIX-COLLECTOR-EPS-READINESS-20261003"
+      ],
+      "scope": "Bounded metadata readiness preflight in existing mutable provider dispatcher; original frozen fetcher, 600-second settling, run/member/spatial checks and workflow bytes unchanged.",
+      "audit_ref": "docs/audits/collector_eps_readiness_20261003_v1.json",
+      "correction_source_commit": "56bc81d7b63b6082d0544988c722869fd9176c93"
+    }
+  ]
+}

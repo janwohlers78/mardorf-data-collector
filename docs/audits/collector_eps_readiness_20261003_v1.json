@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "artifact_version": "collector-eps-readiness-20261003-v1",
+  "finding_id": "FIX-COLLECTOR-EPS-READINESS-20261003",
+  "status": "fixed_bounded_validation_passed",
+  "failed_run_id": 37129674765,
+  "failed_job_id": 111222152094,
+  "source_commit": "56bc81d7b63b6082d0544988c722869fd9176c93",
+  "cause": {
+    "provider": "ICON-D2-EPS/Open-Meteo",
+    "run_time_utc": "2026-10-03T12:00:00+00:00",
+    "availability_time_utc": "2026-10-03T14:22:24+00:00",
+    "request_settling_age_seconds": 449,
+    "minimum_settling_seconds": 600,
+    "errors": [
+      "MODEL_RUN_TIME_NOT_PRESENT",
+      "PROVIDER_STAGE_ATTEMPTS_FAILED",
+      "FULL_HORIZON_REQUIRED_COVERAGE_INCOMPLETE"
+    ],
+    "qualification": "Three reports of one missing EPS parent; other model sources acquired successfully. Integrity failure is correct; failing immediately on a short transition is avoidable."
+  },
+  "fix": {
+    "entrypoint": "mardorf_collector.providers.provider_fetch.fetch_eps_when_settled",
+    "maximum_wait_seconds": 180,
+    "maximum_poll_seconds": 30,
+    "deadline": "monotonic, not reset by new publication",
+    "fresh_metadata_each_poll": true,
+    "original_fetcher_revalidates": true,
+    "future_metadata_or_insufficient_budget": "fail without invented timestamp or old-run fallback",
+    "other_fetch_errors": "propagate unchanged"
+  },
+  "bounded_validation": {
+    "provider_edges": 9,
+    "eps_weather": 3,
+    "integrity": 33,
+    "live": {
+      "status": "PASS",
+      "scope": "one ICON-D2-EPS request, leads 0 and 48; no transfer or full collector",
+      "elapsed_seconds": 9.08,
+      "rows": 2,
+      "leads": [
+        0,
+        48
+      ],
+      "member_count": 20,
+      "run_time_utc": "2026-10-03T12:00:00+00:00",
+      "source_identity": "verified_stable_metadata_dwd_cycle_and_spatial_provenance",
+      "spatial_verified": true,
+      "settling_age_seconds": 3956.1,
+      "minimum_settling_seconds": 600,
+      "response_sha256": "165ed8199207b7361f0fa50a5e8004de6ac3f0b0b6c5a6ccef526ce75a854ac2"
+    },
+    "full_collector_restarted": false,
+    "private_transfer": false
+  },
+  "versions": {
+    "review": "docs/inventory/collector_runtime_successor_v1.json",
+    "frozen_original_validator": "tests/fixtures/wp13/layout_validator_frozen_v1.py",
+    "frozen_provider_sha256": "c9288497fcee93487291a1ad54cb4dae68d07d139b303611f43733656ef26fe9",
+    "frozen_workflow_sha256": "df353437ac0af6946721b6b34d43f95285c114274f887f0f03dd24504109eb62",
+    "WP13_release": "unchanged"
+  },
+  "limitations": [
+    "Targeted live fetch does not establish a fresh end-to-end full collector acceptance.",
+    "A provider that stays unavailable or changes identity during acquisition still fails loudly.",
+    "Strong indirect metadata association is retained; no invented provider-embedded run identity or operational promotion."
+  ],
+  "scientific_gate": "OPEN",
+  "operational_authority": "v16-c3-v9"
+}
