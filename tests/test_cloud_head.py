@@ -4,7 +4,7 @@ import json
 import unittest
 from unittest.mock import Mock
 
-from mardorf_collector.storage.head import GitHubHead
+from mardorf_collector.storage.head import GitHubHead,control_metadata
 from mardorf_collector.storage.objects import ObjectError
 
 
@@ -44,5 +44,11 @@ class HeadTests(unittest.TestCase):
         head=self.head();head.session.request.side_effect=RuntimeError('signed-url secret')
         with self.assertRaises(ObjectError) as context:head.read()
         self.assertNotIn('secret',str(context.exception))
+
+    def test_nested_weather_values_and_unknown_clocks_are_not_git_metadata(self):
+        for value in ({'channel':{'temperature':20}}, {'producer_commit':'unknown'},
+                      {'changed_path_count':True},{'original_generated_at_utc':'2000-01-01T00:00:00'},
+                      {'previous_snapshot':dict(REF,bytes=-1)}):
+            with self.subTest(value=value),self.assertRaises(ObjectError):control_metadata(value)
 
 if __name__=='__main__':unittest.main()

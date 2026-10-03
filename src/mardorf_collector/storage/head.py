@@ -3,9 +3,30 @@ import base64
 import hashlib
 import json
 import re
+from datetime import datetime
 
 from .objects import ObjectError,ObjectRef
 from .archive import canonical,decode,file_path
+
+
+def control_metadata(metadata):
+    allowed={'channel','producer_repository','producer_commit','original_generated_at_utc','event_id','changed_path_count','payload_sha256','receipt_sha256','previous_snapshot'}
+    if not isinstance(metadata,dict) or set(metadata)-allowed:raise ObjectError('Only control metadata allowed in Git')
+    for name,value in metadata.items():
+        if name=='previous_snapshot':ObjectRef.parse(value)
+        elif name=='changed_path_count':
+            if type(value) is not int or not 0<=value<=10000:raise ObjectError('Invalid control change count')
+        elif name in ('payload_sha256','receipt_sha256','producer_commit'):
+            size=40 if name=='producer_commit' else 64
+            if not isinstance(value,str) or not re.fullmatch('[0-9a-f]{'+str(size)+'}',value):raise ObjectError('Invalid control identity')
+        elif name=='producer_repository':
+            if not isinstance(value,str) or not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+',value):raise ObjectError('Invalid control repository')
+        elif name=='original_generated_at_utc':
+            try:parsed=datetime.fromisoformat(value.replace('Z','+00:00'))
+            except (ValueError,AttributeError,TypeError):raise ObjectError('Invalid original control clock') from None
+            if parsed.tzinfo is None:raise ObjectError('Timezone-aware original control clock required')
+        elif not isinstance(value,str) or not re.fullmatch(r'[A-Za-z0-9_.:/-]{1,200}',value):
+            raise ObjectError('Invalid thin control identifier')
 
 
 class GitHubHead:
@@ -51,10 +72,10 @@ class GitHubHead:
     def advance(self,parent,snapshot,*,metadata,extra_refs=None):
         ObjectRef.parse(snapshot)
         if not re.fullmatch('[0-9a-f]{40}',parent):raise ObjectError('Invalid control parent')
-        allowed={'channel','producer_repository','producer_commit','original_generated_at_utc','event_id','changed_path_count','payload_sha256','receipt_sha256','previous_snapshot'}
-        if not isinstance(metadata,dict) or set(metadata)-allowed:raise ObjectError('Only control metadata allowed in Git')
+        control_metadata(metadata)
         head={'schema_version':1,'artifact_version':'cloud-weather-head-v1','snapshot':snapshot,'metadata':metadata}
         controls={self.path:head}
+        if self.path in (extra_refs or {}):raise ObjectError('Extra reference cannot replace authoritative head')
         controls.update(extra_refs or {})
         tree=self.call('GET','/git/commits/'+parent)['tree']['sha']
         elements=[];expected_blobs={}
@@ -62,9 +83,17 @@ class GitHubHead:
             if not file_path(path).startswith('config/cloud_refs/'):raise ObjectError('Unsafe extra cloud control path')
             if not isinstance(document,dict) or set(document)-{'schema_version','artifact_version','snapshot','metadata','kind','generated_at_utc','receipt_sha256','readback_verified','bundle_ready'}:
                 raise ObjectError('Only thin cloud reference documents allowed')
-            if 'metadata' in document and (not isinstance(document['metadata'],dict) or set(document['metadata'])-allowed):
-                raise ObjectError('Only control metadata allowed in Git')
+            if 'metadata' in document:control_metadata(document['metadata'])
             if 'snapshot' in document:ObjectRef.parse(document['snapshot'])
+            for field in ('readback_verified','bundle_ready'):
+                if field in document and type(document[field]) is not bool:raise ObjectError('Invalid thin reference readiness')
+            for field in ('kind','artifact_version'):
+                if field in document and (not isinstance(document[field],str) or not re.fullmatch('[A-Za-z0-9_.-]{1,100}',document[field])):
+                    raise ObjectError('Invalid thin reference identifier')
+            if type(document.get('schema_version')) is not int or document['schema_version']!=1:
+                raise ObjectError('Invalid thin reference schema')
+            if 'generated_at_utc' in document:control_metadata({'original_generated_at_utc':document['generated_at_utc']})
+            if 'receipt_sha256' in document:control_metadata({'receipt_sha256':document['receipt_sha256']})
             body=canonical(document)
             if len(body)>65536:raise ObjectError('Thin cloud control exceeds budget')
             blob=self.call('POST','/git/blobs',json={'encoding':'base64','content':base64.b64encode(body).decode()})['sha']

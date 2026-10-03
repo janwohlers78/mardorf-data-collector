@@ -8,7 +8,9 @@
     "src/mardorf_collector/storage/objects.py": "cb57533bfcd09474a826ca4cb6648d75c9f17ce6c08fb9eda35b40c7ac551674",
     "src/mardorf_collector/storage/archive.py": "4e39571ceabc7c2b25eb610529d29906b4b2ce0e4d486b32a4df15e595a9703d",
     "src/mardorf_collector/storage/workspace.py": "b892cc93d379f92e4cdb52b434b4089ae3d6553fd35c9972d1efc477fccff49d",
-    "src/mardorf_collector/storage/head.py": "7074c8af8cda1f31a303bd4a2cb00012e1f2cbb7c01d24a49bc8f27b07bc8550"
+    "src/mardorf_collector/storage/head.py": "221156d7c57686b62493831cc5faf55d98238c6af5f23adeca69a93c1a207fa9",
+    "src/mardorf_collector/storage/configuration.py": "08d0d1c65ffa720d1cea89f3b09f154189712f24441ea7f65b9322bc236cb782",
+    "src/mardorf_collector/storage/runtime.py": "ad1dae2931e4538efbe234ca60ef536e3cb5977abe0ac14e625bb7944dc53b03"
   },
   "scope": "Copy-on-write archive workspace and exact-readback non-forced Git metadata CAS; V1/V2 bytes unchanged; no weather values in Git control refs"
 }

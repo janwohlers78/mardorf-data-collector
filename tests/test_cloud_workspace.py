@@ -23,6 +23,8 @@ class WorkspaceTests(unittest.TestCase):
         self.assertEqual(self.archive.read_json(result)['original_bytes'],13)
         self.assertEqual(self.archive.read_file(list(self.archive.records(self.base))[0]),b'b')
         self.assertEqual(update(self.archive,result,{},metadata={}),result)
+        isolated=update(self.archive,self.base,{'b':b'replace'},metadata={})
+        self.assertEqual(self.archive.read_json(isolated)['shards'][-1],root['shards'][-1])
 
     def test_exact_selective_materialization_and_missing_path_fail_before_download(self):
         result=materialize(self.archive,self.base,self.root/'out',paths=('b',))
