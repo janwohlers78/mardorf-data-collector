@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "artifact_version": "dev03-wp15-collector-release-v2",
+  "status": "bounded_canary_only",
+  "collection_enabled": false,
+  "supersedes_or_null": {
+    "path": "config/dev03_wp15_collector_release_v1.json",
+    "sha256": "c027f1c3d3841840c933deef4778fe2a1fe0c18873a240dfeff4deb1cbd0f529"
+  },
+  "entrypoint": "mardorf_collector.wp13.collector_v2:CollectorV2",
+  "consumer_commit_sha": "6f2aa97e7a221209c601113cb67aa806b5b41478",
+  "required_consumer_capabilities": [
+    "wp12-native-field-v1",
+    "wp12-strict-validation-v2",
+    "wp12-ensemble-atomic-v1"
+  ],
+  "artifact_sha256": {
+    ".github/workflows/validate.yml": "bfdf2904efbbd85924fe9bd7550ee4ca41ca215975ffed13dcb4101279e25888",
+    "config/dev03_wp13_contract_bundle_v1.json": "c726d79a4cf3301720c483d0bcf459b6dc0e73a3ff6a35eb0cff2037a25c7aca",
+    "docs/inventory/wp13_ci_contract_v1.json": "9ba7576b1829bcf0f8a378596f99a671a65dc08a523b1eb2809f0de7f9475dfb",
+    "requirements-wp13-grib.txt": "6be06258af53aea46e772e8a21715e495437214d8c63d1fc09b4da2b86f41ae0",
+    "src/mardorf_collector/__main__.py": "6acab8a1a75a79baf58f30cd1ce8a214c2351b331f546453f575f20253a9df59",
+    "src/mardorf_collector/wp13/__init__.py": "916c8acbd8d079e6a1ad3dac3bcf824cf356d6297ac40bc222cbc2a7103c440e",
+    "src/mardorf_collector/wp13/adapters_v1.py": "e71c26e60515d5421d98592c34cab64b1adc9624019fd782b1b750388d91e595",
+    "src/mardorf_collector/wp13/core_v1.py": "ba2607d2845706bff894877953da0dcd51cd7ffe9bcf62b1f43d09f7bd6fa1e2",
+    "src/mardorf_collector/wp13/history_v1.py": "dea612dc8d4930ca7598ad72d853f5fa21869785bc609b3fadb97ca08214098c",
+    "src/mardorf_collector/wp13/store_v1.py": "2191bd5bd7fa996a38a738c54d511101b4b41b08eaced0e95235b5318d838186",
+    "tests/fixtures/wp13/domain_two_sites_v1.json": "956f384d8e794a0444d0cf42bcfcf0d5393094d0413ef56e59d8587ec973f6f3",
+    "tests/fixtures/wp13/fixture_manifest_v1.json": "4933e00ffa4168ad6c5253f7bf82625b77861ad86aa6337be9e66d22181efa6b",
+    "tests/fixtures/wp13/native_weather_v1.grib2": "69e61a91cd99a4494ebd0190f700ef863bcb44a6c11b0d22d6cdd8e1eb881294",
+    "tests/fixtures/wp13/svg_current_v1.json": "56adf39703d61234b54d7175b0267da367f59a31c00bd2ee1c9574ed1c22f90f",
+    "tests/fixtures/wp13/svg_historic_v1.json": "d9acaeee9ca4ddef6102791fa496b019043f9e071cdd5c7002e39d71fee6a125",
+    "tests/test_wp13_audit_v1.py": "e08ceea838b148356e8f792b886076196254d0e7c73ffeee36c3878e58fe8035",
+    "tests/test_wp13_collector_v1.py": "3adbccddce9a580dea4c3948b39168b327d1d898ee46944c13d51567351a7a4f",
+    "tests/test_wp13_history_v1.py": "3a9b1022603d6be86440ba5b63da5a9ab2a859ab8d0b9ef746a28779bf1b9a35",
+    "tools/validate_prep09_layout.py": "cad43b28aa2c2712e335597eefc3585683aec16f5a8d2fd9053a791694961dba",
+    "src/mardorf_collector/wp13/collector_v2.py": "bf225d9f621b4635224a955c3e91a5d7b446ed85b0d15b8ff86fbe29e17b601b",
+    "config/dev03_wp15_native_aliases_v1.json": "c52a99bb736ea379c008634221f463c2f3178e5102e4fe09d2291d1e8c123716",
+    "tests/test_wp15_native_aliases.py": "96555a607e57085d2fcf0a2b3da3a3a77a58ddacf9167bd5aaea4feb71106b93",
+    "src/mardorf_collector/wp13/status_codec_v1.py": "42e36aedc3a5bcc310e5163098b1d3fdcc9a4bf5fd1e9cbd5f5b861eaf8d614b",
+    "tests/test_wp15_status_codec.py": "ad927570a679a2c19474cabf233b7f668d7996e0527999d374d06f89b6d8d401"
+  },
+  "reason": "WP15 real SVG transfer contains repetitive per-field diagnostics. Preserve their exact full inventory in a bounded, hash-bound gzip raw sidecar; native weather/units/geometry/clocks and all original HTTP responses unchanged. Existing WP14 accepts the already-supported gzip raw object and optional extension.",
+  "structure": {
+    "new_runtime_modules": 2,
+    "new_workflows": 0,
+    "new_forecast_services": 0,
+    "shared_components": "Frozen CollectorV2 and V1 transport/contracts/observation/EPS/delivery unchanged; one optional shared diagnostic codec.",
+    "immutable_successor": "only collect and GRIB projection procedures succeed frozen V1; alias table is extensible configuration"
+  },
+  "legacy_retirement": {
+    "owner": "WP15 routine cutover",
+    "replacement": "CollectorV2 with configuration alias policy",
+    "delete_after": "all consumers migrated and historical exact-code replay pinned; retain V1 evidence without active duplicate forecast pipeline"
+  },
+  "activation_requires": [
+    "real complete source-coverage canary and exact readback",
+    "configured profile representative daily footprint",
+    "versioned routine acquisition/transport release"
+  ],
+  "optional_postprocessor": "mardorf_collector.wp13.status_codec_v1:compact_outcomes"
+}
