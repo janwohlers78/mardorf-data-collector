@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "audit_id": "B2-P05-SECONDARY-BOUNDARY-20261003",
+  "generated_at_utc": "2026-10-03T19:43:33.534520+00:00",
+  "status": "LOCAL_VALIDATION_PASS_NOT_PRODUCTION_CUTOVER",
+  "package_status": "P05_IN_PROGRESS",
+  "production_enabled": false,
+  "scientific_gate": "OPEN",
+  "operational_authority": "v16-c3-v9",
+  "source_bases": {
+    "janwohlers78/mardorf-data-collector": "59b46274fdb3a144d082aeeee0d77562a5189b28",
+    "janwohlers78/mardorf-kitevorhersage": "7c8fe39e255f706863695b00abb2e696eca74a43"
+  },
+  "verification": {
+    "public_regression_tests": 391,
+    "private_focused_tests": 33,
+    "public_layout": "PASS",
+    "private_layout": "PASS",
+    "live_b2_test_of_this_successor": false,
+    "provider_network_requests_in_unit_tests": 0
+  },
+  "findings_repaired": [
+    "Public source decision reader switches explicitly to B2 when production profile enabled; cloud errors never select Git weather fallback.",
+    "Watchdog reads only verified thin acquisition metadata; no SDK or weather payload before freshness decision.",
+    "Cloud secondary batch binds both exact-byte immutable deliveries to the same repository/source SHA/workflow run and attempt.",
+    "Private hydration includes immutable dependencies of the selected complete batch even outside rolling lookback or with newer independent child pointers.",
+    "Private secondary transport accepts explicit cloud method without fabricated Git data commit; checks original identities and retains canonical scientific/currentness gates."
+  ],
+  "preservation": {
+    "public_successor_manifest": "docs/inventory/collector_runtime_successor_v2.json",
+    "private_previous_sources": [
+      "tests/fixtures/wp15/promote_secondary_batch_pre_cloud_v1.py",
+      "tests/fixtures/wp15/validate_secondary_batch_pre_cloud_v1.py"
+    ],
+    "historical_wp12_wp13_wp14_and_transport_v1_v2_v3_artifacts": "UNCHANGED"
+  },
+  "remaining": [
+    "Workflow routing and isolated live canary",
+    "Private consumer migration and post-P04 catch-up",
+    "P06 measured restart/resource parity",
+    "P07 controlled retention and final audit"
+  ],
+  "artifact_sha256": {
+    "janwohlers78/mardorf-data-collector": {
+      "docs/inventory/collector_runtime_successor_v2.json": "995fa10a76789c25be5466fed5a858ee57a133c7d0e1d341cef6607e546f36a4",
+      "src/mardorf_collector/runtime/check_collection_due.py": "ae426e37115c6bc08adf617ee6978c5c0ff2ad704786e3e34e8f89a05339da5a",
+      "src/mardorf_collector/runtime/private_state.py": "258a2026798f095575f467f409c0d9d270ca3d88d56baa0cf93bd98a23de1efb",
+      "src/mardorf_collector/runtime/provider_cycle_gate.py": "c955c5299e33f60e7f861240e7ec7a4f46442c6a3fa4143e4a25671d15b8f94d",
+      "src/mardorf_collector/transfer/finalize_cloud_secondary.py": "d0b362db81dc063d1ab650ce93dd8eb8a40662227dbee2700d884087f37c1f7c",
+      "tests/test_cloud_secondary_batch.py": "d281193fa4125a47fd2ab35e43f8cce533be1e9ca9c614348f06c3e0e47bbb3b",
+      "tools/validate_prep09_layout.py": "5fd8f8229ef50295bc1df3ed92fd5c5f98add10cb1c3998bdf9bb30c1d46b0da"
+    },
+    "janwohlers78/mardorf-kitevorhersage": {
+      "src/mardorf/data/cloud_runtime.py": "71f95b40733a5b75cd18eb7922b669d99ec97dbe0f74591b858b0860b505f5b6",
+      "src/promote_secondary_batch.py": "2f04e944497f6454fdbdc5c3bba58e154edaa22ebfa0d1986f7277555d23f047",
+      "src/validate_secondary_batch.py": "73de4d458b2ef31a72087b96ef05891ec485a6752465ddef5eabb97819059889",
+      "tests/test_cloud_secondary_batch.py": "673effc16d285f314042cafcd94f4e141524f434c9f6eb2a6eed9c7a65a5a558",
+      "tools/validate_prep09_layout.py": "c0d65557a3032c14d9baa8e61b0b5648bc501847fa514891ea2eaae8c64102f2"
+    }
+  }
+}

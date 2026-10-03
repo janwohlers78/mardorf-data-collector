@@ -59,8 +59,6 @@ def validate(root):
     corrections = {item['implementation_path']: item for item in corrections_doc.get('modules', [])}
     if len(corrections) != len(corrections_doc.get('modules', [])):
         raise ValueError('duplicate corrected source path')
-    successor_v2_path = root/'docs/inventory/collector_runtime_successor_v2.json'
-    successor_v2 = json.loads(successor_v2_path.read_text()) if successor_v2_path.exists() else None
     successor_path=root/'docs/inventory/collector_runtime_successor_v1.json'
     if successor_path.exists():
         successor=json.loads(successor_path.read_text())
@@ -71,7 +69,7 @@ def validate(root):
                 successor.get('predecessor_sha256')!=hashlib.sha256(corrections_path.read_bytes()).hexdigest() or
                 successor.get('frozen_release_sha256')!=hashlib.sha256(release_path.read_bytes()).hexdigest() or
                 hashlib.sha256(frozen.read_bytes()).hexdigest()!=release['artifact_sha256']['tools/validate_prep09_layout.py'] or
-                successor.get('validator_sha256')!=hashlib.sha256((root/(successor_v2['preserved_validator_path'] if successor_v2 else 'tools/validate_prep09_layout.py')).read_bytes()).hexdigest()):
+                successor.get('validator_sha256')!=hashlib.sha256((root/'tools/validate_prep09_layout.py').read_bytes()).hexdigest()):
             raise ValueError('unverified collector runtime successor')
         for item in successor.get('modules',[]):
             path=item['implementation_path']
@@ -79,20 +77,6 @@ def validate(root):
             if any(m['implementation_path']==path and m.get('kind')=='protected_implementation_bridge' for m in modules):
                 raise ValueError('runtime successor changed protected provider')
             corrections[path]=item
-    if successor_v2 is not None:
-        if (successor_v2.get('schema_version') != 1 or not successor_v2.get('audit_id') or
-                successor_v2.get('artifact_version') != 'collector-runtime-successor-v2' or
-                successor_v2.get('predecessor_sha256') != hashlib.sha256(successor_path.read_bytes()).hexdigest() or
-                successor_v2.get('preserved_validator_sha256') != hashlib.sha256((root/successor_v2['preserved_validator_path']).read_bytes()).hexdigest() or
-                successor_v2.get('validator_sha256') != hashlib.sha256((root/'tools/validate_prep09_layout.py').read_bytes()).hexdigest()):
-            raise ValueError('unverified collector cloud runtime successor')
-        for item in successor_v2.get('modules', []):
-            path = item['implementation_path']
-            if path in corrections or any(m['implementation_path'] == path and m.get('kind') == 'protected_implementation_bridge' for m in modules):
-                raise ValueError('duplicate or protected cloud source successor')
-            if hashlib.sha256((root/item['preserved_source_path']).read_bytes()).hexdigest() != item['previous_source_sha256']:
-                raise ValueError('collector predecessor source was not preserved')
-            corrections[path] = item
     if set(corrections) - {item['implementation_path'] for item in proof['modules']}:
         raise ValueError('correction outside the historical package parity scope')
     by_path = {m['implementation_path']: m for m in modules}

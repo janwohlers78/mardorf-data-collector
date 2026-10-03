@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "artifact_version": "collector-runtime-successor-v2",
+  "audit_id": "B2-P05-COLLECTOR-AUTHORITY-20261003",
+  "predecessor": "docs/inventory/collector_runtime_successor_v1.json",
+  "predecessor_sha256": "2095ae0e08393160f5189fd39e1b3a1c5da5e4e8cd8161b2265ee0ca23d2884c",
+  "preserved_validator_path": "tests/fixtures/wp13/layout_validator_frozen_v2.py",
+  "preserved_validator_sha256": "a19513c163efc703a8dda6bc4474809934b74c918f68f2b10da7787dc2eaf3c5",
+  "validator_sha256": "5fd8f8229ef50295bc1df3ed92fd5c5f98add10cb1c3998bdf9bb30c1d46b0da",
+  "production_enabled": false,
+  "modules": [
+    {
+      "implementation_path": "src/mardorf_collector/runtime/check_collection_due.py",
+      "baseline_normalized_ast_sha256": "d943950416e6e4b564b6d35c2aeef1559d6a25000f0057d6ef92e3fe8242914b",
+      "baseline_source_sha256": "c085bb1fca0252becc6f5d3326d2d561939e569aaae6ecd2bec960152cca9e81",
+      "corrected_normalized_ast_sha256": "a1286391a2b90e8910f3a7d97c542e272ea254fdee317c8f39730d3ed165b05e",
+      "corrected_source_sha256": "ae426e37115c6bc08adf617ee6978c5c0ff2ad704786e3e34e8f89a05339da5a",
+      "preserved_source_path": "tests/fixtures/wp13/check_collection_due_pre_cloud_v1.py",
+      "previous_source_sha256": "c085bb1fca0252becc6f5d3326d2d561939e569aaae6ecd2bec960152cca9e81",
+      "finding_ids": [
+        "B2-P05-COLLECTOR-AUTHORITY"
+      ],
+      "scope": "Explicit cloud source authority when activated; unchanged inactive Git route and provider/scientific decisions."
+    },
+    {
+      "implementation_path": "src/mardorf_collector/runtime/provider_cycle_gate.py",
+      "baseline_normalized_ast_sha256": "66548dc98d696190ecf1f5eb1e035b49311ab619762687a74fd070a0bfb56a64",
+      "baseline_source_sha256": "e7baccb50c33150ac3667e8a46eff6ac503eff9175623ba5fe58a5b228ffb2e5",
+      "corrected_normalized_ast_sha256": "7ea2c08e84d4bc3568dd3928963c48a8b10459150b6d56d7d767512283161548",
+      "corrected_source_sha256": "c955c5299e33f60e7f861240e7ec7a4f46442c6a3fa4143e4a25671d15b8f94d",
+      "preserved_source_path": "tests/fixtures/wp13/provider_cycle_gate_pre_cloud_v1.py",
+      "previous_source_sha256": "5f0e2661ebbfa41356dc14c1076f77b13a52e43d3fa9764eb79b08567254cc53",
+      "finding_ids": [
+        "B2-P05-COLLECTOR-AUTHORITY"
+      ],
+      "scope": "Explicit cloud source authority when activated; unchanged inactive Git route and provider/scientific decisions."
+    }
+  ]
+}

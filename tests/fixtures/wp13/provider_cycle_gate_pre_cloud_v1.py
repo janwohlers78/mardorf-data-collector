@@ -71,9 +71,6 @@ def _request(repo,path,token):
 
 
 def private_bytes(repo,path,token):
-    from . import private_state
-    if private_state.enabled(repo):
-        return private_state.read(repo,path)
     meta=_request(repo,path,token)
     raw=meta.get("content")
     if not raw:
@@ -88,8 +85,6 @@ def private_json(repo,path,token):
 def private_json_optional(repo,path,token):
     try:
         return private_json(repo,path,token)
-    except FileNotFoundError:
-        return None
     except urllib.error.HTTPError as exc:
         if exc.code==404:
             return None
