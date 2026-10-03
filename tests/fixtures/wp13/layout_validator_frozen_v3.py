@@ -59,8 +59,6 @@ def validate(root):
     corrections = {item['implementation_path']: item for item in corrections_doc.get('modules', [])}
     if len(corrections) != len(corrections_doc.get('modules', [])):
         raise ValueError('duplicate corrected source path')
-    successor_v3_path = root/'docs/inventory/collector_runtime_successor_v3.json'
-    successor_v3 = json.loads(successor_v3_path.read_text()) if successor_v3_path.exists() else None
     successor_v2_path = root/'docs/inventory/collector_runtime_successor_v2.json'
     successor_v2 = json.loads(successor_v2_path.read_text()) if successor_v2_path.exists() else None
     successor_path=root/'docs/inventory/collector_runtime_successor_v1.json'
@@ -86,7 +84,7 @@ def validate(root):
                 successor_v2.get('artifact_version') != 'collector-runtime-successor-v2' or
                 successor_v2.get('predecessor_sha256') != hashlib.sha256(successor_path.read_bytes()).hexdigest() or
                 successor_v2.get('preserved_validator_sha256') != hashlib.sha256((root/successor_v2['preserved_validator_path']).read_bytes()).hexdigest() or
-                successor_v2.get('validator_sha256') != hashlib.sha256((root/(successor_v3['preserved_validator_path'] if successor_v3 else 'tools/validate_prep09_layout.py')).read_bytes()).hexdigest()):
+                successor_v2.get('validator_sha256') != hashlib.sha256((root/'tools/validate_prep09_layout.py').read_bytes()).hexdigest()):
             raise ValueError('unverified collector cloud runtime successor')
         for item in successor_v2.get('modules', []):
             path = item['implementation_path']
@@ -95,17 +93,6 @@ def validate(root):
             if hashlib.sha256((root/item['preserved_source_path']).read_bytes()).hexdigest() != item['previous_source_sha256']:
                 raise ValueError('collector predecessor source was not preserved')
             corrections[path] = item
-    if successor_v3 is not None:
-        if (successor_v3.get('schema_version') != 1 or not successor_v3.get('audit_id') or
-                successor_v3.get('artifact_version') != 'collector-runtime-successor-v3' or
-                successor_v3.get('predecessor_sha256') != hashlib.sha256(successor_v2_path.read_bytes()).hexdigest() or
-                successor_v3.get('preserved_validator_sha256') != hashlib.sha256((root/successor_v3['preserved_validator_path']).read_bytes()).hexdigest() or
-                successor_v3.get('validator_sha256') != hashlib.sha256((root/'tools/validate_prep09_layout.py').read_bytes()).hexdigest()):
-            raise ValueError('unverified collector workflow routing successor')
-        for artifact in successor_v3.get('auxiliary_artifacts', []):
-            if (hashlib.sha256((root/artifact['path']).read_bytes()).hexdigest() != artifact['sha256'] or
-                    hashlib.sha256((root/artifact['preserved_path']).read_bytes()).hexdigest() != artifact['preserved_sha256']):
-                raise ValueError('unverified auxiliary workflow validation successor')
     if set(corrections) - {item['implementation_path'] for item in proof['modules']}:
         raise ValueError('correction outside the historical package parity scope')
     by_path = {m['implementation_path']: m for m in modules}
@@ -154,25 +141,6 @@ def validate(root):
                 raise ValueError('workflow successor control binding mismatch')
             if not reviewed.get('reason') or not reviewed.get('frozen_git_blob'):
                 raise ValueError('workflow successor requires reason and exact source bytes')
-            expected[name] = reviewed
-    cloud_routes_path = root/'config/prep10_workflow_routes_v3.json'
-    if cloud_routes_path.exists():
-        cloud_routes = json.loads(cloud_routes_path.read_text())
-        if cloud_routes.get('baseline_sha256') != hashlib.sha256((root/'config/prep10_workflow_routes_v2.json').read_bytes()).hexdigest():
-            raise ValueError('cloud workflow predecessor drift')
-        seen = set()
-        for reviewed in cloud_routes['workflows']:
-            name = Path(reviewed['path']).name
-            if name in seen or name not in expected or not reviewed.get('reason'):
-                raise ValueError('invalid cloud workflow successor scope')
-            seen.add(name)
-            previous = (root/reviewed['preserved_workflow_path']).read_bytes()
-            blob = hashlib.sha1(b'blob '+str(len(previous)).encode()+b'\0'+previous).hexdigest()
-            if (signature(yaml.load(previous,Loader=yaml.BaseLoader)) != reviewed.get('baseline_control_sha256') or
-                    reviewed.get('baseline_control_sha256') != expected[name]['source_control_sha256'] or
-                    reviewed.get('preserved_git_blob') != blob or
-                    (expected[name].get('frozen_git_blob') and expected[name]['frozen_git_blob'] != blob)):
-                raise ValueError('cloud workflow original controls/bytes drift')
             expected[name] = reviewed
     if workflows.keys() != expected.keys():
         raise ValueError('workflow added/removed without route review')

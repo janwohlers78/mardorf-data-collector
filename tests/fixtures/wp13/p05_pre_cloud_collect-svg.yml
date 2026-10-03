@@ -15,10 +15,6 @@ on:
     - cron: '13 * * * *'
   workflow_dispatch:
     inputs:
-      cloud_canary:
-        description: "Bounded B2 transfer test on an isolated control branch"
-        type: boolean
-        default: false
       watchdog:
         description: 'Routine external watchdog trigger; respects freshness gate'
         type: boolean
@@ -28,7 +24,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: public-svg-collector${{ inputs.cloud_canary == true && '-b2-canary' || '' }}
+  group: public-svg-collector
   cancel-in-progress: true
 
 jobs:
@@ -69,11 +65,7 @@ jobs:
 
       - name: Install dependency
         if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || steps.due.outputs.due == 'true'
-        run: |
-          python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-runtime.txt
-          if [ "${{ inputs.cloud_canary }}" = "true" ] || python -c "import json,sys; sys.exit(0 if json.load(open('config/dev03_cloud_runtime_v1.json'))['production_enabled'] is True else 1)"; then
-            python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-cloud.txt
-          fi
+        run: 'python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-runtime.txt'
 
       - name: Fetch SVG endpoints and record exact request diagnostics
         if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || steps.due.outputs.due == 'true'
@@ -102,11 +94,6 @@ jobs:
         env:
           PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
           PRIVATE_REPO: janwohlers78/mardorf-kitevorhersage
-          B2_APPLICATION_KEY_ID: ${{ secrets.B2_APPLICATION_KEY_ID }}
-          B2_APPLICATION_KEY: ${{ secrets.B2_APPLICATION_KEY }}
-          B2_ENDPOINT_URL: ${{ vars.B2_ENDPOINT_URL }}
-          B2_REGION: ${{ vars.B2_REGION }}
-          B2_BUCKET: ${{ vars.B2_BUCKET }}
         run: |
           if [ -z "$PRIVATE_REPO_TOKEN" ]; then
             echo 'PRIVATE_REPO_TOKEN is not configured; private transfer skipped.'
@@ -116,7 +103,7 @@ jobs:
           if [ -f work/svg_bundle.json ]; then
             args+=(--file work/svg_bundle.json)
           fi
-          PYTHONPATH=src python -m mardorf_collector.transfer.dispatch publish --cloud-canary "${{ inputs.cloud_canary == true && 'true' || 'false' }}" "${args[@]}"
+          PYTHONPATH=src python -m mardorf_collector push-private "${args[@]}"
 
       - name: Fail workflow when granular integrity audit found errors
         if: always() && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || steps.due.outputs.due == 'true')

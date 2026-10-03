@@ -51,23 +51,9 @@ def validate(root=ROOT):
     check(controls.get("private_v3_promotion_enabled") is False and controls.get("archive_v6_write_enabled") is False,
           "public repo must not activate private controls")
 
-    historical_workflow=root/".github/workflows/collect-models.yml"
-    successor_reviewed=False
-    route_path=root/"config/prep10_workflow_routes_v3.json"
-    if route_path.exists():
-        routes=json.loads(route_path.read_text())
-        reviewed=[item for item in routes['workflows'] if item['path']=='.github/workflows/collect-models.yml']
-        check(len(reviewed)==1,"reviewed cloud model workflow missing or duplicated")
-        if len(reviewed)==1:
-            from importlib.util import spec_from_file_location,module_from_spec
-            spec=spec_from_file_location('p05_layout',root/'tools/validate_prep09_layout.py')
-            layout=module_from_spec(spec);spec.loader.exec_module(layout)
-            layout.validate(root)
-            historical_workflow=root/reviewed[0]['preserved_workflow_path']
-            successor_reviewed=True
     try:
         blob=subprocess.check_output(
-            ["git","hash-object",str(historical_workflow)],
+            ["git","hash-object",str(root/".github/workflows/collect-models.yml")],
             text=True,
         ).strip()
         check(blob==FROZEN_V2_WORKFLOW_BLOB,"frozen v2 collect-models workflow changed")
@@ -83,8 +69,6 @@ def validate(root=ROOT):
         "public_generation_enabled":gen,
         "public_transfer_enabled":transfer,
         "frozen_v2_workflow_blob":FROZEN_V2_WORKFLOW_BLOB,
-        "frozen_v2_workflow_preserved":True,
-        "workflow_successor_reviewed":successor_reviewed,
         "new_cron_jobs":0,
         "operational_authority":"v16-c3-v9",
     }

@@ -1,0 +1,35 @@
+{
+  "schema_version": 3,
+  "work_package": "B2-P05",
+  "baseline_sha256": "3920fcb3df3e46e1062e0b7d981882c431b09c1443eeca0d852f376e9dcbba5c",
+  "production_enabled": false,
+  "workflows": [
+    {
+      "path": ".github/workflows/collect-models.yml",
+      "baseline_control_sha256": "75abadacd317dbabca2916647f002bfc5e6e833b8c0baee89401b89072dea16c",
+      "source_control_sha256": "8375b3df510e9ae854b6f42108c92081e45a94727c2c059c1ff6ad116d9d896c",
+      "frozen_git_blob": "acc9f334455243778a919b3055523378dc25b3be",
+      "preserved_workflow_path": "tests/fixtures/wp13/p05_pre_cloud_collect-models.yml",
+      "preserved_git_blob": "b26223764a0702a04b6b40d90a63da6507a54d59",
+      "reason": "B2 P05 explicit single authority publication route; manual SVG/secondary canary on isolated head; triggers, freshness, original provider/audit gates unchanged."
+    },
+    {
+      "path": ".github/workflows/collect-svg.yml",
+      "baseline_control_sha256": "72bff2b25a6a5617bb64c3f0d3a8df4343142fbf9bc82e19c0dc6689a6ec63b1",
+      "source_control_sha256": "62f7096171f8ef360f01beda96191e673fa71aa39a3fc87c454804d0a421ce58",
+      "frozen_git_blob": "42e0f1c1bb66a41fa0abdd6d1d0d845edc27a8ce",
+      "preserved_workflow_path": "tests/fixtures/wp13/p05_pre_cloud_collect-svg.yml",
+      "preserved_git_blob": "0a4a5b6037ffb2f5a7d76b2f86e52be482b58c0d",
+      "reason": "B2 P05 explicit single authority publication route; manual SVG/secondary canary on isolated head; triggers, freshness, original provider/audit gates unchanged."
+    },
+    {
+      "path": ".github/workflows/collect-secondary.yml",
+      "baseline_control_sha256": "0e62ea2e6070d923556b892dcf3617e38a7fb7083d52cf6aeb22a5c2fb2bd651",
+      "source_control_sha256": "43f50b7ba3c05df4a2fef418e3e07cbca693cd18480697bdd98a2129d646b28b",
+      "frozen_git_blob": "37966638323cff7cce4d964a68ec2276ee811f00",
+      "preserved_workflow_path": "tests/fixtures/wp13/p05_pre_cloud_collect-secondary.yml",
+      "preserved_git_blob": "e301bb6bec4ac1ffb895430e596b88c3e9b5df28",
+      "reason": "B2 P05 explicit single authority publication route; manual SVG/secondary canary on isolated head; triggers, freshness, original provider/audit gates unchanged."
+    }
+  ]
+}
