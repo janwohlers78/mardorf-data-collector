@@ -43,6 +43,15 @@ class ArchiveTests(unittest.TestCase):
         with self.assertRaises(ObjectError):self.archive.hydrate(snapshot,target,prefixes=('data/',))
         with self.assertRaises(ObjectError):self.archive.hydrate(snapshot,self.root/'out',prefixes=('data/',),max_bytes=1)
 
+    def test_direct_read_rejects_oversized_or_out_of_scope_reference_before_io(self):
+        entry=list(self.archive.records(self.export()))[0]
+        before=self.backend.metrics['requests']
+        for changed in (dict(entry,bytes=65*1024**2), dict(entry,offset=-1),
+                        dict(entry,sha256='z'*64),
+                        dict(entry,object=dict(entry['object'],key='another/packs/a'))):
+            with self.assertRaises(ObjectError):self.archive.read_file(changed)
+        self.assertEqual(before,self.backend.metrics['requests'])
+
     def test_partial_export_never_publishes_snapshot_and_shard_tampering_is_rejected(self):
         def interrupted():
             yield 'a',b'x'

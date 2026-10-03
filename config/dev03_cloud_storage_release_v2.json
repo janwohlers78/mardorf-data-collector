@@ -6,7 +6,7 @@
   "artifact_sha256": {
     "src/mardorf_collector/storage/__init__.py": "e0e54006b9540036e9517a391654df71c8e9d06d33b5e00e5598fe0aa12dbe1d",
     "src/mardorf_collector/storage/objects.py": "cb57533bfcd09474a826ca4cb6648d75c9f17ce6c08fb9eda35b40c7ac551674",
-    "src/mardorf_collector/storage/archive.py": "92aeb039301c41eb48e5dbf2e227a0f7efe3db9de1b14e3f690fc4fed6feddcb"
+    "src/mardorf_collector/storage/archive.py": "4e39571ceabc7c2b25eb610529d29906b4b2ce0e4d486b32a4df15e595a9703d"
   },
   "scope": "Exact packed archive and bounded selective restore; V1 transport bytes unchanged; production activation controlled by private storage profile."
 }

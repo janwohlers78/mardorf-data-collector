@@ -1,9 +1,9 @@
 """Immutable packed archives: exact originals, bounded selective reads, no latest CAS."""
-from contextlib import contextmanager
 import gzip
 import hashlib
 import json
 import os
+import re
 from pathlib import Path, PurePosixPath
 import tempfile
 import zlib
@@ -115,7 +115,7 @@ class PackedArchive:
                         raise ObjectError('Archive original exceeds budget')
                     compressed = gzip.compress(body, compresslevel=3, mtime=0)
                     encoded, codec = (compressed, 'gzip') if len(compressed) < len(body) else (body, 'none')
-                    if stream.tell() and stream.tell()+len(encoded) > self.pack_bytes:
+                    if len(pack_records) >= 4096 or (stream.tell() and stream.tell()+len(encoded) > self.pack_bytes):
                         flush_pack()
                     if len(encoded) > self.pack_bytes:
                         raise ObjectError('Archive file requires explicit larger-file segmentation')
@@ -138,7 +138,8 @@ class PackedArchive:
                 stream.close()
 
     def validate_root(self, root):
-        if (type(root.get('schema_version')) is not int or root.get('schema_version') != 1 or
+        if (not isinstance(root, dict) or not isinstance(root.get('shards'), list) or
+                type(root.get('schema_version')) is not int or root.get('schema_version') != 1 or
                 root.get('artifact_version') != VERSION or not isinstance(root.get('metadata'), dict) or
                 type(root.get('file_count')) is not int or root['file_count'] < 0 or
                 type(root.get('original_bytes')) is not int or root['original_bytes'] < 0):
@@ -163,7 +164,7 @@ class PackedArchive:
         if type(max_files) is not int or not 0 < max_files <= 100000:
             raise ObjectError('Invalid selective file budget')
         prefixes = tuple(prefixes)
-        if not prefixes or any(p and file_path(p.rstrip('/')) != p.rstrip('/') for p in prefixes):
+        if not prefixes or any(not isinstance(p, str) or (p and file_path(p.rstrip('/')) != p.rstrip('/')) for p in prefixes):
             raise ObjectError('Invalid archive selection')
         count = 0
         for shard in root['shards']:
@@ -176,22 +177,35 @@ class PackedArchive:
             if not items or items[0]['path'] != shard['first'] or items[-1]['path'] != shard['last']:
                 raise ObjectError('Archive shard boundaries mismatch')
             for item in items:
-                file_path(item['path'])
-                ref = ObjectRef.parse(item['object'])
-                if (not ref.key.startswith(self.prefix+'/packs/') or type(item['offset']) is not int or
-                        type(item['stored_bytes']) is not int or item['offset'] < 0 or item['stored_bytes'] < 0 or
-                        item['offset']+item['stored_bytes'] > ref.bytes or type(item['bytes']) is not int or
-                        not 0 <= item['bytes'] <= self.file_bytes or item['codec'] not in ('none','gzip') or
-                        len(item['sha256']) != 64 or len(item['git_blob_sha1']) != 40):
-                    raise ObjectError('Invalid archive original reference')
+                self.validate_item(item)
                 if any(item['path'].startswith(p) for p in prefixes):
                     count += 1
                     if count > max_files:
                         raise ObjectError('Selective file count exceeded')
                     yield item
 
+    def validate_item(self, item):
+        if not isinstance(item, dict):
+            raise ObjectError('Invalid archive original reference')
+        try:
+            file_path(item['path'])
+            ref = ObjectRef.parse(item['object'])
+            if (not ref.key.startswith(self.prefix+'/packs/') or ref.bytes > self.pack_bytes or
+                    type(item['offset']) is not int or type(item['stored_bytes']) is not int or
+                    item['offset'] < 0 or item['stored_bytes'] < 0 or
+                    item['offset']+item['stored_bytes'] > ref.bytes or
+                    type(item['bytes']) is not int or not 0 <= item['bytes'] <= self.file_bytes or
+                    item['codec'] not in ('none','gzip') or
+                    not isinstance(item['sha256'], str) or not re.fullmatch('[0-9a-f]{64}',item['sha256']) or
+                    not isinstance(item['git_blob_sha1'], str) or not re.fullmatch('[0-9a-f]{40}',item['git_blob_sha1']) or
+                    (item['codec'] == 'none' and item['stored_bytes'] != item['bytes'])):
+                raise ObjectError('Invalid archive original reference')
+        except (KeyError, TypeError) as exc:
+            raise ObjectError('Invalid archive original reference') from exc
+        return ref
+
     def read_file(self, item):
-        ref = ObjectRef.parse(item['object'])
+        ref = self.validate_item(item)
         if item['stored_bytes']:
             body = self.backend.get_range(ref, item['offset'], item['offset']+item['stored_bytes'])
         else:
@@ -206,6 +220,8 @@ class PackedArchive:
         return body
 
     def hydrate(self, snapshot, target, *, prefixes, max_bytes=512*1024**2):
+        if type(max_bytes) is not int or not 0 <= max_bytes <= 4*1024**3:
+            raise ObjectError('Invalid hydration budget')
         target = Path(target).absolute()
         if any(p.is_symlink() for p in (target,*target.parents)):
             raise ObjectError('Symlink archive destination')
