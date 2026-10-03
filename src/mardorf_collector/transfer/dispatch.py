@@ -29,7 +29,8 @@ def select_route(*, canary=False, environ=None, specification=None):
 
 def prepare_canary(branch):
     from mardorf_collector.storage.runtime import load_runtime
-    runtime = load_runtime(REPOSITORY_ROOT)
+    from mardorf_collector.runtime.cloud_environment import environment
+    runtime = load_runtime(REPOSITORY_ROOT,environ=environment())
     parent, _ = runtime.head.read()
     # Reuse this invocation's branch for both children and finalization.
     existing = runtime.head.call('GET', '/git/ref/heads/' + branch, allowed=(404,))
