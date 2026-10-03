@@ -1,0 +1,18 @@
+{
+  "schema_version": 4,
+  "work_package": "B2-P05",
+  "baseline_sha256": "35d9d5e66c4c8de6fb3fd6b630b5fb3bf642c34e441d168a3d30b4c394893163",
+  "production_enabled": false,
+  "workflows": [
+    {
+      "path": ".github/workflows/collect-models.yml",
+      "baseline_control_sha256": "8375b3df510e9ae854b6f42108c92081e45a94727c2c059c1ff6ad116d9d896c",
+      "source_control_sha256": "6012b57d10c8c113015073e01568733ef740dd2580fb7a89252af9b66dced12c",
+      "frozen_git_blob": "66c6ee3b9116515ea2d1fcb2633feb468d17ceb9",
+      "preserved_workflow_path": "tests/fixtures/wp13/p05_model_workflow_pre_canary_v1.yml",
+      "preserved_git_blob": "acc9f334455243778a919b3055523378dc25b3be",
+      "approved_scope": "manual_isolated_model_canary_only",
+      "reason": "Bounded diagnostic model delivery may use an isolated B2 head even with reduced leads. Routine cadence, provider/audit gates and production transfer rules remain unchanged; canary concurrency is separate."
+    }
+  ]
+}

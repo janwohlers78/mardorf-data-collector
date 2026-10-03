@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "artifact_version": "collector-runtime-successor-v4",
+  "audit_id": "B2-P05-MODEL-CANARY-20261003",
+  "predecessor_sha256": "94227e5e6cf5284012f811c9f2c7fa6074bf06ead670cb9ca32cfd024ebe7d11",
+  "preserved_validator_path": "tests/fixtures/wp13/layout_validator_frozen_v4.py",
+  "preserved_validator_sha256": "10500889865fea476dfcf46e5576df0822ea5e890532c7a4395cb292a0b58225",
+  "validator_sha256": "7f0429efca22ea87592f2aec29840cf969b1cef23fe74fd17b8b0a2aa4f1a47c",
+  "production_enabled": false,
+  "module_corrections": []
+}
