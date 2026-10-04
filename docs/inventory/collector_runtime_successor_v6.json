@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "artifact_version": "collector-runtime-successor-v6",
+  "audit_id": "WP15-NATIVE-SVG-20261004",
+  "predecessor_sha256": "5676fe1547d48e25a4e7ac1c1b95fbd771a1dda5c7a37760040e6c85dc1169c6",
+  "preserved_validator_path": "tests/fixtures/wp13/native_svg_predecessor_v1/tools/validate_prep09_layout.py",
+  "preserved_validator_sha256": "a2e99249402fe8b38cee6ae8574dfc836ee3e5c9eb1ee81f4e1d4736bdb4954e",
+  "validator_sha256": "1c92f820f1aab40b6d4bd79b726f0445a98d3259e234365560e0e35eb1bff606",
+  "workflow": {
+    "path": ".github/workflows/collect-svg.yml",
+    "preserved_path": "tests/fixtures/wp13/native_svg_predecessor_v1/.github/workflows/collect-svg.yml",
+    "previous_sha256": "51367b018fb6c519267b4aa763648781e561c603ee6347a51a46d85c615759e1",
+    "sha256": "c2e0f8022de3afefd58fdeccb3ab1ee3812f9bf41b90a43b52a76aab1eb25fc9",
+    "approved_scope": "native_svg_shared_acquisition_and_delivery_only",
+    "replacements": [
+      {
+        "before": "PYTHONPATH=src python -m mardorf_collector fetch-svg-weatherlink",
+        "after": "PYTHONPATH=src python -m mardorf_collector.wp13.native_svg_v1 fetch"
+      },
+      {
+        "before": "          PYTHONPATH=src python -m mardorf_collector.transfer.dispatch publish --cloud-canary \"${{ inputs.cloud_canary == true && 'true' || 'false' }}\" \"${args[@]}\"\n",
+        "after": "          PYTHONPATH=src python -m mardorf_collector.transfer.dispatch publish --cloud-canary \"${{ inputs.cloud_canary == true && 'true' || 'false' }}\" \"${args[@]}\"\n          if [ \"${{ inputs.cloud_canary }}\" != \"true\" ]; then\n            PYTHONPATH=src python -m mardorf_collector.wp13.native_svg_v1 publish\n          fi\n"
+      }
+    ]
+  },
+  "artifacts": {
+    "src/mardorf_collector/wp13/native_svg_v1.py": "730616ee33846890f8e2e4abcf278cb7827872e9bc31cf973a1f87207c6a0549",
+    "tests/test_wp15_native_svg.py": "b4fe5bdf92d3e04fc2175363275ed00f66c92f48bd1773fc412dbedd7a5380bb"
+  },
+  "policy": {
+    "additional_provider_requests": 0,
+    "new_workflows": 0,
+    "native_models_activation": "pending_separate_I02_gate",
+    "legacy_service_and_frozen_science": "unchanged"
+  }
+}
