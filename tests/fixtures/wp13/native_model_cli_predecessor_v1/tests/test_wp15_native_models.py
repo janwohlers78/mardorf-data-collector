@@ -4,9 +4,6 @@ import hashlib
 import json
 from pathlib import Path
 import tempfile
-import os
-import subprocess
-import sys
 import unittest
 from unittest.mock import patch
 
@@ -19,34 +16,6 @@ from mardorf_collector.wp13.model_store_v1 import ModelReader, write_catalog, qu
 
 
 class NativeModelTests(unittest.TestCase):
-    def test_real_module_cli_shares_sdk_and_local_session_context_with_provider_imports(self):
-        code = '''
-import importlib, pathlib, requests, runpy, sys
-from types import SimpleNamespace
-real_import = importlib.import_module
-pathlib.Path('sdk.grib2').write_bytes(b'GRIB exact assembled SDK bytes')
-def main():
-    module = real_import('mardorf_collector.wp13.model_capture_v2')
-    assert module._active is not None
-    with module.session() as session:
-        assert session.hooks['response'] == [module._active.response]
-    module.retain_sdk('sdk.grib2', 'google', {'step': [0, 12], 'param': ['10u']})
-    capture = module._active.captures['ECMWF-IFS']
-    assert len(capture.captures) == 1
-    assert capture.captures[0]['metadata']['source_kind'] == 'assembled_native_request'
-provider = SimpleNamespace(__file__='synthetic_provider.py', S=requests.Session(), main=main)
-def imported(name, *args, **kwargs):
-    if name.startswith('mardorf_collector.providers.') or name == 'mardorf_collector.runtime.extend_model_horizon':
-        return provider
-    return real_import(name, *args, **kwargs)
-importlib.import_module = imported
-sys.argv = ['model_capture_v2', 'provider', '--model', 'ECMWF-IFS', '--stage', 'base']
-runpy.run_module('mardorf_collector.wp13.model_capture_v2', run_name='__main__', alter_sys=True)
-'''
-        with tempfile.TemporaryDirectory() as folder:
-            env = dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parents[1] / 'src'), GITHUB_SHA='a' * 40)
-            subprocess.run([sys.executable, '-c', code], cwd=folder, env=env, check=True, capture_output=True, text=True)
-
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

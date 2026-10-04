@@ -158,7 +158,4 @@ def main():
 
 
 if __name__ == '__main__':
-    # Python -m executes this file as __main__. Provider callbacks import its
-    # canonical name; both must share this process's explicitly owned router.
-    sys.modules[__spec__.name] = sys.modules[__name__]
     raise SystemExit(main())
