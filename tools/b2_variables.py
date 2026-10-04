@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Inspect/prepare the B2 switch through the existing cross-repository credential.
+"""Inspect/prepare the private B2 job switch with the existing credential.
 
 Preparation preserves existing values and creates an absent switch as false.
 It never activates production or prints the token. No other variables change.
+The public collector uses its profile; it has no Actions variable switch.
 """
 import argparse
 import json
@@ -10,7 +11,7 @@ import os
 import urllib.error
 import urllib.request
 
-REPOSITORIES = ('janwohlers78/mardorf-kitevorhersage','janwohlers78/mardorf-data-collector')
+REPOSITORIES = ('janwohlers78/mardorf-kitevorhersage',)
 NAME = 'B2_PRODUCTION_ENABLED'
 
 
