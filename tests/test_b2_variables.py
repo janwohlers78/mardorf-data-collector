@@ -26,6 +26,12 @@ class VariableTests(unittest.TestCase):
         with patch.object(v,'request',side_effect=[(200,{'name':v.NAME,'value':'true'}),(204,{}),(200,{'name':v.NAME,'value':'true'})]) as request:
             v.inspect('credential',prepare=True)
         self.assertEqual(request.call_args_list[1].args[2:],('PATCH','true'))
+    def test_actions_boolean_case_is_accepted_and_exact_spelling_preserved(self):
+        with patch.object(v,'request',side_effect=[(200,{'name':v.NAME,'value':'FALSE'}),(204,{}),(200,{'name':v.NAME,'value':'FALSE'})]) as request:
+            result=v.inspect('credential',prepare=True)
+        self.assertEqual(request.call_args_list[1].args[2:],('PATCH','FALSE'))
+        self.assertEqual(result['variables'][0]['value'],'FALSE')
+        self.assertTrue(result['variables'][0]['write_readback_verified'])
     def test_changed_readback_is_rejected_without_second_write(self):
         with patch.object(v,'request',side_effect=[(404,{}),(201,{}),(200,{'name':v.NAME,'value':'true'})]) as request:
             with self.assertRaises(ValueError):v.inspect('credential',prepare=True)
