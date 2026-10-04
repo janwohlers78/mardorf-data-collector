@@ -31,8 +31,6 @@ class MirrorClient:
                 last_error = exc
                 continue
             self.source = source
-            from mardorf_collector.wp13.model_capture_v2 import retain_sdk
-            retain_sdk(request.get("target"), source, request)
             return result
         detail = ", ".join(f"{source}:{kind}" for source,kind in failures)
         raise RuntimeError(f"ECMWF mirrors exhausted ({detail})") from last_error

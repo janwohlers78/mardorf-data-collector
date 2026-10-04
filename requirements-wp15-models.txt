@@ -1,0 +1,3 @@
+# Explicit WP15 model Parquet environment; frozen WP13 lock unchanged.
+pyarrow==25.0.1 \
+    --hash=sha256:5389cdf79447ed1515c9e31620e6e1e2302249564d603f2ad727d4f6d313e4c3
