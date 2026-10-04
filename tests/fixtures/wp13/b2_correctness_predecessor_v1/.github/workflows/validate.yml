@@ -60,16 +60,6 @@ jobs:
             --remote-repo janwohlers78/mardorf-kitevorhersage \
             --remote-ref main
 
-      - name: Inspect or prepare B2 activation switch access
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-        env:
-          CROSS_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
-          EVENT_NAME: ${{ github.event_name }}
-        run: |
-          args=()
-          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then args+=(--prepare); fi
-          python tools/b2_variables.py "${args[@]}"
-
       - name: Parse integrity policy
         run: python -m json.tool config/integrity_policy.json >/dev/null
       - name: Verify no generated data is tracked

@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "artifact_version": "collector-runtime-successor-v5",
+  "audit_id": "B2-CORRECTNESS-20261004",
+  "predecessor_sha256": "9f92bd733c4d677ae6812ffcf4e4ae80aada31e1873d07ecb87391eea7cb4de3",
+  "preserved_validator_path": "tests/fixtures/wp13/b2_correctness_predecessor_v1/tools/validate_prep09_layout.py",
+  "preserved_validator_sha256": "7f0429efca22ea87592f2aec29840cf969b1cef23fe74fd17b8b0a2aa4f1a47c",
+  "validator_sha256": "a2e99249402fe8b38cee6ae8574dfc836ee3e5c9eb1ee81f4e1d4736bdb4954e",
+  "modules": [
+    {
+      "implementation_path": "src/mardorf_collector/runtime/provider_cycle_gate.py",
+      "baseline_normalized_ast_sha256": "66548dc98d696190ecf1f5eb1e035b49311ab619762687a74fd070a0bfb56a64",
+      "previous_source_sha256": "c955c5299e33f60e7f861240e7ec7a4f46442c6a3fa4143e4a25671d15b8f94d",
+      "preserved_source_path": "tests/fixtures/wp13/b2_correctness_predecessor_v1/src/mardorf_collector/runtime/provider_cycle_gate.py",
+      "corrected_source_sha256": "c2ce5f679356efbf15d320e609f11e6a869d71e8ede95fd2d97097a1113e9dc3",
+      "corrected_normalized_ast_sha256": "d0ead2b0b0bf5d31ca2f880a6ace99d0737943155f32c2338c9575549a646c8d",
+      "finding_ids": [
+        "B2-OPEN-01",
+        "B2-OPEN-02"
+      ]
+    },
+    {
+      "implementation_path": "src/mardorf_collector/providers/fetch_extra_models.py",
+      "baseline_normalized_ast_sha256": "5d0c143ade871167eb397c800102ab95d27e8a1d86d43d1de35d702b5e1532d6",
+      "previous_source_sha256": "968008f589fcd9d51f84934183a7a2789811996b695f815f47f62476265d5c79",
+      "preserved_source_path": "tests/fixtures/wp13/b2_correctness_predecessor_v1/src/mardorf_collector/providers/fetch_extra_models.py",
+      "corrected_source_sha256": "5797bc66775b5ec55a4bb71aa0a9fbdf9414f4eb2f31ed7ca3dcb6dd963cddfb",
+      "corrected_normalized_ast_sha256": "6bfc0047924b3d8b5d7dd3b6ed05225b8ad64bc264d06eed01b0a6dc21b98bb7",
+      "finding_ids": [
+        "B2-OPEN-01"
+      ]
+    },
+    {
+      "implementation_path": "src/extend_model_horizon.py",
+      "baseline_normalized_ast_sha256": "a9617c1d625f8b24b3faccf90d66ee9c2bf145587a939abd061dc8ee25b6a180",
+      "previous_source_sha256": "cbfcf33ceb61b093e6cfad86654299b3e518c5ca936cf30056061084a82ad8f5",
+      "preserved_source_path": "tests/fixtures/wp13/b2_correctness_predecessor_v1/src/extend_model_horizon.py",
+      "corrected_source_sha256": "5dfdc4e337560e4d3118203d8fb6f947ba643f26ad0f9cd089656760a559c371",
+      "corrected_normalized_ast_sha256": "8cd2b57e31569175b201905f0ba6f5eccf4228d4e0ad6adbfa7747a8aff2f3c3",
+      "finding_ids": [
+        "B2-OPEN-01"
+      ]
+    }
+  ],
+  "preserved_workflow_path": "tests/fixtures/wp13/b2_correctness_predecessor_v1/.github/workflows/collect-models.yml",
+  "workflow": {
+    "path": ".github/workflows/collect-models.yml",
+    "baseline_control_sha256": "6012b57d10c8c113015073e01568733ef740dd2580fb7a89252af9b66dced12c",
+    "source_control_sha256": "6012b57d10c8c113015073e01568733ef740dd2580fb7a89252af9b66dced12c",
+    "frozen_git_blob": "85162691694ccc649ea7cabd6b74d41c9d871302",
+    "reason": "One Python-owned bounded mirror loop; unchanged six-minute kill bound, provider/source clocks and scientific gates"
+  },
+  "production_enabled": false,
+  "auxiliary_artifacts": [
+    {
+      "path": "src/validate_dev03_wp03_i04.py",
+      "sha256": "e8f33b3b86027984589c17e1eb49810cb2477941b7c437aada2d40e49b08ff2f",
+      "preserved_path": "tests/fixtures/wp13/b2_correctness_predecessor_v1/src/validate_dev03_wp03_i04.py",
+      "preserved_sha256": "e0806ce732ff71a485e13bc34381002dcf9ba9997dfbc6b6faa73d47112d398f"
+    }
+  ],
+  "variables_workflow": {
+    "path": ".github/workflows/validate.yml",
+    "preserved_path": "tests/fixtures/wp13/b2_correctness_predecessor_v1/.github/workflows/validate.yml",
+    "preserved_sha256": "bfdf2904efbbd85924fe9bd7550ee4ca41ca215975ffed13dcb4101279e25888",
+    "insert_before": "      - name: Parse integrity policy\n",
+    "inserted_block": "      - name: Inspect or prepare B2 activation switch access\n        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository\n        env:\n          CROSS_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}\n          EVENT_NAME: ${{ github.event_name }}\n        run: |\n          args=()\n          if [ \"$EVENT_NAME\" = \"workflow_dispatch\" ]; then args+=(--prepare); fi\n          python tools/b2_variables.py \"${args[@]}\"\n\n",
+    "sha256": "6dd7bbff0165145242e6eb6db59cbe3626e5117078d8d9e5ea08b9acf998ba9d"
+  }
+}

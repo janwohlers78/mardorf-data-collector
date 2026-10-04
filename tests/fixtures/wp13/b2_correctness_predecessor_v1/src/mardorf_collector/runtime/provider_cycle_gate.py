@@ -29,7 +29,6 @@ import mardorf_collector.providers.fetch_extra_models as extra
 import mardorf_collector.providers.fetch_dwd_additional_models as dwd
 import mardorf_collector.providers.gefs_full_members as full_gefs
 from mardorf_collector.contracts.full_horizon_contract import maximum_hours
-from mardorf_collector.providers.ecmwf_mirrors import MirrorClient
 
 API="https://api.github.com"
 DEFAULT_REPO="janwohlers78/mardorf-kitevorhersage"
@@ -222,7 +221,7 @@ def _ecmwf_cycle(full_validation=True):
     source=os.getenv("ECMWF_OPEN_DATA_SOURCE","azure")
     with tempfile.TemporaryDirectory() as td:
         root=Path(td)
-        client=MirrorClient(extra.Client,source)
+        client=extra.Client(source=source,model="ifs",resol="0p25",maximum_retries=2,retry_after=5)
         latest=_ecmwf_probe(client,root/"latest_f048.grib2",step=48)
         if not full_validation:
             return latest
@@ -323,14 +322,6 @@ def source_matches_cycle(latest,model,run):
 
 
 def load_seed(repo,token):
-    from . import private_state
-    if private_state.enabled(repo):
-        from mardorf_collector.storage.delivery import verified_collector_delivery
-        reader=private_state.cloud()
-        raw,latest,_health,_invocation=verified_collector_delivery(
-            lambda path: private_bytes(repo,path,token),'models',
-            public_repository=reader.config['public_repository'])
-        return latest,json.loads(raw),latest['private_payload']['destination'],latest['input_payload_sha256']
     latest=private_json(repo,"data/inbox/public_collector/integrity/models/latest_success.json",token)
     private=latest.get("private_payload") if isinstance(latest.get("private_payload"),dict) else {}
     dest=private.get("destination")
