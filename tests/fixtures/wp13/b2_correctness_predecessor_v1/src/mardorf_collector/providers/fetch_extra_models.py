@@ -6,7 +6,6 @@ from pathlib import Path
 from urllib.parse import urlencode
 import requests
 from ecmwf.opendata import Client
-from mardorf_collector.providers.ecmwf_mirrors import MirrorClient
 from mardorf_collector.providers.grib_identity import _step_end_hours,assert_grib_batch_leads,assert_grib_valid_time,grib_run_times
 from mardorf_collector.contracts.full_horizon_contract import maximum_hours,gefs_lead_contract
 import mardorf_collector.providers.noaa_weather_context as noaa
@@ -54,7 +53,7 @@ def fetch_ifs(leads,run_time=None):
   planned=run_time if isinstance(run_time,datetime) else datetime.fromisoformat(str(run_time).replace('Z','+00:00'))
   planned=planned.astimezone(timezone.utc) if planned.tzinfo else planned.replace(tzinfo=timezone.utc)
  with tempfile.TemporaryDirectory() as td:
-  target=Path(td)/'ifs_batch.grib2'; client=MirrorClient(Client,ECMWF_SOURCE)
+  target=Path(td)/'ifs_batch.grib2'; client=Client(source=ECMWF_SOURCE,model='ifs',resol='0p25')
   kwargs={}
   if planned is not None: kwargs.update(date=planned.strftime('%Y%m%d'),time=planned.hour)
   client.retrieve(stream='oper',type='fc',step=leads,param=ECMWF_PARAMS,target=str(target),**kwargs)
@@ -72,7 +71,7 @@ def fetch_ifs(leads,run_time=None):
     for n in names:
      if n in vals and vals[n]: return vals[n][0]['value']
    u=one('10u');v=one('10v');g=one('10fg','10fg3','10fg6')
-   rec={'model':'ECMWF-IFS','run_time_utc':run.isoformat(),'forecast_lead_hours':lead,'valid_time_utc':(run+timedelta(hours=lead)).isoformat(),'provider_product':ecmwf_registry.PRODUCT,'source':f'ECMWF Open Data via {client.source} mirror raw GRIB2','values':vals,'field_availability_states':ecmwf_registry.unsupported_declarations(),'forecast_coordinate_or_grid_point':point,'source_request':{'steps':leads,'params':ECMWF_PARAMS,'retrieved_run_time_utc':run.isoformat(),'registry_version':ecmwf_registry.REGISTRY_VERSION}}
+   rec={'model':'ECMWF-IFS','run_time_utc':run.isoformat(),'forecast_lead_hours':lead,'valid_time_utc':(run+timedelta(hours=lead)).isoformat(),'provider_product':ecmwf_registry.PRODUCT,'source':f'ECMWF Open Data via {ECMWF_SOURCE} mirror raw GRIB2','values':vals,'field_availability_states':ecmwf_registry.unsupported_declarations(),'forecast_coordinate_or_grid_point':point,'source_request':{'steps':leads,'params':ECMWF_PARAMS,'retrieved_run_time_utc':run.isoformat(),'registry_version':ecmwf_registry.REGISTRY_VERSION}}
    if u is not None and v is not None:rec['derived']=derived(u,v,g)
    out.append(rec)
  return out

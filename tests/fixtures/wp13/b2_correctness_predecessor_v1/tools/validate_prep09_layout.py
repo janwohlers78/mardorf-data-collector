@@ -59,8 +59,6 @@ def validate(root):
     corrections = {item['implementation_path']: item for item in corrections_doc.get('modules', [])}
     if len(corrections) != len(corrections_doc.get('modules', [])):
         raise ValueError('duplicate corrected source path')
-    successor_v5_path=root/'docs/inventory/collector_runtime_successor_v5.json'
-    successor_v5=json.loads(successor_v5_path.read_text()) if successor_v5_path.exists() else None
     successor_v4_path=root/'docs/inventory/collector_runtime_successor_v4.json'
     successor_v4=json.loads(successor_v4_path.read_text()) if successor_v4_path.exists() else None
     successor_v3_path = root/'docs/inventory/collector_runtime_successor_v3.json'
@@ -115,37 +113,8 @@ def validate(root):
                 successor_v4.get('predecessor_sha256')!=hashlib.sha256(successor_v3_path.read_bytes()).hexdigest() or
                 successor_v4.get('preserved_validator_sha256')!=hashlib.sha256((root/successor_v4['preserved_validator_path']).read_bytes()).hexdigest() or
                 successor_v4.get('preserved_validator_sha256')!=successor_v3.get('validator_sha256') or
-                successor_v4.get('validator_sha256')!=hashlib.sha256((root/(successor_v5['preserved_validator_path'] if successor_v5 else 'tools/validate_prep09_layout.py')).read_bytes()).hexdigest()):
+                successor_v4.get('validator_sha256')!=hashlib.sha256((root/'tools/validate_prep09_layout.py').read_bytes()).hexdigest()):
             raise ValueError('unverified manual model canary successor')
-    if successor_v5 is not None:
-        if (successor_v5.get('artifact_version')!='collector-runtime-successor-v5' or
-                successor_v5.get('predecessor_sha256')!=hashlib.sha256(successor_v4_path.read_bytes()).hexdigest() or
-                successor_v5.get('preserved_validator_sha256')!=successor_v4.get('validator_sha256') or
-                successor_v5.get('preserved_validator_sha256')!=hashlib.sha256((root/successor_v5['preserved_validator_path']).read_bytes()).hexdigest() or
-                successor_v5.get('validator_sha256')!=hashlib.sha256((root/'tools/validate_prep09_layout.py').read_bytes()).hexdigest()):
-            raise ValueError('unverified bounded acquisition/delivery successor')
-        for artifact in successor_v5.get('auxiliary_artifacts',[]):
-            if (hashlib.sha256((root/artifact['path']).read_bytes()).hexdigest()!=artifact['sha256'] or
-                    hashlib.sha256((root/artifact['preserved_path']).read_bytes()).hexdigest()!=artifact['preserved_sha256']):
-                raise ValueError('correctness auxiliary validator drift')
-        seen=set()
-        allowed={'src/mardorf_collector/runtime/provider_cycle_gate.py','src/mardorf_collector/providers/fetch_extra_models.py','src/extend_model_horizon.py'}
-        if {row['implementation_path'] for row in successor_v5.get('modules',[])}!=allowed:
-            raise ValueError('correctness successor changed its reviewed scope')
-        historical={row['implementation_path']:row for row in proof['modules']}
-        for row in successor_v5.get('modules',[]):
-            path=row['implementation_path']
-            if path in seen or path not in historical:raise ValueError('invalid correctness successor scope')
-            seen.add(path)
-            previous=corrections.get(path)
-            expected=previous['corrected_source_sha256'] if previous else row['previous_source_sha256']
-            if (row.get('previous_source_sha256')!=expected or
-                    hashlib.sha256((root/row['preserved_source_path']).read_bytes()).hexdigest()!=expected):
-                raise ValueError('correctness predecessor source drift')
-            prior_ast=hashlib.sha256(ast.dump(Normalize().visit(ast.parse((root/row['preserved_source_path']).read_bytes())),include_attributes=False).encode()).hexdigest()
-            expected_ast=previous['corrected_normalized_ast_sha256'] if previous else historical[path]['normalized_ast_sha256']
-            if prior_ast!=expected_ast:raise ValueError('correctness predecessor AST drift')
-            corrections[path]=row
     if set(corrections) - {item['implementation_path'] for item in proof['modules']}:
         raise ValueError('correction outside the historical package parity scope')
     by_path = {m['implementation_path']: m for m in modules}
@@ -170,9 +139,7 @@ def validate(root):
             raise ValueError(f'non-mechanical source change: {path}')
     for item in modules:
         if item.get('kind') == 'protected_implementation_bridge':
-            approved=corrections.get(item['implementation_path'])
-            expected_sha=approved['corrected_source_sha256'] if approved else item['baseline_sha256']
-            if hashlib.sha256((root / item['implementation_path']).read_bytes()).hexdigest() != expected_sha:
+            if hashlib.sha256((root / item['implementation_path']).read_bytes()).hexdigest() != item['baseline_sha256']:
                 raise ValueError('protected implementation bytes drift')
             text = (root / item['package_bridge_path']).read_text()
             legacy = Path(item['legacy_path']).stem
@@ -233,31 +200,7 @@ def validate(root):
         for pattern,replacement in changes:
             if current.count(pattern)!=1:raise ValueError('ambiguous manual model canary scope')
             current=current.replace(pattern,replacement)
-        active_path=(successor_v5['preserved_workflow_path'] if successor_v5 else row['path'])
-        if current!=(root/active_path).read_text():raise ValueError('model canary changed acquisition or science gates')
-        expected[name]=row
-    if successor_v5 is not None:
-        name='collect-models.yml'
-        previous=(root/successor_v5['preserved_workflow_path']).read_bytes()
-        row=successor_v5['workflow']
-        if (row['baseline_control_sha256']!=expected[name]['source_control_sha256'] or
-                hashlib.sha1(b'blob '+str(len(previous)).encode()+b'\0'+previous).hexdigest()!=expected[name]['frozen_git_blob'] or
-                row['source_control_sha256']!=row['baseline_control_sha256']):
-            raise ValueError('bounded mirror workflow controls drift')
-        current=previous.decode()
-        for stage in ('base','extension'):
-            anchor='name: '+('Fetch ECMWF-IFS base' if stage=='base' else 'Extend ECMWF-IFS')
-            start=current.index('          last=1\n',current.index(anchor))
-            end=current.index('          exit "$last"',start)+len('          exit "$last"')
-            args=' "${args[@]}"' if stage=='base' else ''
-            replacement=('          set +e\n'
-                '          timeout --signal=TERM --kill-after=15s 6m python src/provider_fetch.py --model ECMWF-IFS --stage '+stage+args+'\n'
-                '          rc=$?\n          set -e\n'
-                '          if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then\n'
-                '            python src/record_provider_failure.py --model ECMWF-IFS --stage '+stage+' --exit-code "$rc" --reason "hard_timeout_6m"\n'
-                '          fi\n          exit "$rc"')
-            current=current[:start]+replacement+current[end:]
-        if current!=(root/row['path']).read_text():raise ValueError('mirror successor changed unrelated workflow bytes')
+        if current!=(root/row['path']).read_text():raise ValueError('model canary changed acquisition or science gates')
         expected[name]=row
     if workflows.keys() != expected.keys():
         raise ValueError('workflow added/removed without route review')

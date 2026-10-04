@@ -12,7 +12,6 @@ from pathlib import Path
 from urllib.parse import urlencode,urljoin
 import requests
 from ecmwf.opendata import Client
-from mardorf_collector.providers.ecmwf_mirrors import MirrorClient
 from grib_identity import _step_end_hours,assert_grib_batch_leads,assert_grib_valid_time,grib_run_times
 import noaa_weather_context as noaa
 import ecmwf_registry
@@ -112,7 +111,8 @@ def step_end(step_range):
 def fetch_ifs(data, requested_leads=None):
     base=cycle_from_existing(data,'ECMWF-IFS');out=[]
     leads=leads_for_cycle('ECMWF-IFS',base) if requested_leads is None else list(requested_leads)
-    client=MirrorClient(Client,ECMWF_SOURCE)
+    client_options = {} if requested_leads is None else {'maximum_retries': 2, 'retry_after': 5}
+    client=Client(source=ECMWF_SOURCE,model='ifs',resol='0p25',**client_options)
     with tempfile.TemporaryDirectory() as td:
         p=Path(td)/'ifs_medium_range_batch.grib2'
         client.retrieve(
@@ -136,7 +136,7 @@ def fetch_ifs(data, requested_leads=None):
             rec={'model':'ECMWF-IFS','run_time_utc':actual.isoformat(),'forecast_lead_hours':lead,
                  'valid_time_utc':(actual+timedelta(hours=lead)).isoformat(),
                  'provider_product':ecmwf_registry.PRODUCT,
-                 'source':f'ECMWF Open Data via {client.source} mirror raw GRIB2','values':vals,
+                 'source':f'ECMWF Open Data via {ECMWF_SOURCE} mirror raw GRIB2','values':vals,
                  'field_availability_states':ecmwf_registry.unsupported_declarations(),
                  'forecast_coordinate_or_grid_point':point,
                  'source_request':{'date':base.strftime('%Y%m%d'),'time':base.hour,'steps':leads,

@@ -116,14 +116,6 @@ def main():
     check(frozen_code == expected_frozen, "frozen predecessor producer blob inventory drift", problems)
     for rel, expected_sha in expected_frozen.items():
         candidate = ROOT / rel
-        if rel == 'src/extend_model_horizon.py':
-            review_path=ROOT/'docs/inventory/collector_runtime_successor_v5.json'
-            if review_path.exists():
-                review=json.loads(review_path.read_text())
-                approved=next(item for item in review['modules'] if item['implementation_path']==rel)
-                check(hashlib.sha256(candidate.read_bytes()).hexdigest()==approved['corrected_source_sha256'],
-                      "bounded ECMWF successor source drift",problems)
-                candidate=ROOT/approved['preserved_source_path']
         check(candidate.exists(), f"frozen predecessor producer missing: {rel}", problems)
         if candidate.exists():
             check(git_blob_sha(candidate) == expected_sha,
