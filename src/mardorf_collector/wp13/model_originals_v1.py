@@ -4,6 +4,7 @@ This captures bytes and binds existing native point metadata by source hash.
 It does not normalize meteorological values or select a second model pipeline.
 """
 from datetime import datetime, timezone
+from copy import deepcopy
 import hashlib
 import json
 from pathlib import Path
@@ -70,12 +71,12 @@ class Capture:
         with self.lock, file_lock(self.directory / 'capture.lock'):
             if not 0 < size <= MAX_RESPONSE_BYTES or self.bytes + size > MAX_STAGE_BYTES:
                 raise ObjectError('Model original stage byte budget exceeded')
-            metadata = {'model': self.model, 'stage': self.stage,
+            metadata = {'acquisition_model': self.model, 'stage': self.stage,
                 'source_url': safe_url(url), 'source_kind': kind,
                 'captured_at_utc': captured_at_utc, 'producer_commit': self.commit}
             if request is not None:
-                metadata['sdk_request'] = {key: request[key] for key in
-                    ('date', 'time', 'stream', 'type', 'step', 'param') if key in request}
+                metadata['sdk_request'] = deepcopy({key: request[key] for key in
+                    ('date', 'time', 'stream', 'type', 'step', 'param') if key in request})
             if content_range is not None:
                 metadata['content_range'] = content_range
             if canonical_json_sha256 is not None:
@@ -88,7 +89,7 @@ class Capture:
             self.captures.append(item)
             target = self.directory / (parent.sha256 + '.capture.json')
             target.write_bytes(canonical(item))
-            return item
+            return deepcopy(item)
 
     def response(self, response, *args, **kwargs):
         parsed = urlsplit(response.url)
@@ -174,8 +175,8 @@ class Capture:
         bound = []
         for item in self.captures:
             logical = item['metadata'].get('canonical_json_sha256', item['sha256'])
-            bound.append(dict(item, point_fields=by_source.get(logical, []),
-                binding_digest_basis='canonical_json' if logical != item['sha256'] else 'response_bytes'))
+            bound.append(deepcopy(dict(item, point_fields=by_source.get(logical, []),
+                binding_digest_basis='canonical_json' if logical != item['sha256'] else 'response_bytes')))
         report = {'schema_version': 1, 'artifact_version': 'wp15-model-original-stage-v1',
             'model': self.model, 'stage': self.stage, 'captures': bound,
             'capture_errors': self.errors, 'provider_requests_added': 0,

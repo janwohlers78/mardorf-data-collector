@@ -20,6 +20,8 @@ class ParentStore:
         self.prefix = safe_key(prefix.rstrip('/'))
 
     def write_file(self, source, *, metadata):
+        if not isinstance(metadata, dict):
+            raise ObjectError('Original parent metadata object required')
         source = Path(source)
         if any(p.is_symlink() for p in (source, *source.parents)) or not source.is_file():
             raise ObjectError('Regular original parent file required')

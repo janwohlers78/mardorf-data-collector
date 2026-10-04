@@ -28,8 +28,8 @@ Prüfung tatsächlicher Standort-/Raster-/Member-Metadaten und Abnahme anhand
 automatischer Routinejobs. Die eingefrorenen Collector-, Feld- und
 Dienstverträge werden dadurch nicht stillschweigend verändert.
 
-Zehn gezielte Tests prüfen tatsächliche Originalbytes über Blockgrenzen,
+Elf gezielte Tests prüfen tatsächliche Originalbytes über Blockgrenzen,
 unvollständige Rekonstruktion, unveränderte Requests-Nutzung, Quellendigest-
-Zuordnung, EPS-Identitäten und Fehlergrenzen. Layoutprüfung: 9 Workflowkontrollen
+Zuordnung, EPS-Identitäten, unveränderliche Herkunftsmetadaten und Fehlergrenzen. Layoutprüfung: 9 Workflowkontrollen
 und 3 geschützte Providerbrücken unverändert. Wissenschaftliches Gate OPEN;
 v16-c3-v9 und vorhandener Dienst bleiben maßgeblich.

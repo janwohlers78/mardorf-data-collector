@@ -117,6 +117,18 @@ class ModelOriginalsTests(unittest.TestCase):
         self.assertTrue(report['all_captures_have_point_bindings'])
         self.assertEqual(response.content, body)
 
+    def test_sdk_request_and_returned_metadata_cannot_mutate_bound_capture(self):
+        source = self.root / 'sdk.grib2'
+        source.write_bytes(b'GRIB assembled request')
+        request = {'step': [0, 12], 'param': ['10u', '10v'], 'target': '/temporary/path'}
+        item = self.capture.retain(source, url='https://data.ecmwf.int/forecasts/',
+            kind='assembled_native_request', captured_at_utc='2026-10-04T00:00:00Z', request=request)
+        request['step'].append(24)
+        item['metadata']['sdk_request']['param'].append('changed')
+        bound = self.capture.captures[0]
+        self.assertEqual(bound['metadata']['sdk_request'], {'step': [0, 12], 'param': ['10u', '10v']})
+        self.assertEqual(self.capture.store.manifest(bound['parent'])['metadata'], bound['metadata'])
+
 
 if __name__ == '__main__':
     unittest.main()
