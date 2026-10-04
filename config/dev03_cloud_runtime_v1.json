@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "artifact_version": "dev03-cloud-runtime-v1",
-  "production_enabled": false,
+  "production_enabled": true,
   "private_repository": "janwohlers78/mardorf-kitevorhersage",
   "public_repository": "janwohlers78/mardorf-data-collector",
   "archive_prefix": "weather/archive/janwohlers78/mardorf-kitevorhersage",
   "control_branch": "main",
   "control_path": "config/cloud_refs/weather_head_v1.json",
   "bootstrap_snapshot": {
-    "key": "weather/archive/janwohlers78/mardorf-kitevorhersage/snapshots/bc7502460b127b92c86496e2e610bc8d7e6685def8da4716953e9641a4a1e904",
-    "sha256": "bc7502460b127b92c86496e2e610bc8d7e6685def8da4716953e9641a4a1e904",
-    "bytes": 80381,
+    "key": "weather/archive/janwohlers78/mardorf-kitevorhersage/snapshots/51ba1fcf1a4e6705ce3aa3790982bd9992bbe3f1ceaeaac33b19f39b3ad9ad30",
+    "sha256": "51ba1fcf1a4e6705ce3aa3790982bd9992bbe3f1ceaeaac33b19f39b3ad9ad30",
+    "bytes": 71880,
     "schema_version": 1
   },
   "authority_policy": "After explicit activation B2 only; ephemeral compatible files are reconstructed from pinned root, never a fallback Git weather tree",
