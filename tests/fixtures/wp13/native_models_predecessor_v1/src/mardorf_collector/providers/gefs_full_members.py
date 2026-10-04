@@ -32,7 +32,6 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 import requests
-from mardorf_collector.wp13.model_capture_v2 import session as native_session
 
 import mardorf_collector.providers.noaa_weather_context as noaa
 
@@ -216,7 +215,7 @@ def _probe_url(run,lead=840):
 
 def discover_mature_00z(now=None,session=None,max_days=4):
     now=utc(now or datetime.now(timezone.utc))
-    session=session or native_session()
+    session=session or requests.Session()
     session.headers.update({"User-Agent":"mardorf-data-collector/gefs-full-cycle-probe-v1"})
     attempts=[]
     for dd in range(max_days):
@@ -237,7 +236,7 @@ def discover_mature_00z(now=None,session=None,max_days=4):
 def _session():
     s=getattr(_thread,"session",None)
     if s is None:
-        s=native_session()
+        s=requests.Session()
         s.headers.update({"User-Agent":"mardorf-data-collector/gefs-full-members-v1"})
         _thread.session=s
     return s

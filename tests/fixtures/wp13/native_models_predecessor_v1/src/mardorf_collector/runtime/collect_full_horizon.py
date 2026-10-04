@@ -6,7 +6,6 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import urlencode
 import requests
-from mardorf_collector.wp13.model_capture_v2 import session as native_session
 import mardorf_collector.runtime.extend_model_horizon as ext
 import mardorf_collector.providers.noaa_weather_context as noaa
 import mardorf_collector.contracts.availability_contract as availability
@@ -65,7 +64,7 @@ def _download(session,url,required,far_gefs):
  raise PublicationUnavailable(str(last)) from last
 def fetch_noaa(model,run,lead):
  vals,evidence,optional_errors,point,weather_availability={},[],[],None,{}
- with native_session() as session,tempfile.TemporaryDirectory() as td:
+ with requests.Session() as session,tempfile.TemporaryDirectory() as td:
   session.headers.update({"User-Agent":"mardorf-data-collector/full-horizon-v1"})
   for product,url,required in noaa_requests(model,run,lead):
    try:
@@ -112,7 +111,7 @@ def retry_gefs_pgrb2b(record,run):
   raise RuntimeError(f"GEFS pgrb2b request identity missing at lead {lead}: {candidates}")
  product,url,_required=candidates[0]
  out=json.loads(json.dumps(record))
- with native_session() as session,tempfile.TemporaryDirectory() as td:
+ with requests.Session() as session,tempfile.TemporaryDirectory() as td:
   session.headers.update({"User-Agent":"mardorf-data-collector/gefs-pgrb2b-supplement-v1"})
   content=_download(session,url,False,True)
   path=Path(td)/(product+".grib2");path.write_bytes(content)

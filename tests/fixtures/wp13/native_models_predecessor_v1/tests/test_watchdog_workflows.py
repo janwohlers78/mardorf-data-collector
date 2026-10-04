@@ -77,9 +77,9 @@ class WatchdogWorkflowTests(unittest.TestCase):
         s=self.text("collect-models.yml")
         self.assertIn("Fetch sparse GEFS full members for new 00Z cycle",s)
         self.assertIn("steps.cycle_gate.outputs.gefs_full == 'fetch'",s)
-        self.assertIn("python -m mardorf_collector.wp13.model_capture_v2 full_members --workers 2",s)
+        self.assertIn("python src/gefs_full_members.py --workers 2",s)
         self.assertIn("continue-on-error: true",s)
-        self.assertIn("10m python -m mardorf_collector.wp13.model_capture_v2 full_members",s)
+        self.assertIn("10m python src/gefs_full_members.py",s)
         self.assertIn("inputs.watchdog == true",s)
 
     def test_secondary_watchdog_is_freshness_gated(self):

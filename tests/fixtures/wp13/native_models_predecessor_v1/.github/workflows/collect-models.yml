@@ -77,8 +77,6 @@ jobs:
         if: (github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || steps.due.outputs.due == 'true'
         run: |
           python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-runtime.txt
-          python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-wp13-grib.txt
-          python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-wp15-models.txt
           if [ '${{ inputs.cloud_canary }}' = 'true' ] || python -c "import json,sys; sys.exit(0 if json.load(open('config/dev03_cloud_runtime_v1.json'))['production_enabled'] is True else 1)"; then
             python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-cloud.txt
           fi
@@ -116,7 +114,7 @@ jobs:
           args=()
           if [ "${{ inputs.test_mode }}" = "true" ]; then args+=(--test); fi
           set +e
-          PYTHONPATH=src timeout --signal=TERM --kill-after=15s 5m python -m mardorf_collector.wp13.model_capture_v2 provider --model ICON-D2 --stage base "${args[@]}"
+          timeout --signal=TERM --kill-after=15s 5m python src/provider_fetch.py --model ICON-D2 --stage base "${args[@]}"
           rc=$?
           set -e
           if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
@@ -132,7 +130,7 @@ jobs:
           args=()
           if [ "${{ inputs.test_mode }}" = "true" ]; then args+=(--test); fi
           set +e
-          PYTHONPATH=src timeout --signal=TERM --kill-after=15s 5m python -m mardorf_collector.wp13.model_capture_v2 provider --model GFS --stage base "${args[@]}"
+          timeout --signal=TERM --kill-after=15s 5m python src/provider_fetch.py --model GFS --stage base "${args[@]}"
           rc=$?
           set -e
           if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
@@ -148,7 +146,7 @@ jobs:
           args=()
           if [ "${{ inputs.test_mode }}" = "true" ]; then args+=(--test); fi
           set +e
-          PYTHONPATH=src timeout --signal=TERM --kill-after=15s 5m python -m mardorf_collector.wp13.model_capture_v2 provider --model GEFS-control --stage base "${args[@]}"
+          timeout --signal=TERM --kill-after=15s 5m python src/provider_fetch.py --model GEFS-control --stage base "${args[@]}"
           rc=$?
           set -e
           if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
@@ -164,7 +162,7 @@ jobs:
           args=()
           if [ "${{ inputs.test_mode }}" = "true" ]; then args+=(--test); fi
           set +e
-          PYTHONPATH=src timeout --signal=TERM --kill-after=15s 5m python -m mardorf_collector.wp13.model_capture_v2 provider --model ICON-EU --stage base "${args[@]}"
+          timeout --signal=TERM --kill-after=15s 5m python src/provider_fetch.py --model ICON-EU --stage base "${args[@]}"
           rc=$?
           set -e
           if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
@@ -180,7 +178,7 @@ jobs:
           args=()
           if [ "${{ inputs.test_mode }}" = "true" ]; then args+=(--test); fi
           set +e
-          PYTHONPATH=src timeout --signal=TERM --kill-after=15s 5m python -m mardorf_collector.wp13.model_capture_v2 provider --model ICON-D2-EPS --stage base "${args[@]}"
+          timeout --signal=TERM --kill-after=15s 5m python src/provider_fetch.py --model ICON-D2-EPS --stage base "${args[@]}"
           rc=$?
           set -e
           if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
@@ -196,7 +194,7 @@ jobs:
           args=()
           if [ "${{ inputs.test_mode }}" = "true" ]; then args+=(--test); fi
           set +e
-          PYTHONPATH=src timeout --signal=TERM --kill-after=15s 6m python -m mardorf_collector.wp13.model_capture_v2 provider --model ECMWF-IFS --stage base "${args[@]}"
+          timeout --signal=TERM --kill-after=15s 6m python src/provider_fetch.py --model ECMWF-IFS --stage base "${args[@]}"
           rc=$?
           set -e
           if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
@@ -210,7 +208,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          PYTHONPATH=src timeout --signal=TERM --kill-after=15s 7m python -m mardorf_collector.wp13.model_capture_v2 provider --model GFS --stage extension
+          timeout --signal=TERM --kill-after=15s 7m python src/provider_fetch.py --model GFS --stage extension
           rc=$?
           set -e
           if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
@@ -224,7 +222,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          PYTHONPATH=src timeout --signal=TERM --kill-after=15s 7m python -m mardorf_collector.wp13.model_capture_v2 provider --model GEFS-control --stage extension
+          timeout --signal=TERM --kill-after=15s 7m python src/provider_fetch.py --model GEFS-control --stage extension
           rc=$?
           set -e
           if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
@@ -238,7 +236,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          PYTHONPATH=src timeout --signal=TERM --kill-after=15s 7m python -m mardorf_collector.wp13.model_capture_v2 provider --model ICON-EU --stage extension
+          timeout --signal=TERM --kill-after=15s 7m python src/provider_fetch.py --model ICON-EU --stage extension
           rc=$?
           set -e
           if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
@@ -252,7 +250,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          PYTHONPATH=src timeout --signal=TERM --kill-after=15s 6m python -m mardorf_collector.wp13.model_capture_v2 provider --model ECMWF-IFS --stage extension
+          timeout --signal=TERM --kill-after=15s 6m python src/provider_fetch.py --model ECMWF-IFS --stage extension
           rc=$?
           set -e
           if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
@@ -269,7 +267,7 @@ jobs:
           if [ "${{ github.event_name == 'workflow_dispatch' && inputs.watchdog != true }}" = "true" ] || [ "${{ steps.cycle_gate.outputs.icon_d2 }}" != "carry_forward" ]; then models+=(ICON-D2); fi
           if [ "${{ github.event_name == 'workflow_dispatch' && inputs.watchdog != true }}" = "true" ] || [ "${{ steps.cycle_gate.outputs.icon_eu }}" != "carry_forward" ]; then models+=(ICON-EU); fi
           set +e
-          PYTHONPATH=src timeout --signal=TERM --kill-after=15s 10m python -m mardorf_collector.wp13.model_capture_v2 tier_a --workers 4 --models "${models[@]}"
+          timeout --signal=TERM --kill-after=15s 10m python src/collect_icon_tier_a.py --workers 4 --models "${models[@]}"
           rc=$?
           set -e
           if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
@@ -280,7 +278,7 @@ jobs:
       - name: Archive remaining native model horizons without changing analysis inputs
         if: ((github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || (steps.due.outputs.due == 'true' && steps.cycle_gate.outputs.any_work == 'true')) && inputs.test_mode != true
         continue-on-error: true
-        run: PYTHONPATH=src timeout --signal=TERM --kill-after=15s 12m python -m mardorf_collector.wp13.model_capture_v2 full_horizon
+        run: timeout --signal=TERM --kill-after=15s 12m python src/collect_full_horizon.py
 
       - name: Fetch sparse GEFS full members for new 00Z cycle
         if: (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.watchdog == true)) && steps.due.outputs.due == 'true' && steps.cycle_gate.outputs.any_work == 'true' && steps.cycle_gate.outputs.gefs_full == 'fetch' && inputs.test_mode != true
@@ -288,7 +286,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          PYTHONPATH=src timeout --signal=TERM --kill-after=15s 10m python -m mardorf_collector.wp13.model_capture_v2 full_members --workers 2
+          timeout --signal=TERM --kill-after=15s 10m python src/gefs_full_members.py --workers 2
           rc=$?
           set -e
           if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
@@ -331,10 +329,6 @@ jobs:
           if [ -f work/model_snapshot.json ]; then args+=(--file work/model_snapshot.json); fi
           args+=(--result-json work/model_transfer_result.json --receipt-copy work/model_transfer_receipt.json)
           PYTHONPATH=src python -m mardorf_collector.transfer.dispatch publish --cloud-canary "${{ inputs.cloud_canary && 'true' || 'false' }}" "${args[@]}"
-          if [ "${{ inputs.cloud_canary }}" != "true" ] && [ "${{ inputs.test_mode }}" != "true" ]; then
-            PYTHONPATH=src python -m mardorf_collector.wp13.native_models_v1 prepare
-            PYTHONPATH=src python -m mardorf_collector.wp13.native_models_v1 publish
-          fi
 
       - name: Fail workflow when granular integrity audit found errors
         if: always() && ((github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || (steps.due.outputs.due == 'true' && steps.cycle_gate.outputs.any_work == 'true'))

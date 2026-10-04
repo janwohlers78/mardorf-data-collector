@@ -1,0 +1,159 @@
+{
+  "schema_version": 1,
+  "artifact_version": "collector-runtime-successor-v7",
+  "audit_id": "WP15-I02-NATIVE-MODELS-20261004",
+  "predecessor_sha256": "e20b8b63790c24862cb086dd87a584c54770a1430f5f7b8893ff2b348ef9e380",
+  "preserved_validator_path": "tests/fixtures/wp13/native_models_predecessor_v1/tools/validate_prep09_layout.py",
+  "preserved_validator_sha256": "1c92f820f1aab40b6d4bd79b726f0445a98d3259e234365560e0e35eb1bff606",
+  "validator_sha256": "a1f5d751e2726af9c7c591e01a7ab63f7d88c65fc966348f1a706befb8c95d9b",
+  "modules": [
+    {
+      "implementation_path": "src/mardorf_collector/providers/gefs_full_members.py",
+      "baseline_normalized_ast_sha256": "aeb04518c550990f1b374291f7e66c1abedd4caf2661fa4fda0b5bb5bbbb07b6",
+      "previous_source_sha256": "7d4c8c0393e4f8bb5add61f899e3abe75b3397d56a6b77b1f4ae1ca9f70fc221",
+      "preserved_source_path": "tests/fixtures/wp13/native_models_predecessor_v1/src/mardorf_collector/providers/gefs_full_members.py",
+      "corrected_source_sha256": "2a77e4cfff5ec52150e95ec68d559e42b25257d5600846ed0d18a6ef46a9d98e",
+      "corrected_normalized_ast_sha256": "7e2b2a8c260378c55cd12beb2ad9c017cf134a97cc5e055440f41e18c68d1325",
+      "finding_ids": [
+        "WP15-I02-EXPLICIT-LOCAL-SESSION-CAPTURE"
+      ]
+    },
+    {
+      "implementation_path": "src/mardorf_collector/runtime/collect_full_horizon.py",
+      "baseline_normalized_ast_sha256": "a2a3f76ef89342ea21bf97ad866d495b13d1e372ce1ca9ea4dad0920c37c136b",
+      "previous_source_sha256": "b2b12b45deb22f755ce73b0edd4619b12cd48cc1e4c33dd06afa678a4af7cab1",
+      "preserved_source_path": "tests/fixtures/wp13/native_models_predecessor_v1/src/mardorf_collector/runtime/collect_full_horizon.py",
+      "corrected_source_sha256": "e8235d6c61a7613f2ed2cabaf797ed17720f5e0be190013d113016deca019c58",
+      "corrected_normalized_ast_sha256": "5d55c7c5b549e1f4071218d8ea53a63d17babe51d0e5dcb437d7ffd978339487",
+      "finding_ids": [
+        "WP15-I02-EXPLICIT-LOCAL-SESSION-CAPTURE"
+      ]
+    }
+  ],
+  "auxiliary_artifacts": [
+    {
+      "path": "src/mardorf_collector/providers/ecmwf_mirrors.py",
+      "preserved_path": "tests/fixtures/wp13/native_models_predecessor_v1/src/mardorf_collector/providers/ecmwf_mirrors.py",
+      "previous_sha256": "4abc548ccaf8bbcbf50c57dee7aa50ff86aec8057ab71f1fe198547686a22c1e",
+      "sha256": "5eedbe0c589eedffe65def1ab0ab814589c0765122ef40d8d416e3ba5e26a576"
+    }
+  ],
+  "artifacts": {
+    "src/mardorf_collector/wp13/model_capture_v2.py": "817f663950354de7816853cf493d3e6997133c67abdebf754bf4d0c40a35857e",
+    "src/mardorf_collector/wp13/model_store_v1.py": "fc2622595f51def12e93eef30a2bdc5d665d130e31919b6bbbbebee99af6569d",
+    "src/mardorf_collector/wp13/native_models_v1.py": "a47ded4c7c6fd849e387470d7afc989e376426f51fc3d637b07dc9c968af77f1",
+    "src/mardorf_collector/wp13/model_originals_v1.py": "5cf71db289ebf65af58c425421abd8dfdfbd44357927d8bfcd6903b6f5953b94",
+    "src/mardorf_collector/storage/parents.py": "3183c9b8e6834487e3e117880f131bf12fd53b1540fb3c1727a564d2348651e9",
+    "tests/test_wp15_native_models.py": "6d88ed6ab8563acfe3bf39fa01c25b777d91f137fea69c11003a5ed7f6b07fc9",
+    "tests/test_phase1b_workflow.py": "1ebaa58b7f63f0ebb99ca40e2a777489e28f20ca60cae12f7870af74d14ccde2",
+    "tests/test_watchdog_workflows.py": "c3dcf9af8281b419d7ef13fc515b55df2f13d8d6fdf9a246881b5da04560618f",
+    "tests/test_wp15_model_originals.py": "5b66d13bb3e694b166661ee855d156a6a3a7999e2d446ec411b964c67e49769f",
+    "requirements-wp15-models.txt": "3abfa5e8053cf1098e7d5cddf04cae5e70f5f36a993712bac09196b15655fdeb",
+    "config/dev03_wp15_model_reader_release_v1.json": "3f40cd12f1bc968a5a98eb08bea31feae1eec4e7e396540796d3fd98abef7dea"
+  },
+  "workflows": {
+    "collect-models.yml": {
+      "path": ".github/workflows/collect-models.yml",
+      "preserved_path": "tests/fixtures/wp13/native_models_predecessor_v1/.github/workflows/collect-models.yml",
+      "previous_sha256": "f7f53fafd502d436a4624ef110a82f9e3408e6078a5bf5011f7077bf06934729",
+      "sha256": "5383287572c00d598a68b1d94034703c2f2216c6d207ae6432a875ef2d1605d4",
+      "replacements": [
+        {
+          "before": "          python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-runtime.txt\n",
+          "after": "          python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-runtime.txt\n          python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-wp13-grib.txt\n          python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-wp15-models.txt\n",
+          "count": 1
+        },
+        {
+          "before": "          timeout --signal=TERM --kill-after=15s 5m python src/provider_fetch.py --model ICON-D2 --stage base \"${args[@]}\"\n",
+          "after": "          PYTHONPATH=src timeout --signal=TERM --kill-after=15s 5m python -m mardorf_collector.wp13.model_capture_v2 provider --model ICON-D2 --stage base \"${args[@]}\"\n",
+          "count": 1
+        },
+        {
+          "before": "          timeout --signal=TERM --kill-after=15s 5m python src/provider_fetch.py --model GFS --stage base \"${args[@]}\"\n",
+          "after": "          PYTHONPATH=src timeout --signal=TERM --kill-after=15s 5m python -m mardorf_collector.wp13.model_capture_v2 provider --model GFS --stage base \"${args[@]}\"\n",
+          "count": 1
+        },
+        {
+          "before": "          timeout --signal=TERM --kill-after=15s 5m python src/provider_fetch.py --model GEFS-control --stage base \"${args[@]}\"\n",
+          "after": "          PYTHONPATH=src timeout --signal=TERM --kill-after=15s 5m python -m mardorf_collector.wp13.model_capture_v2 provider --model GEFS-control --stage base \"${args[@]}\"\n",
+          "count": 1
+        },
+        {
+          "before": "          timeout --signal=TERM --kill-after=15s 5m python src/provider_fetch.py --model ICON-EU --stage base \"${args[@]}\"\n",
+          "after": "          PYTHONPATH=src timeout --signal=TERM --kill-after=15s 5m python -m mardorf_collector.wp13.model_capture_v2 provider --model ICON-EU --stage base \"${args[@]}\"\n",
+          "count": 1
+        },
+        {
+          "before": "          timeout --signal=TERM --kill-after=15s 5m python src/provider_fetch.py --model ICON-D2-EPS --stage base \"${args[@]}\"\n",
+          "after": "          PYTHONPATH=src timeout --signal=TERM --kill-after=15s 5m python -m mardorf_collector.wp13.model_capture_v2 provider --model ICON-D2-EPS --stage base \"${args[@]}\"\n",
+          "count": 1
+        },
+        {
+          "before": "          timeout --signal=TERM --kill-after=15s 6m python src/provider_fetch.py --model ECMWF-IFS --stage base \"${args[@]}\"\n",
+          "after": "          PYTHONPATH=src timeout --signal=TERM --kill-after=15s 6m python -m mardorf_collector.wp13.model_capture_v2 provider --model ECMWF-IFS --stage base \"${args[@]}\"\n",
+          "count": 1
+        },
+        {
+          "before": "          timeout --signal=TERM --kill-after=15s 7m python src/provider_fetch.py --model GFS --stage extension\n",
+          "after": "          PYTHONPATH=src timeout --signal=TERM --kill-after=15s 7m python -m mardorf_collector.wp13.model_capture_v2 provider --model GFS --stage extension\n",
+          "count": 1
+        },
+        {
+          "before": "          timeout --signal=TERM --kill-after=15s 7m python src/provider_fetch.py --model GEFS-control --stage extension\n",
+          "after": "          PYTHONPATH=src timeout --signal=TERM --kill-after=15s 7m python -m mardorf_collector.wp13.model_capture_v2 provider --model GEFS-control --stage extension\n",
+          "count": 1
+        },
+        {
+          "before": "          timeout --signal=TERM --kill-after=15s 7m python src/provider_fetch.py --model ICON-EU --stage extension\n",
+          "after": "          PYTHONPATH=src timeout --signal=TERM --kill-after=15s 7m python -m mardorf_collector.wp13.model_capture_v2 provider --model ICON-EU --stage extension\n",
+          "count": 1
+        },
+        {
+          "before": "          timeout --signal=TERM --kill-after=15s 6m python src/provider_fetch.py --model ECMWF-IFS --stage extension\n",
+          "after": "          PYTHONPATH=src timeout --signal=TERM --kill-after=15s 6m python -m mardorf_collector.wp13.model_capture_v2 provider --model ECMWF-IFS --stage extension\n",
+          "count": 1
+        },
+        {
+          "before": "          timeout --signal=TERM --kill-after=15s 10m python src/collect_icon_tier_a.py --workers 4 --models \"${models[@]}\"\n",
+          "after": "          PYTHONPATH=src timeout --signal=TERM --kill-after=15s 10m python -m mardorf_collector.wp13.model_capture_v2 tier_a --workers 4 --models \"${models[@]}\"\n",
+          "count": 1
+        },
+        {
+          "before": "        run: timeout --signal=TERM --kill-after=15s 12m python src/collect_full_horizon.py\n",
+          "after": "        run: PYTHONPATH=src timeout --signal=TERM --kill-after=15s 12m python -m mardorf_collector.wp13.model_capture_v2 full_horizon\n",
+          "count": 1
+        },
+        {
+          "before": "          timeout --signal=TERM --kill-after=15s 10m python src/gefs_full_members.py --workers 2\n",
+          "after": "          PYTHONPATH=src timeout --signal=TERM --kill-after=15s 10m python -m mardorf_collector.wp13.model_capture_v2 full_members --workers 2\n",
+          "count": 1
+        },
+        {
+          "before": "          PYTHONPATH=src python -m mardorf_collector.transfer.dispatch publish --cloud-canary \"${{ inputs.cloud_canary && 'true' || 'false' }}\" \"${args[@]}\"\n",
+          "after": "          PYTHONPATH=src python -m mardorf_collector.transfer.dispatch publish --cloud-canary \"${{ inputs.cloud_canary && 'true' || 'false' }}\" \"${args[@]}\"\n          if [ \"${{ inputs.cloud_canary }}\" != \"true\" ] && [ \"${{ inputs.test_mode }}\" != \"true\" ]; then\n            PYTHONPATH=src python -m mardorf_collector.wp13.native_models_v1 prepare\n            PYTHONPATH=src python -m mardorf_collector.wp13.native_models_v1 publish\n          fi\n",
+          "count": 1
+        }
+      ]
+    },
+    "validate.yml": {
+      "path": ".github/workflows/validate.yml",
+      "preserved_path": "tests/fixtures/wp13/native_models_predecessor_v1/.github/workflows/validate.yml",
+      "previous_sha256": "6dd7bbff0165145242e6eb6db59cbe3626e5117078d8d9e5ea08b9acf998ba9d",
+      "sha256": "ac0f5e9d9ad46623851631e4b1b15ea1fd3915aa49c7ad22e7a58d2cec330926",
+      "replacements": [
+        {
+          "before": "          python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-wp13-grib.txt\n",
+          "after": "          python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-wp13-grib.txt\n          python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-wp15-models.txt\n",
+          "count": 1
+        }
+      ]
+    }
+  },
+  "policy": {
+    "additional_provider_requests": 0,
+    "new_workflows": 0,
+    "legacy_provider_bridge_bytes_changed": false,
+    "historical_wp13_limits_changed": false,
+    "scientific_gate": "OPEN"
+  }
+}

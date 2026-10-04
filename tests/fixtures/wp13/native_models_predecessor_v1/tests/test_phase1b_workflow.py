@@ -35,7 +35,7 @@ class Phase1BWorkflowTests(unittest.TestCase):
 
     def test_tier_a_is_optional_but_runs_before_archive_and_transfer(self):
         self.assertIn("Attach ICON Tier-A weather context", self.text)
-        self.assertIn("python -m mardorf_collector.wp13.model_capture_v2 tier_a --workers 4", self.text)
+        self.assertIn("python src/collect_icon_tier_a.py --workers 4", self.text)
         tier=self.text.index("Attach ICON Tier-A weather context")
         archive=self.text.index("Archive remaining native model horizons")
         transfer=self.text.index("Transfer payload and integrity history")
