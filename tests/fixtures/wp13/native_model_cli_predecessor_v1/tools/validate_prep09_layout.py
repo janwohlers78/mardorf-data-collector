@@ -59,8 +59,6 @@ def validate(root):
     corrections = {item['implementation_path']: item for item in corrections_doc.get('modules', [])}
     if len(corrections) != len(corrections_doc.get('modules', [])):
         raise ValueError('duplicate corrected source path')
-    successor_v8_path=root/'docs/inventory/collector_runtime_successor_v8.json'
-    successor_v8=json.loads(successor_v8_path.read_text()) if successor_v8_path.exists() else None
     successor_v7_path=root/'docs/inventory/collector_runtime_successor_v7.json'
     successor_v7=json.loads(successor_v7_path.read_text()) if successor_v7_path.exists() else None
     def historical_workflow(name):
@@ -159,7 +157,7 @@ def validate(root):
                 or successor_v7.get('predecessor_sha256') != hashlib.sha256(successor_v6_path.read_bytes()).hexdigest()
                 or successor_v7.get('preserved_validator_sha256') != successor_v6['validator_sha256']
                 or hashlib.sha256((root/successor_v7['preserved_validator_path']).read_bytes()).hexdigest() != successor_v7['preserved_validator_sha256']
-                or hashlib.sha256((root/(successor_v8['preserved_validator_path'] if successor_v8 else 'tools/validate_prep09_layout.py')).read_bytes()).hexdigest() != successor_v7['validator_sha256']):
+                or hashlib.sha256((root/'tools/validate_prep09_layout.py').read_bytes()).hexdigest() != successor_v7['validator_sha256']):
             raise ValueError('Unverified native model runtime successor')
         allowed = {'src/mardorf_collector/providers/gefs_full_members.py', 'src/mardorf_collector/runtime/collect_full_horizon.py'}
         if {r['implementation_path'] for r in successor_v7['modules']} != allowed:
@@ -180,22 +178,8 @@ def validate(root):
                     or hashlib.sha256((root/row['path']).read_bytes()).hexdigest() != row['sha256']):
                 raise ValueError('Native model SDK target successor drift')
         for name, expected_sha in successor_v7['artifacts'].items():
-            previous_name = successor_v8['artifacts'][name]['preserved_path'] if successor_v8 and name in successor_v8['artifacts'] else name
-            if hashlib.sha256((root/previous_name).read_bytes()).hexdigest() != expected_sha:
+            if hashlib.sha256((root/name).read_bytes()).hexdigest() != expected_sha:
                 raise ValueError('Native model runtime artifact drift')
-    if successor_v8 is not None:
-        if (successor_v8.get('artifact_version') != 'collector-runtime-successor-v8'
-                or successor_v8.get('predecessor_sha256') != hashlib.sha256(successor_v7_path.read_bytes()).hexdigest()
-                or successor_v8.get('preserved_validator_sha256') != successor_v7['validator_sha256']
-                or hashlib.sha256((root/successor_v8['preserved_validator_path']).read_bytes()).hexdigest() != successor_v8['preserved_validator_sha256']
-                or hashlib.sha256((root/'tools/validate_prep09_layout.py').read_bytes()).hexdigest() != successor_v8['validator_sha256']
-                or set(successor_v8['artifacts']) != {'src/mardorf_collector/wp13/model_capture_v2.py', 'tests/test_wp15_native_models.py'}):
-            raise ValueError('Unverified native model CLI context successor')
-        for name, row in successor_v8['artifacts'].items():
-            if (row['previous_sha256'] != successor_v7['artifacts'][name]
-                    or hashlib.sha256((root/row['preserved_path']).read_bytes()).hexdigest() != row['previous_sha256']
-                    or hashlib.sha256((root/name).read_bytes()).hexdigest() != row['sha256']):
-                raise ValueError('Native model CLI artifact predecessor/successor drift')
     if set(corrections) - {item['implementation_path'] for item in proof['modules']}:
         raise ValueError('correction outside the historical package parity scope')
     by_path = {m['implementation_path']: m for m in modules}

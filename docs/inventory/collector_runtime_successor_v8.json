@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "artifact_version": "collector-runtime-successor-v8",
+  "audit_id": "WP15-I02-CLI-CONTEXT-20261004",
+  "predecessor_sha256": "15d5510a283e1172f241a399eb58a7fa1450d98053596faffa6f182df665d742",
+  "preserved_validator_path": "tests/fixtures/wp13/native_model_cli_predecessor_v1/tools/validate_prep09_layout.py",
+  "preserved_validator_sha256": "a1f5d751e2726af9c7c591e01a7ab63f7d88c65fc966348f1a706befb8c95d9b",
+  "validator_sha256": "1eeb972298936ff9df898912922a20338c02e91bc95fbddf01ae383e6396a6d5",
+  "artifacts": {
+    "src/mardorf_collector/wp13/model_capture_v2.py": {
+      "preserved_path": "tests/fixtures/wp13/native_model_cli_predecessor_v1/src/mardorf_collector/wp13/model_capture_v2.py",
+      "previous_sha256": "817f663950354de7816853cf493d3e6997133c67abdebf754bf4d0c40a35857e",
+      "sha256": "5e8f67ee8529f30b24b37be99bb04df2b3c30d5c1213b324f0d17beb0490e6e2"
+    },
+    "tests/test_wp15_native_models.py": {
+      "preserved_path": "tests/fixtures/wp13/native_model_cli_predecessor_v1/tests/test_wp15_native_models.py",
+      "previous_sha256": "6d88ed6ab8563acfe3bf39fa01c25b777d91f137fea69c11003a5ed7f6b07fc9",
+      "sha256": "69b250c7013c0204ffefe5d133cd422cbc43d44fe76aebdd7d293aca61c606de"
+    }
+  },
+  "scope": "Bind the -m CLI and canonical provider imports to one owned router; no request changes, reader release changes or scientific release"
+}
