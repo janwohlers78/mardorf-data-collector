@@ -81,7 +81,7 @@ jobs:
         env:
           WEATHERLINK_API_KEY: ${{ secrets.WEATHERLINK_API_KEY }}
           WEATHERLINK_API_SECRET: ${{ secrets.WEATHERLINK_API_SECRET }}
-        run: PYTHONPATH=src python -m mardorf_collector.wp13.native_svg_v1 fetch
+        run: PYTHONPATH=src python -m mardorf_collector fetch-svg-weatherlink
 
       - name: Audit endpoint results, observation age and five-minute archive continuity
         if: always() && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || steps.due.outputs.due == 'true')
@@ -117,9 +117,6 @@ jobs:
             args+=(--file work/svg_bundle.json)
           fi
           PYTHONPATH=src python -m mardorf_collector.transfer.dispatch publish --cloud-canary "${{ inputs.cloud_canary == true && 'true' || 'false' }}" "${args[@]}"
-          if [ "${{ inputs.cloud_canary }}" != "true" ]; then
-            PYTHONPATH=src python -m mardorf_collector.wp13.native_svg_v1 publish
-          fi
 
       - name: Fail workflow when granular integrity audit found errors
         if: always() && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || steps.due.outputs.due == 'true')
