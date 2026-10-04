@@ -61,3 +61,19 @@ class DeliveryTests(unittest.TestCase):
         with self.assertRaises(ValueError):self.read()
     def test_wrong_producer_rejected(self):
         with self.assertRaises(ValueError):verified_collector_delivery(self.cloud.read,'models',public_repository='other/repo')
+
+    def test_large_complete_native_report_uses_shared_evidence_budget(self):
+        report=json.loads(self.cloud.read('data/inbox/public_collector/integrity/models/latest_success.json'))
+        report['generated_at_utc']='2026-10-04T02:00:00Z'
+        report['sources']={'GFS':{'native_evidence':[{'lead':lead,'original_parameter_metadata':'x'*1024} for lead in range(384)]}}
+        publish_collector(self.cloud,kind='models',payload=self.raw,integrity=report,integrity_md='Original full audit '*40000,
+                          invocation={'repository':'fixture/public','sha':'a'*40,'run_id':'2','run_attempt':'1'})
+        raw,actual,health,_=self.read()
+        self.assertEqual(raw,self.raw);self.assertEqual(actual['sources'],report['sources']);self.assertGreater(len(health),256*1024)
+        with self.assertRaisesRegex(ValueError,'evidence budget'):
+            verified_collector_delivery(self.cloud.read,'models',public_repository='fixture/public',max_evidence_bytes=512*1024)
+
+    def test_evidence_budget_is_explicit_and_finite(self):
+        for invalid in (0,True,64*1024**2+1):
+            with self.subTest(invalid=invalid),self.assertRaises(ValueError):
+                verified_collector_delivery(self.cloud.read,'models',public_repository='fixture/public',max_evidence_bytes=invalid)
