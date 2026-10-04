@@ -27,7 +27,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: public-model-collector-${{ inputs.cloud_canary && 'b2-canary' || 'normal' }}
+  group: public-model-collector-${{ inputs.cloud_canary && format('b2-canary-{0}', github.run_id) || 'normal' }}
   cancel-in-progress: true
 
 jobs:
