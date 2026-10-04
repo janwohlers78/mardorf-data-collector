@@ -24,8 +24,8 @@
     ]
   },
   "artifacts": {
-    "src/mardorf_collector/wp13/native_svg_v1.py": "ff278e9e4f32a61c2c3eb8741ca5432c00818790f6cddb4f643f8d1442f8da9d",
-    "tests/test_wp15_native_svg.py": "7ba879f6a2fb4fba319e133b35181b1c56fe54fe096cfe88ddf0ae714e02fd5f"
+    "src/mardorf_collector/wp13/native_svg_v1.py": "730616ee33846890f8e2e4abcf278cb7827872e9bc31cf973a1f87207c6a0549",
+    "tests/test_wp15_native_svg.py": "b4fe5bdf92d3e04fc2175363275ed00f66c92f48bd1773fc412dbedd7a5380bb"
   },
   "policy": {
     "additional_provider_requests": 0,

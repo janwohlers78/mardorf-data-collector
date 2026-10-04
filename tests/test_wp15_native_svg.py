@@ -8,13 +8,31 @@ from types import SimpleNamespace
 import unittest
 
 import requests
-from mardorf_collector.wp13.native_svg_v1 import capture_responses, prepare
+from mardorf_collector.wp13.native_svg_v1 import capture_responses, prepare, original_body
 from mardorf_collector.wp13.store_v1 import read_delivery
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 class NativeSVGTests(unittest.TestCase):
+    def test_streaming_budget_fails_before_reading_remaining_response(self):
+        chunks_read = []
+        def stream(size, decode_content):
+            for chunk in (b'1234', b'5678', b'not_read'):
+                chunks_read.append(chunk)
+                yield chunk
+        response = requests.Response()
+        response.raw = SimpleNamespace(stream=stream)
+        with self.assertRaisesRegex(ValueError, 'budget'):
+            original_body(response, limit=7)
+        self.assertEqual(chunks_read, [b'1234', b'5678'])
+
+    def test_wire_read_stays_identical_for_legacy_requests_json(self):
+        response = requests.Response()
+        response.raw = SimpleNamespace(stream=lambda size, decode_content: iter((b'{"value":', b'null}')))
+        self.assertEqual(original_body(response), b'{"value":null}')
+        self.assertEqual(response.json(), {'value': None})
+
     def test_current_capture_has_no_extra_request_or_persisted_credentials(self):
         with tempfile.TemporaryDirectory() as folder:
             provider = SimpleNamespace(S=requests.Session())

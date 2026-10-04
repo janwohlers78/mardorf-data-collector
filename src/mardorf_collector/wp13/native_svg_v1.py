@@ -15,6 +15,29 @@ ROOT = Path(__file__).resolve().parents[3]
 WORK = Path('work/native_svg_v1')
 
 
+def original_body(response, *, limit=8 * 1024**2):
+    """Bound the wire read before allocation; retain normal requests JSON access."""
+    if response.headers.get('Content-Encoding', 'identity') not in ('', 'identity'):
+        raise ValueError('Native SVG original transport encoding unsupported')
+    declared = response.headers.get('Content-Length')
+    if declared is not None and (int(declared) < 0 or int(declared) > limit):
+        raise ValueError('Native SVG declared response budget exceeded')
+    if response._content is False:
+        body = bytearray()
+        for chunk in response.raw.stream(65536, decode_content=False):
+            if len(body) + len(chunk) > limit:
+                raise ValueError('Native SVG response budget exceeded')
+            body.extend(chunk)
+        response._content = bytes(body)
+        response._content_consumed = True
+    body = response.content
+    if len(body) > limit:
+        raise ValueError('Native SVG response budget exceeded')
+    if declared is not None and int(declared) != len(body):
+        raise ValueError('Native SVG response length mismatch')
+    return body
+
+
 def capture_responses(provider, destination=WORK):
     """Use the provider's single session and its original retries/authentication."""
     destination = Path(destination)
@@ -25,11 +48,7 @@ def capture_responses(provider, destination=WORK):
             return
         if parsed.path not in ('/v2/current/42374', '/v2/historic/42374'):
             return
-        body = response.content
-        if len(body) > 8 * 1024**2:
-            raise ValueError('Native SVG response budget exceeded')
-        if response.headers.get('Content-Encoding', 'identity') not in ('', 'identity'):
-            raise ValueError('Native SVG original transport encoding unsupported')
+        body = original_body(response)
         digest = hashlib.sha256(body).hexdigest()
         destination.mkdir(parents=True, exist_ok=True)
         (destination / (digest + '.bin')).write_bytes(body)
