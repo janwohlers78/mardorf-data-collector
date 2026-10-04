@@ -5,7 +5,7 @@
   "predecessor_sha256": "9f92bd733c4d677ae6812ffcf4e4ae80aada31e1873d07ecb87391eea7cb4de3",
   "preserved_validator_path": "tests/fixtures/wp13/b2_correctness_predecessor_v1/tools/validate_prep09_layout.py",
   "preserved_validator_sha256": "7f0429efca22ea87592f2aec29840cf969b1cef23fe74fd17b8b0a2aa4f1a47c",
-  "validator_sha256": "d35a0f206e0bfd1e894787ae91bebede9b88b8a57b1ced6a56d3d7a705383581",
+  "validator_sha256": "a2e99249402fe8b38cee6ae8574dfc836ee3e5c9eb1ee81f4e1d4736bdb4954e",
   "modules": [
     {
       "implementation_path": "src/mardorf_collector/runtime/provider_cycle_gate.py",
@@ -58,5 +58,13 @@
       "preserved_path": "tests/fixtures/wp13/b2_correctness_predecessor_v1/src/validate_dev03_wp03_i04.py",
       "preserved_sha256": "e0806ce732ff71a485e13bc34381002dcf9ba9997dfbc6b6faa73d47112d398f"
     }
-  ]
+  ],
+  "variables_workflow": {
+    "path": ".github/workflows/validate.yml",
+    "preserved_path": "tests/fixtures/wp13/b2_correctness_predecessor_v1/.github/workflows/validate.yml",
+    "preserved_sha256": "bfdf2904efbbd85924fe9bd7550ee4ca41ca215975ffed13dcb4101279e25888",
+    "insert_before": "      - name: Parse integrity policy\n",
+    "inserted_block": "      - name: Inspect or prepare B2 activation switch access\n        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository\n        env:\n          CROSS_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}\n          EVENT_NAME: ${{ github.event_name }}\n        run: |\n          args=()\n          if [ \"$EVENT_NAME\" = \"workflow_dispatch\" ]; then args+=(--prepare); fi\n          python tools/b2_variables.py \"${args[@]}\"\n\n",
+    "sha256": "6dd7bbff0165145242e6eb6db59cbe3626e5117078d8d9e5ea08b9acf998ba9d"
+  }
 }

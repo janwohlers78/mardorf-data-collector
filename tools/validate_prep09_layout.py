@@ -259,6 +259,20 @@ def validate(root):
             current=current[:start]+replacement+current[end:]
         if current!=(root/row['path']).read_text():raise ValueError('mirror successor changed unrelated workflow bytes')
         expected[name]=row
+    if successor_v5 is not None:
+        reviewed=successor_v5['variables_workflow']
+        previous=(root/reviewed['preserved_path']).read_bytes()
+        if (reviewed['path']!='.github/workflows/validate.yml' or
+                hashlib.sha256(previous).hexdigest()!=reviewed['preserved_sha256'] or
+                hashlib.sha256(previous).hexdigest()!=json.loads((root/'docs/inventory/wp13_ci_contract_v1.json').read_text())['workflow_sha256']):
+            raise ValueError('variable access workflow predecessor drift')
+        original=previous.decode()
+        if original.count(reviewed['insert_before'])!=1:raise ValueError('ambiguous variable access workflow insertion')
+        current=(root/reviewed['path']).read_bytes()
+        if (original.replace(reviewed['insert_before'],reviewed['inserted_block']+reviewed['insert_before']).encode()!=current or
+                hashlib.sha256(current).hexdigest()!=reviewed['sha256']):
+            raise ValueError('variable access workflow changed unrelated bytes')
+        expected['validate.yml']={'source_control_sha256':signature(yaml.load(current,Loader=yaml.BaseLoader))}
     if workflows.keys() != expected.keys():
         raise ValueError('workflow added/removed without route review')
     for name, path in workflows.items():
