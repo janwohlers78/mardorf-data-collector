@@ -59,8 +59,6 @@ def validate(root):
     corrections = {item['implementation_path']: item for item in corrections_doc.get('modules', [])}
     if len(corrections) != len(corrections_doc.get('modules', [])):
         raise ValueError('duplicate corrected source path')
-    successor_v9_path=root/'docs/inventory/collector_runtime_successor_v9.json'
-    successor_v9=json.loads(successor_v9_path.read_text()) if successor_v9_path.exists() else None
     successor_v8_path=root/'docs/inventory/collector_runtime_successor_v8.json'
     successor_v8=json.loads(successor_v8_path.read_text()) if successor_v8_path.exists() else None
     successor_v7_path=root/'docs/inventory/collector_runtime_successor_v7.json'
@@ -190,7 +188,7 @@ def validate(root):
                 or successor_v8.get('predecessor_sha256') != hashlib.sha256(successor_v7_path.read_bytes()).hexdigest()
                 or successor_v8.get('preserved_validator_sha256') != successor_v7['validator_sha256']
                 or hashlib.sha256((root/successor_v8['preserved_validator_path']).read_bytes()).hexdigest() != successor_v8['preserved_validator_sha256']
-                or hashlib.sha256((root/(successor_v9['preserved_validator_path'] if successor_v9 else 'tools/validate_prep09_layout.py')).read_bytes()).hexdigest() != successor_v8['validator_sha256']
+                or hashlib.sha256((root/'tools/validate_prep09_layout.py').read_bytes()).hexdigest() != successor_v8['validator_sha256']
                 or set(successor_v8['artifacts']) != {'src/mardorf_collector/wp13/model_capture_v2.py', 'tests/test_wp15_native_models.py'}):
             raise ValueError('Unverified native model CLI context successor')
         for name, row in successor_v8['artifacts'].items():
@@ -367,29 +365,11 @@ def validate(root):
                 if current.count(change['before']) != change['count']:
                     raise ValueError('Ambiguous native model workflow replacement')
                 current = current.replace(change['before'], change['after'])
-            active_path = successor_v9['preserved_workflow_path'] if successor_v9 and name == 'collect-models.yml' else row['path']
-            active = (root/active_path).read_bytes()
+            active = (root/row['path']).read_bytes()
             if (current.encode() != active or hashlib.sha256(active).hexdigest() != row['sha256']
                     or signature(yaml.load(active, Loader=yaml.BaseLoader)) != expected[name]['source_control_sha256']):
                 raise ValueError('Native model changed unrelated acquisition/CI controls')
             expected[name] = dict(expected[name], frozen_git_blob=hashlib.sha1(b'blob '+str(len(active)).encode()+b'\0'+active).hexdigest())
-    if successor_v9 is not None:
-        name = 'collect-models.yml'
-        previous = (root/successor_v9['preserved_workflow_path']).read_bytes()
-        active = (root/('.github/workflows/' + name)).read_bytes()
-        before, after = b'  cancel-in-progress: true\n', b'  cancel-in-progress: false\n'
-        if (successor_v9.get('artifact_version') != 'collector-runtime-successor-v9'
-                or successor_v9.get('predecessor_sha256') != hashlib.sha256(successor_v8_path.read_bytes()).hexdigest()
-                or successor_v9.get('preserved_validator_sha256') != successor_v8['validator_sha256']
-                or hashlib.sha256((root/successor_v9['preserved_validator_path']).read_bytes()).hexdigest() != successor_v9['preserved_validator_sha256']
-                or hashlib.sha256((root/'tools/validate_prep09_layout.py').read_bytes()).hexdigest() != successor_v9['validator_sha256']
-                or successor_v9.get('previous_workflow_sha256') != successor_v7['workflows'][name]['sha256']
-                or hashlib.sha256(previous).hexdigest() != successor_v9['previous_workflow_sha256']
-                or hashlib.sha256(active).hexdigest() != successor_v9['workflow_sha256']
-                or previous.count(before) != 1 or previous.replace(before, after) != active):
-            raise ValueError('Unverified model publication concurrency successor')
-        expected[name] = dict(expected[name], source_control_sha256=signature(yaml.load(active, Loader=yaml.BaseLoader)),
-            frozen_git_blob=hashlib.sha1(b'blob '+str(len(active)).encode()+b'\0'+active).hexdigest())
     if workflows.keys() != expected.keys():
         raise ValueError('workflow added/removed without route review')
     for name, path in workflows.items():

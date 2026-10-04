@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "artifact_version": "collector-runtime-successor-v9",
+  "audit_id": "WP15-I02-PUBLICATION-CONCURRENCY-20261004",
+  "predecessor_sha256": "0314f8dea60f8eb24c6aab8281e9b34d15a3b34f175e6069418d5accc7814860",
+  "preserved_validator_path": "tests/fixtures/wp13/native_model_concurrency_predecessor_v1/tools/validate_prep09_layout.py",
+  "preserved_validator_sha256": "1eeb972298936ff9df898912922a20338c02e91bc95fbddf01ae383e6396a6d5",
+  "validator_sha256": "8b68b5a38572113aa9c6e7042ab1120c87d496d4196c2b9925bed8006b26fb94",
+  "preserved_workflow_path": "tests/fixtures/wp13/native_model_concurrency_predecessor_v1/.github/workflows/collect-models.yml",
+  "previous_workflow_sha256": "5383287572c00d598a68b1d94034703c2f2216c6d207ae6432a875ef2d1605d4",
+  "workflow_sha256": "f788fad4b33d8384c47811e2c846bd85fb451f34f3a4d5e3e7e35a8da96718ff",
+  "scope": "Only cancel-in-progress true -> false: a late scheduled no-op must queue and recheck freshness after active acquisition/publication; all triggers, guards, requests, timeouts, permissions, canary separation and reader releases remain byte-identical",
+  "real_failure_run_id": 37235992742,
+  "interrupting_schedule_run_id": 37236950654
+}
