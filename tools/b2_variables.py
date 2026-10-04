@@ -38,7 +38,10 @@ def inspect(token, *, prepare=False):
         status,body=request(token,repository)
         row={'repository':repository,'read_http_status':status,'name':NAME,'production_activated':False}
         if status==200:
-            if body.get('name')!=NAME or body.get('value') not in ('true','false'):
+            # GitHub Actions string comparisons ignore case; preserve the exact
+            # stored spelling while validating the same Boolean switch values.
+            if (body.get('name')!=NAME or not isinstance(body.get('value'),str) or
+                    body['value'].lower() not in ('true','false')):
                 raise ValueError('Explicit Boolean B2 activation variable required')
             row['value']=body['value']
         if prepare and status in (200,404):
