@@ -28,7 +28,7 @@ permissions:
 
 concurrency:
   group: public-model-collector-${{ inputs.cloud_canary && 'b2-canary' || 'normal' }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   collect:
