@@ -158,14 +158,8 @@ def require_ready(cloud, root):
 
 
 def product_worker(root, station, year, product, original, commit):
-    root = Path(root);cloud = production_runtime(root);cloud.open()
+    root = Path(root);cloud = load_runtime(root);cloud.open()
     return build_product(cloud, root=root, station=station, year=year, product=product, original=original, commit=commit)
-
-
-def production_runtime(root):
-    """Use the established private-variable fallback also in each child process."""
-    from ..runtime.cloud_environment import environment
-    return load_runtime(root,environ=environment(root))
 
 
 def build_product(cloud, *, root, station, year, product, original, commit):
@@ -356,7 +350,7 @@ def main():
     parser=argparse.ArgumentParser();parser.add_argument('operation',choices=['build','release'])
     parser.add_argument('--station');parser.add_argument('--year',type=int);parser.add_argument('--workers',type=int,default=2)
     parser.add_argument('--stations',default='all');parser.add_argument('--years',default='all');args=parser.parse_args()
-    cloud=production_runtime(ROOT);configured,_=dwd.configuration(ROOT)
+    cloud=load_runtime(ROOT);configured,_=dwd.configuration(ROOT)
     if args.operation=='build':report=build(cloud,station=args.station,year=args.year,workers=args.workers)
     else:
         stations=[s['id'] for s in configured['stations']] if args.stations=='all' else args.stations.split(',')

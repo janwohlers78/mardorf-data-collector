@@ -15,12 +15,6 @@ from mardorf_collector.wp15.package_reader_v1 import VerifiedReader
 from mardorf_collector.wp15.assets import ROOT
 
 class PackageTests(PreprocessingTests):
-    def test_production_main_and_child_use_existing_runtime_configuration_fallback(self):
-        configured={'B2_ENDPOINT_URL':'https://fixture.invalid','B2_REGION':'fixture','B2_BUCKET':'fixture'}
-        with patch('mardorf_collector.runtime.cloud_environment.environment',return_value=configured) as settings,patch.object(packages,'load_runtime',return_value=self.cloud) as loaded:
-            self.assertIs(packages.production_runtime(ROOT),self.cloud)
-            loaded.assert_called_once_with(ROOT,environ=configured);settings.assert_called_once_with(ROOT)
-
     def setUp(self):
         super().setUp()
         ready=dict(available=True,engine_sha256=prepared.processor_identity(),contract_sha256=hashlib.sha256((ROOT/prepared.CONTRACT).read_bytes()).hexdigest())
