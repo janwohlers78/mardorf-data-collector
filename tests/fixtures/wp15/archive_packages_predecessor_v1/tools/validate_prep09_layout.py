@@ -59,10 +59,6 @@ def validate(root):
     corrections = {item['implementation_path']: item for item in corrections_doc.get('modules', [])}
     if len(corrections) != len(corrections_doc.get('modules', [])):
         raise ValueError('duplicate corrected source path')
-    successor_v13_path=root/'docs/inventory/collector_runtime_successor_v13.json'
-    successor_v13=json.loads(successor_v13_path.read_text()) if successor_v13_path.exists() else None
-    def runtime_v12_path(name):
-        return root/(successor_v13['preserved_validator_path'] if successor_v13 and name=='tools/validate_prep09_layout.py' else name)
     successor_v12_path=root/'docs/inventory/collector_runtime_successor_v12.json'
     successor_v12=json.loads(successor_v12_path.read_text()) if successor_v12_path.exists() else None
     def runtime_v11_path(name):
@@ -428,11 +424,11 @@ def validate(root):
     if successor_v12 is not None:
         if (successor_v12.get('artifact_version')!='collector-runtime-successor-v12'
                 or successor_v12['predecessor_sha256']!=hashlib.sha256(successor_v11_path.read_bytes()).hexdigest()
-                or hashlib.sha256(runtime_v12_path('tools/validate_prep09_layout.py').read_bytes()).hexdigest()!=successor_v12['validator_sha256']):
+                or hashlib.sha256((root/'tools/validate_prep09_layout.py').read_bytes()).hexdigest()!=successor_v12['validator_sha256']):
             raise ValueError('Unverified B2 immutable content-key successor')
         for name,row in successor_v12['replacements'].items():
             if (hashlib.sha256((root/row['preserved_path']).read_bytes()).hexdigest()!=row['previous_sha256']
-                    or hashlib.sha256(runtime_v12_path(name).read_bytes()).hexdigest()!=row['sha256']):
+                    or hashlib.sha256((root/name).read_bytes()).hexdigest()!=row['sha256']):
                 raise ValueError('B2 content-key predecessor/runtime artifact drift')
     if successor_v11 is not None:
         if (successor_v11.get('artifact_version')!='collector-runtime-successor-v11'
@@ -458,25 +454,6 @@ def validate(root):
         if reviewed['path']!='.github/workflows/station-preprocessing.yml' or hashlib.sha256((root/reviewed['path']).read_bytes()).hexdigest()!=reviewed['sha256']:
             raise ValueError('Bounded station archive workflow drift')
         expected[Path(reviewed['path']).name]={'source_control_sha256':signature(yaml.load((root/reviewed['path']).read_bytes(),Loader=yaml.BaseLoader))}
-    if successor_v13 is not None:
-        if (successor_v13.get('artifact_version')!='collector-runtime-successor-v13'
-                or successor_v13['predecessor_sha256']!=hashlib.sha256(successor_v12_path.read_bytes()).hexdigest()
-                or hashlib.sha256(runtime_v12_path('tools/validate_prep09_layout.py').read_bytes()).hexdigest()!=successor_v12['validator_sha256']
-                or hashlib.sha256((root/'tools/validate_prep09_layout.py').read_bytes()).hexdigest()!=successor_v13['validator_sha256']):
-            raise ValueError('Unverified archive package successor')
-        for path,identity in successor_v13['artifacts'].items():
-            if hashlib.sha256((root/path).read_bytes()).hexdigest()!=identity:raise ValueError('Archive package artifact byte drift')
-        reviewed=successor_v13['added_workflow']
-        if reviewed['path']!='.github/workflows/station-archive-packages.yml':raise ValueError('Archive package workflow scope drift')
-        body=(root/reviewed['path']).read_bytes()
-        if hashlib.sha256(body).hexdigest()!=reviewed['sha256']:raise ValueError('Archive package workflow byte drift')
-        data=yaml.load(body,Loader=yaml.BaseLoader)
-        if (set(data['on'])!={'workflow_dispatch'} or data['permissions']!={'contents':'read'}
-                or data['concurrency']!={'group':'public-station-package-expansion-v1','cancel-in-progress':'false'}
-                or data['jobs']['build']['strategy']['max-parallel']!='8'
-                or data['jobs']['release']['needs']!='build'):
-            raise ValueError('Archive import bounds/routine isolation drift')
-        expected[Path(reviewed['path']).name]={'source_control_sha256':signature(data)}
     if workflows.keys() != expected.keys():
         raise ValueError('workflow added/removed without route review')
     for name, path in workflows.items():
