@@ -1,0 +1,608 @@
+{
+  "schema_version": 1,
+  "artifact_version": "dev03-wp12-domain-registry-v1",
+  "registry_revision": "svg-regional-dwd-domain-r3",
+  "status": "development_contract_not_activated",
+  "revision_policy": "immutable_ids_new_revision_for_changed_semantics",
+  "sites": [
+    {
+      "id": "steinhude-svg-v1",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "label": "Steinhude SVG",
+      "geometry": {
+        "type": "Point",
+        "crs": "EPSG:4326",
+        "coordinates": [
+          9.37979,
+          52.47371
+        ]
+      },
+      "usage": "development"
+    },
+    {
+      "id": "mardorfer-strand-v1",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "label": "Mardorfer Strand – eingefrorene Referenz",
+      "geometry": {
+        "type": "Point",
+        "crs": "EPSG:4326",
+        "coordinates": [
+          9.3418,
+          52.4942
+        ]
+      },
+      "usage": "legacy_reference"
+    },
+    {
+      "valid_from_utc": "2016-01-01T00:00:00Z",
+      "valid_until_utc": null,
+      "id": "dwd-cdc-04745-site-v1",
+      "label": "Soltau",
+      "geometry": {
+        "type": "Point",
+        "crs": "EPSG:4326",
+        "coordinates": [
+          9.793,
+          52.9604
+        ]
+      },
+      "usage": "development"
+    },
+    {
+      "valid_from_utc": "2016-01-01T00:00:00Z",
+      "valid_until_utc": null,
+      "id": "dwd-cdc-00963-site-v1",
+      "label": "Diepholz",
+      "geometry": {
+        "type": "Point",
+        "crs": "EPSG:4326",
+        "coordinates": [
+          8.3424,
+          52.5881
+        ]
+      },
+      "usage": "development"
+    },
+    {
+      "valid_from_utc": "2016-01-01T00:00:00Z",
+      "valid_until_utc": null,
+      "id": "dwd-cdc-00662-site-v1",
+      "label": "Braunschweig",
+      "geometry": {
+        "type": "Point",
+        "crs": "EPSG:4326",
+        "coordinates": [
+          10.4464,
+          52.2915
+        ]
+      },
+      "usage": "development"
+    },
+    {
+      "valid_from_utc": "2016-01-01T00:00:00Z",
+      "valid_until_utc": null,
+      "id": "dwd-cdc-01691-site-v1",
+      "label": "Göttingen",
+      "geometry": {
+        "type": "Point",
+        "crs": "EPSG:4326",
+        "coordinates": [
+          9.9507,
+          51.5002
+        ]
+      },
+      "usage": "development"
+    }
+  ],
+  "providers": [
+    {
+      "id": "weatherlink-svg-v1",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "source_name": "WeatherLink",
+      "product_id": "weatherlink-v2-station",
+      "endpoint": "https://api.weatherlink.com/v2",
+      "credential_binding_ref": "existing-weatherlink-credentials",
+      "identity_evidence_ref": "collector:src/mardorf_collector/providers/fetch_svg_weatherlink.py"
+    },
+    {
+      "id": "dwd-icon-d2-v1",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "source_name": "DWD Open Data",
+      "product_id": "icon-d2_regular-lat-lon",
+      "endpoint": "https://opendata.dwd.de/weather/nwp/icon-d2/",
+      "credential_binding_ref": null,
+      "identity_evidence_ref": "collector:config/weather_acquisition_plan_v2.json#successor_acquisition.allowed_initial_provider_paths.ICON-D2"
+    },
+    {
+      "id": "noaa-gefs-v1",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "source_name": "NOAA",
+      "product_id": "gefs_0p25s",
+      "endpoint": "https://nomads.ncep.noaa.gov/",
+      "credential_binding_ref": null,
+      "identity_evidence_ref": "config/relevant_meteorology_registry_v3.json"
+    },
+    {
+      "id": "dwd-icon-eu-v1",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "source_name": "ICON-EU",
+      "product_id": "icon-eu_regular-lat-lon",
+      "endpoint": "https://opendata.dwd.de/weather/nwp/icon-eu/grib/",
+      "credential_binding_ref": null,
+      "identity_evidence_ref": "docs/audits/dev03_wp12_i08_model_product_evidence_v1.json"
+    },
+    {
+      "id": "noaa-gfs-v1",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "source_name": "GFS",
+      "product_id": "gfs_0p25",
+      "endpoint": "https://nomads.ncep.noaa.gov/",
+      "credential_binding_ref": null,
+      "identity_evidence_ref": "docs/audits/dev03_wp12_i08_model_product_evidence_v1.json"
+    },
+    {
+      "id": "noaa-gefs-control-v1",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "source_name": "GEFS-control",
+      "product_id": "gefs_0p25s",
+      "endpoint": "https://nomads.ncep.noaa.gov/",
+      "credential_binding_ref": null,
+      "identity_evidence_ref": "docs/audits/dev03_wp12_i08_model_product_evidence_v1.json"
+    },
+    {
+      "id": "ecmwf-ifs-v1",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "source_name": "ECMWF-IFS",
+      "product_id": "ifs_oper_fc_0p25",
+      "endpoint": "https://data.ecmwf.int/",
+      "credential_binding_ref": null,
+      "identity_evidence_ref": "docs/audits/dev03_wp12_i08_model_product_evidence_v1.json"
+    },
+    {
+      "id": "openmeteo-icon-d2-eps-v1",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "source_name": "ICON-D2-EPS",
+      "product_id": "open_meteo:dwd_icon_d2_eps",
+      "endpoint": "https://ensemble-api.open-meteo.com/",
+      "credential_binding_ref": null,
+      "identity_evidence_ref": "docs/audits/dev03_wp12_i08_model_product_evidence_v1.json"
+    },
+    {
+      "valid_from_utc": "2016-01-01T00:00:00Z",
+      "valid_until_utc": null,
+      "id": "dwd-cdc-observations-v1",
+      "source_name": "DWD Climate Data Center",
+      "product_id": "cdc-station-observations",
+      "endpoint": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/",
+      "credential_binding_ref": null,
+      "identity_evidence_ref": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/"
+    }
+  ],
+  "stations": [
+    {
+      "id": "SVG-42374-v1",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "site_id": "steinhude-svg-v1",
+      "provider_id": "weatherlink-svg-v1",
+      "provider_station_id": "42374",
+      "label": "SVG",
+      "metadata_status": "partially_known",
+      "provider_station_uuid": "aebf6f56-9f93-4e34-9c7f-b9e9be51f0f5"
+    },
+    {
+      "valid_from_utc": "2016-01-01T00:00:00Z",
+      "valid_until_utc": null,
+      "id": "DWD-CDC-04745-v1",
+      "site_id": "dwd-cdc-04745-site-v1",
+      "provider_id": "dwd-cdc-observations-v1",
+      "provider_station_id": "04745",
+      "label": "Soltau",
+      "metadata_status": "partially_known",
+      "provider_station_uuid": null
+    },
+    {
+      "valid_from_utc": "2016-01-01T00:00:00Z",
+      "valid_until_utc": null,
+      "id": "DWD-CDC-00963-v1",
+      "site_id": "dwd-cdc-00963-site-v1",
+      "provider_id": "dwd-cdc-observations-v1",
+      "provider_station_id": "00963",
+      "label": "Diepholz",
+      "metadata_status": "partially_known",
+      "provider_station_uuid": null
+    },
+    {
+      "valid_from_utc": "2016-01-01T00:00:00Z",
+      "valid_until_utc": null,
+      "id": "DWD-CDC-00662-v1",
+      "site_id": "dwd-cdc-00662-site-v1",
+      "provider_id": "dwd-cdc-observations-v1",
+      "provider_station_id": "00662",
+      "label": "Braunschweig",
+      "metadata_status": "partially_known",
+      "provider_station_uuid": null
+    },
+    {
+      "valid_from_utc": "2016-01-01T00:00:00Z",
+      "valid_until_utc": null,
+      "id": "DWD-CDC-01691-v1",
+      "site_id": "dwd-cdc-01691-site-v1",
+      "provider_id": "dwd-cdc-observations-v1",
+      "provider_station_id": "01691",
+      "label": "Göttingen",
+      "metadata_status": "partially_known",
+      "provider_station_uuid": null
+    }
+  ],
+  "sensors": [
+    {
+      "id": "svg-weatherlink-48-v1",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "station_id": "SVG-42374-v1",
+      "provider_sensor_selector": {
+        "sensor_type": 48,
+        "current_data_structure_type": 2,
+        "historic_data_structure_type": 4
+      },
+      "measurement_height": {
+        "status": "unknown",
+        "value_m": null
+      }
+    },
+    {
+      "valid_from_utc": "2016-01-01T00:00:00Z",
+      "valid_until_utc": null,
+      "id": "dwd-cdc-04745-sensor-v1",
+      "station_id": "DWD-CDC-04745-v1",
+      "provider_sensor_selector": {
+        "cdc_station_id": "04745"
+      },
+      "measurement_height": {
+        "status": "unknown",
+        "value_m": null
+      }
+    },
+    {
+      "valid_from_utc": "2016-01-01T00:00:00Z",
+      "valid_until_utc": null,
+      "id": "dwd-cdc-00963-sensor-v1",
+      "station_id": "DWD-CDC-00963-v1",
+      "provider_sensor_selector": {
+        "cdc_station_id": "00963"
+      },
+      "measurement_height": {
+        "status": "unknown",
+        "value_m": null
+      }
+    },
+    {
+      "valid_from_utc": "2016-01-01T00:00:00Z",
+      "valid_until_utc": null,
+      "id": "dwd-cdc-00662-sensor-v1",
+      "station_id": "DWD-CDC-00662-v1",
+      "provider_sensor_selector": {
+        "cdc_station_id": "00662"
+      },
+      "measurement_height": {
+        "status": "unknown",
+        "value_m": null
+      }
+    },
+    {
+      "valid_from_utc": "2016-01-01T00:00:00Z",
+      "valid_until_utc": null,
+      "id": "dwd-cdc-01691-sensor-v1",
+      "station_id": "DWD-CDC-01691-v1",
+      "provider_sensor_selector": {
+        "cdc_station_id": "01691"
+      },
+      "measurement_height": {
+        "status": "unknown",
+        "value_m": null
+      }
+    }
+  ],
+  "quantities": [
+    {
+      "id": "wind_speed",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "label": "Windgeschwindigkeit",
+      "dimension": "speed"
+    },
+    {
+      "id": "air_temperature",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "label": "Lufttemperatur",
+      "dimension": "temperature"
+    },
+    {
+      "id": "relative_humidity",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "label": "Relative Feuchte",
+      "dimension": "fraction"
+    },
+    {
+      "id": "air_pressure",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "label": "Luftdruck; Variante noch feldbezogen zu binden",
+      "dimension": "pressure"
+    },
+    {
+      "id": "rainfall_amount",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "label": "Niederschlagsmenge",
+      "dimension": "length"
+    },
+    {
+      "id": "wind_u",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "label": "wind_u",
+      "dimension": "speed"
+    },
+    {
+      "id": "wind_v",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "label": "wind_v",
+      "dimension": "speed"
+    },
+    {
+      "id": "wind_gust",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "label": "wind_gust",
+      "dimension": "speed"
+    },
+    {
+      "id": "wind_direction",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "label": "wind_direction",
+      "dimension": "angle"
+    },
+    {
+      "id": "dewpoint_temperature",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "label": "dewpoint_temperature",
+      "dimension": "temperature"
+    },
+    {
+      "id": "cloud_fraction",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "label": "cloud_fraction",
+      "dimension": "fraction"
+    },
+    {
+      "id": "shortwave_direct",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "label": "shortwave_direct",
+      "dimension": "radiation"
+    },
+    {
+      "id": "shortwave_diffuse",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "label": "shortwave_diffuse",
+      "dimension": "radiation"
+    },
+    {
+      "id": "shortwave_total",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "label": "shortwave_total",
+      "dimension": "radiation"
+    },
+    {
+      "id": "cape",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "label": "cape",
+      "dimension": "specific_energy"
+    },
+    {
+      "id": "cin",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "label": "cin",
+      "dimension": "specific_energy"
+    },
+    {
+      "id": "convective_precipitation",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "label": "convective_precipitation",
+      "dimension": "precipitation"
+    },
+    {
+      "id": "rainfall_rate",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "label": "rainfall_rate",
+      "dimension": "length_per_time"
+    },
+    {
+      "id": "uv_index",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "label": "uv_index",
+      "dimension": "dimensionless"
+    },
+    {
+      "valid_from_utc": "2016-01-01T00:00:00Z",
+      "valid_until_utc": null,
+      "id": "sunshine_duration",
+      "label": "Sonnenscheindauer",
+      "dimension": "time"
+    },
+    {
+      "valid_from_utc": "2016-01-01T00:00:00Z",
+      "valid_until_utc": null,
+      "id": "visibility",
+      "label": "Sichtweite",
+      "dimension": "length"
+    },
+    {
+      "valid_from_utc": "2016-01-01T00:00:00Z",
+      "valid_until_utc": null,
+      "id": "weather_code",
+      "label": "Wetterzustand DWD WW",
+      "dimension": "code"
+    },
+    {
+      "valid_from_utc": "2016-01-01T00:00:00Z",
+      "valid_until_utc": null,
+      "id": "cloud_cover_okta",
+      "label": "Bewölkung in Achteln",
+      "dimension": "code"
+    },
+    {
+      "valid_from_utc": "2016-01-01T00:00:00Z",
+      "valid_until_utc": null,
+      "id": "sea_level_pressure",
+      "label": "Auf Meereshöhe reduzierter Luftdruck",
+      "dimension": "pressure"
+    }
+  ],
+  "observation_bindings": [
+    {
+      "id": "svg-wind-speed-binding-v1",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "sensor_id": "svg-weatherlink-48-v1",
+      "quantity_id": "wind_speed",
+      "native_field": "wind_speed_avg",
+      "operator_status": "unresolved",
+      "operator_ref": null
+    },
+    {
+      "id": "svg-temperature-binding-v1",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "sensor_id": "svg-weatherlink-48-v1",
+      "quantity_id": "air_temperature",
+      "native_field": "temp_out",
+      "operator_status": "unresolved",
+      "operator_ref": null
+    }
+  ],
+  "targets": [
+    {
+      "id": "svg-station-wind-v1",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "site_id": "steinhude-svg-v1",
+      "quantity_id": "wind_speed",
+      "observation_binding_id": "svg-wind-speed-binding-v1",
+      "spatial_semantics": "at_station",
+      "forecast_level": {
+        "kind": "height_above_ground",
+        "value_m": 10
+      },
+      "calibration_status": "open"
+    },
+    {
+      "id": "svg-station-temperature-v1",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "site_id": "steinhude-svg-v1",
+      "quantity_id": "air_temperature",
+      "observation_binding_id": "svg-temperature-binding-v1",
+      "spatial_semantics": "at_station",
+      "forecast_level": {
+        "kind": "height_above_ground",
+        "value_m": 2
+      },
+      "calibration_status": "open"
+    }
+  ],
+  "profiles": [
+    {
+      "id": "svg-general-weather-development-v1",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "label": "Allgemeines Wettermodell am SVG-Messziel",
+      "usage": "development",
+      "site_ids": [
+        "steinhude-svg-v1"
+      ],
+      "target_ids": [
+        "svg-station-wind-v1",
+        "svg-station-temperature-v1"
+      ],
+      "provider_ids": [
+        "weatherlink-svg-v1",
+        "dwd-icon-d2-v1"
+      ],
+      "collection_enabled": false
+    },
+    {
+      "id": "svg-general-weather-development-v2",
+      "valid_from_utc": "2026-10-03T00:00:00Z",
+      "valid_until_utc": null,
+      "label": "Allgemeines Wettermodell am SVG-Messziel",
+      "usage": "development",
+      "site_ids": [
+        "steinhude-svg-v1"
+      ],
+      "target_ids": [
+        "svg-station-wind-v1",
+        "svg-station-temperature-v1"
+      ],
+      "provider_ids": [
+        "weatherlink-svg-v1",
+        "dwd-icon-d2-v1",
+        "noaa-gefs-v1",
+        "dwd-icon-eu-v1",
+        "noaa-gfs-v1",
+        "noaa-gefs-control-v1",
+        "ecmwf-ifs-v1",
+        "openmeteo-icon-d2-eps-v1"
+      ],
+      "collection_enabled": false
+    },
+    {
+      "valid_from_utc": "2016-01-01T00:00:00Z",
+      "valid_until_utc": null,
+      "id": "svg-regional-weather-development-v1",
+      "label": "SVG und regionaler DWD-Stationsring: Datenaufnahme",
+      "usage": "development",
+      "site_ids": [
+        "steinhude-svg-v1",
+        "dwd-cdc-04745-site-v1",
+        "dwd-cdc-00963-site-v1",
+        "dwd-cdc-00662-site-v1",
+        "dwd-cdc-01691-site-v1"
+      ],
+      "target_ids": [
+        "svg-station-wind-v1",
+        "svg-station-temperature-v1"
+      ],
+      "provider_ids": [
+        "dwd-cdc-observations-v1",
+        "weatherlink-svg-v1"
+      ],
+      "collection_enabled": false
+    }
+  ]
+}

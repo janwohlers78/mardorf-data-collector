@@ -59,8 +59,6 @@ def validate(root):
     corrections = {item['implementation_path']: item for item in corrections_doc.get('modules', [])}
     if len(corrections) != len(corrections_doc.get('modules', [])):
         raise ValueError('duplicate corrected source path')
-    successor_v10_path=root/'docs/inventory/collector_runtime_successor_v10.json'
-    successor_v10=json.loads(successor_v10_path.read_text()) if successor_v10_path.exists() else None
     successor_v9_path=root/'docs/inventory/collector_runtime_successor_v9.json'
     successor_v9=json.loads(successor_v9_path.read_text()) if successor_v9_path.exists() else None
     successor_v8_path=root/'docs/inventory/collector_runtime_successor_v8.json'
@@ -68,8 +66,6 @@ def validate(root):
     successor_v7_path=root/'docs/inventory/collector_runtime_successor_v7.json'
     successor_v7=json.loads(successor_v7_path.read_text()) if successor_v7_path.exists() else None
     def historical_workflow(name):
-        if successor_v10 and name == 'collect-svg.yml':
-            return root/successor_v10['workflow']['preserved_path']
         return root / (successor_v7['workflows'][name]['preserved_path'] if successor_v7 and name in successor_v7['workflows'] else '.github/workflows/' + name)
     successor_v6_path=root/'docs/inventory/collector_runtime_successor_v6.json'
     successor_v6=json.loads(successor_v6_path.read_text()) if successor_v6_path.exists() else None
@@ -346,7 +342,7 @@ def validate(root):
         for change in row['replacements']:
             if current.count(change['before'])!=1:raise ValueError('Ambiguous native SVG command change')
             current=current.replace(change['before'],change['after'])
-        active=(root/(successor_v10['workflow']['preserved_path'] if successor_v10 else row['path'])).read_bytes()
+        active=(root/row['path']).read_bytes()
         if (current.encode()!=active or hashlib.sha256(active).hexdigest()!=row['sha256'] or
                 signature(yaml.load(active,Loader=yaml.BaseLoader))!=expected[name]['source_control_sha256']):
             raise ValueError('Native SVG changed acquisition controls or unrelated workflow bytes')
@@ -386,7 +382,7 @@ def validate(root):
                 or successor_v9.get('predecessor_sha256') != hashlib.sha256(successor_v8_path.read_bytes()).hexdigest()
                 or successor_v9.get('preserved_validator_sha256') != successor_v8['validator_sha256']
                 or hashlib.sha256((root/successor_v9['preserved_validator_path']).read_bytes()).hexdigest() != successor_v9['preserved_validator_sha256']
-                or hashlib.sha256((root/(successor_v10['preserved_validator_path'] if successor_v10 else 'tools/validate_prep09_layout.py')).read_bytes()).hexdigest() != successor_v9['validator_sha256']
+                or hashlib.sha256((root/'tools/validate_prep09_layout.py').read_bytes()).hexdigest() != successor_v9['validator_sha256']
                 or successor_v9.get('previous_workflow_sha256') != successor_v7['workflows'][name]['sha256']
                 or hashlib.sha256(previous).hexdigest() != successor_v9['previous_workflow_sha256']
                 or hashlib.sha256(active).hexdigest() != successor_v9['workflow_sha256']
@@ -394,23 +390,6 @@ def validate(root):
             raise ValueError('Unverified model publication concurrency successor')
         expected[name] = dict(expected[name], source_control_sha256=signature(yaml.load(active, Loader=yaml.BaseLoader)),
             frozen_git_blob=hashlib.sha1(b'blob '+str(len(active)).encode()+b'\0'+active).hexdigest())
-    if successor_v10 is not None:
-        row=successor_v10['workflow'];name='collect-svg.yml'
-        previous=(root/row['preserved_path']).read_bytes();active=(root/row['path']).read_bytes()
-        if (successor_v10.get('artifact_version')!='collector-runtime-successor-v10'
-                or successor_v10['predecessor_sha256']!=hashlib.sha256(successor_v9_path.read_bytes()).hexdigest()
-                or hashlib.sha256((root/successor_v10['preserved_validator_path']).read_bytes()).hexdigest()!=successor_v9['validator_sha256']
-                or hashlib.sha256((root/'tools/validate_prep09_layout.py').read_bytes()).hexdigest()!=successor_v10['validator_sha256']
-                or hashlib.sha256(previous).hexdigest()!=row['previous_sha256']
-                or hashlib.sha256(active).hexdigest()!=row['sha256']):
-            raise ValueError('Unverified regional station workflow successor')
-        change=row['replacements'][0]
-        if change['before'].encode()!=previous or change['after'].encode()!=active:
-            raise ValueError('Regional station workflow reviewed replacement drift')
-        for path,identity in successor_v10['artifacts'].items():
-            if hashlib.sha256((root/path).read_bytes()).hexdigest()!=identity:
-                raise ValueError('Regional station artifact drift')
-        expected[name]={'source_control_sha256':signature(yaml.load(active,Loader=yaml.BaseLoader))}
     if workflows.keys() != expected.keys():
         raise ValueError('workflow added/removed without route review')
     for name, path in workflows.items():

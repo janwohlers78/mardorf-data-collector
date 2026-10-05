@@ -1,0 +1,284 @@
+{
+  "schema_version": 1,
+  "artifact_version": "wp15-regional-stations-v1",
+  "enabled": true,
+  "provider_id": "dwd-cdc-observations-v1",
+  "profile_id": "svg-regional-weather-development-v1",
+  "registry_path": "config/dev03_wp12_domain_registry_v3.json",
+  "registry_sha256": "3500ca0fc44c281c03591c8dec73055f50ad878df1c815760bbb99a2f96225f7",
+  "license": "CC BY 4.0",
+  "attribution": "Deutscher Wetterdienst, Climate Data Center (CDC)",
+  "license_url": "https://opendata.dwd.de/climate_environment/CDC/Nutzungsbedingungen_German.txt",
+  "base_url": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/",
+  "stations": [
+    {
+      "id": "04745",
+      "name": "Soltau",
+      "site_id": "dwd-cdc-04745-site-v1",
+      "station_id": "DWD-CDC-04745-v1",
+      "sensor_id": "dwd-cdc-04745-sensor-v1",
+      "distance_km": 60.1,
+      "bearing_degrees": 30.2,
+      "current_elevation_m": 75.0
+    },
+    {
+      "id": "00963",
+      "name": "Diepholz",
+      "site_id": "dwd-cdc-00963-site-v1",
+      "station_id": "DWD-CDC-00963-v1",
+      "sensor_id": "dwd-cdc-00963-sensor-v1",
+      "distance_km": 68.4,
+      "bearing_degrees": 279.2,
+      "current_elevation_m": 38.0
+    },
+    {
+      "id": "00662",
+      "name": "Braunschweig",
+      "site_id": "dwd-cdc-00662-site-v1",
+      "station_id": "DWD-CDC-00662-v1",
+      "sensor_id": "dwd-cdc-00662-sensor-v1",
+      "distance_km": 78.3,
+      "bearing_degrees": 106.3,
+      "current_elevation_m": 81.0
+    },
+    {
+      "id": "01691",
+      "name": "Göttingen",
+      "site_id": "dwd-cdc-01691-site-v1",
+      "station_id": "DWD-CDC-01691-v1",
+      "sensor_id": "dwd-cdc-01691-sensor-v1",
+      "distance_km": 118.1,
+      "bearing_degrees": 159.1,
+      "current_elevation_m": 167.0
+    }
+  ],
+  "hourly_products": {
+    "air_temperature": {
+      "prefix": "TU",
+      "fields": {
+        "TT_TU": [
+          "air_temperature",
+          "degC"
+        ],
+        "RF_TU": [
+          "relative_humidity",
+          "%"
+        ]
+      }
+    },
+    "wind": {
+      "prefix": "FF",
+      "fields": {
+        "F": [
+          "wind_speed",
+          "m s-1"
+        ],
+        "D": [
+          "wind_direction",
+          "deg"
+        ]
+      }
+    },
+    "extreme_wind": {
+      "prefix": "FX",
+      "fields": {
+        "FX_911": [
+          "wind_gust",
+          "m s-1"
+        ]
+      }
+    },
+    "precipitation": {
+      "prefix": "RR",
+      "fields": {
+        "R1": [
+          "rainfall_amount",
+          "mm"
+        ]
+      }
+    },
+    "pressure": {
+      "prefix": "P0",
+      "fields": {
+        "P": [
+          "sea_level_pressure",
+          "hPa"
+        ],
+        "P0": [
+          "air_pressure",
+          "hPa"
+        ]
+      }
+    },
+    "dew_point": {
+      "prefix": "TD",
+      "fields": {
+        "TD": [
+          "dewpoint_temperature",
+          "degC"
+        ]
+      }
+    },
+    "cloudiness": {
+      "prefix": "N",
+      "fields": {
+        "V_N": [
+          "cloud_cover_okta",
+          "okta"
+        ]
+      }
+    },
+    "sun": {
+      "prefix": "SD",
+      "fields": {
+        "SD_SO": [
+          "sunshine_duration",
+          "min"
+        ]
+      }
+    },
+    "visibility": {
+      "prefix": "VV",
+      "fields": {
+        "V_VV": [
+          "visibility",
+          "m"
+        ]
+      }
+    },
+    "weather_phenomena": {
+      "prefix": "WW",
+      "fields": {
+        "WW": [
+          "weather_code",
+          "DWD WW code"
+        ]
+      }
+    }
+  },
+  "current_products": {
+    "wind": {
+      "fields": {
+        "FF_10": [
+          "wind_speed",
+          "m s-1"
+        ],
+        "DD_10": [
+          "wind_direction",
+          "deg"
+        ]
+      }
+    },
+    "air_temperature": {
+      "fields": {
+        "TT_10": [
+          "air_temperature",
+          "degC"
+        ],
+        "RF_10": [
+          "relative_humidity",
+          "%"
+        ],
+        "TD_10": [
+          "dewpoint_temperature",
+          "degC"
+        ],
+        "PP_10": [
+          "air_pressure",
+          "hPa"
+        ]
+      }
+    },
+    "precipitation": {
+      "fields": {
+        "RWS_10": [
+          "rainfall_amount",
+          "mm"
+        ]
+      }
+    }
+  },
+  "historical_urls": {
+    "air_temperature": {
+      "04745": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/air_temperature/historical/stundenwerte_TU_04745_19660101_20251231_hist.zip",
+      "00963": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/air_temperature/historical/stundenwerte_TU_00963_19940103_20251231_hist.zip",
+      "00662": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/air_temperature/historical/stundenwerte_TU_00662_19510101_20251231_hist.zip",
+      "01691": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/air_temperature/historical/stundenwerte_TU_01691_19480101_20251231_hist.zip"
+    },
+    "wind": {
+      "04745": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/wind/historical/stundenwerte_FF_04745_19580601_20251231_hist.zip",
+      "00963": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/wind/historical/stundenwerte_FF_00963_19740101_20251231_hist.zip",
+      "00662": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/wind/historical/stundenwerte_FF_00662_19660101_20251231_hist.zip",
+      "01691": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/wind/historical/stundenwerte_FF_01691_19690101_20251231_hist.zip"
+    },
+    "extreme_wind": {
+      "04745": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/extreme_wind/historical/stundenwerte_FX_04745_19900701_20251231_hist.zip",
+      "00963": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/extreme_wind/historical/stundenwerte_FX_00963_19930301_20251231_hist.zip",
+      "00662": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/extreme_wind/historical/stundenwerte_FX_00662_19900701_20251231_hist.zip",
+      "01691": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/extreme_wind/historical/stundenwerte_FX_01691_19900701_20251231_hist.zip"
+    },
+    "precipitation": {
+      "04745": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/precipitation/historical/stundenwerte_RR_04745_19950901_20251231_hist.zip",
+      "00963": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/precipitation/historical/stundenwerte_RR_00963_19960603_20251231_hist.zip",
+      "00662": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/precipitation/historical/stundenwerte_RR_00662_19971022_20251231_hist.zip",
+      "01691": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/precipitation/historical/stundenwerte_RR_01691_19950901_20251231_hist.zip"
+    },
+    "pressure": {
+      "04745": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/pressure/historical/stundenwerte_P0_04745_19580601_20251231_hist.zip",
+      "00963": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/pressure/historical/stundenwerte_P0_00963_19930301_20251231_hist.zip",
+      "00662": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/pressure/historical/stundenwerte_P0_00662_19501001_20251231_hist.zip",
+      "01691": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/pressure/historical/stundenwerte_P0_01691_19501001_20251231_hist.zip"
+    },
+    "dew_point": {
+      "04745": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/dew_point/historical/stundenwerte_TD_04745_19580601_20251231_hist.zip",
+      "00963": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/dew_point/historical/stundenwerte_TD_00963_19930301_20251231_hist.zip",
+      "00662": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/dew_point/historical/stundenwerte_TD_00662_19501001_20251231_hist.zip",
+      "01691": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/dew_point/historical/stundenwerte_TD_01691_19501001_20251231_hist.zip"
+    },
+    "cloudiness": {
+      "04745": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/cloudiness/historical/stundenwerte_N_04745_19580601_20251231_hist.zip",
+      "00963": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/cloudiness/historical/stundenwerte_N_00963_19930211_20251231_hist.zip",
+      "00662": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/cloudiness/historical/stundenwerte_N_00662_19501001_20251231_hist.zip",
+      "01691": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/cloudiness/historical/stundenwerte_N_01691_19501001_20251231_hist.zip"
+    },
+    "sun": {
+      "04745": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/sun/historical/stundenwerte_SD_04745_19510101_20251231_hist.zip",
+      "00963": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/sun/historical/stundenwerte_SD_00963_19940101_20251231_hist.zip",
+      "00662": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/sun/historical/stundenwerte_SD_00662_19510101_20251231_hist.zip",
+      "01691": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/sun/historical/stundenwerte_SD_01691_19510101_20251231_hist.zip"
+    },
+    "visibility": {
+      "04745": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/visibility/historical/stundenwerte_VV_04745_19580601_20251231_hist.zip",
+      "00963": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/visibility/historical/stundenwerte_VV_00963_19901205_20251231_hist.zip",
+      "00662": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/visibility/historical/stundenwerte_VV_00662_19501001_20251231_hist.zip",
+      "01691": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/visibility/historical/stundenwerte_VV_01691_19501001_20251231_hist.zip"
+    },
+    "weather_phenomena": {
+      "04745": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/weather_phenomena/historical/stundenwerte_WW_04745_19580601_20251231_hist.zip",
+      "00963": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/weather_phenomena/historical/stundenwerte_WW_00963_19901205_20251231_hist.zip",
+      "00662": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/weather_phenomena/historical/stundenwerte_WW_00662_19501001_20251231_hist.zip",
+      "01691": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/weather_phenomena/historical/stundenwerte_WW_01691_19501001_20251231_hist.zip"
+    }
+  },
+  "archive_start_utc": "2016-01-01T00:00:00Z",
+  "archive_end_utc": "2026-01-01T00:00:00Z",
+  "initial_normalization_day": "2016-01-01",
+  "normalization_days_per_invocation": 1,
+  "max_deliveries_per_invocation": 8,
+  "current_window_hours": 48,
+  "recent_every_hours": 24,
+  "max_original_bytes": 8388608,
+  "max_zip_uncompressed_bytes": 167772160,
+  "max_zip_members": 64,
+  "max_fields_per_delivery": 4096,
+  "science_status": "OPEN",
+  "analysis_enabled": false,
+  "historical_location_policy": "retain original dated metadata; current registry position is inventory only, historical matching remains OPEN",
+  "temporal_policy": "preserve MESS_DATUM UTC; support operator unresolved until exact product convention is bound; capture availability is actual retrieval, not measurement time",
+  "raw_archive_products": {
+    "solar": {
+      "00662": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/solar/stundenwerte_ST_00662_row.zip"
+    }
+  },
+  "raw_archive_products_policy": "Braunschweig hourly solar original retained; separate native mapping/temporal support qualification is pending"
+}

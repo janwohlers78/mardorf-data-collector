@@ -10,9 +10,6 @@ on:
       - 'src/check_collection_due.py'
       - 'config/integrity_policy.json'
       - 'requirements-runtime.txt'
-      - 'src/mardorf_collector/wp13/regional_stations_v1.py'
-      - 'config/dev03_wp15_regional_stations_v1.json'
-      - 'config/dev03_wp12_domain_registry_v3.json'
       - '.github/workflows/collect-svg.yml'
   schedule:
     - cron: '13 * * * *'
@@ -22,23 +19,6 @@ on:
         description: "Bounded B2 transfer test on an isolated control branch"
         type: boolean
         default: false
-      regional_mode:
-        description: 'Regional CDC: routine current, initial immutable archive, or bounded history day'
-        type: choice
-        options: [current, archive, history]
-        default: current
-      history_station:
-        description: 'Registered CDC station ID or all (bounded four deliveries)'
-        type: string
-        default: all
-      history_product:
-        description: 'Registered hourly CDC product for bounded history'
-        type: string
-        default: wind
-      history_day:
-        description: 'UTC day in selected archive (default 2016-01-01)'
-        type: string
-        default: '2016-01-01'
       watchdog:
         description: 'Routine external watchdog trigger; respects freshness gate'
         type: boolean
@@ -49,13 +29,13 @@ permissions:
 
 concurrency:
   group: public-svg-collector${{ inputs.cloud_canary == true && '-b2-canary' || '' }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   collect:
     if: github.repository == 'janwohlers78/mardorf-data-collector'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -151,26 +131,3 @@ jobs:
           if d['error_count']:
               raise SystemExit(1)
           PY
-
-      - name: Capture regional DWD stations into native cloud intake
-        if: inputs.cloud_canary != true && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || steps.due.outputs.due == 'true')
-        env:
-          PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
-          PRIVATE_REPO: janwohlers78/mardorf-kitevorhersage
-          B2_APPLICATION_KEY_ID: ${{ secrets.B2_APPLICATION_KEY_ID }}
-          B2_APPLICATION_KEY: ${{ secrets.B2_APPLICATION_KEY }}
-          B2_ENDPOINT_URL: ${{ vars.B2_ENDPOINT_URL }}
-          B2_REGION: ${{ vars.B2_REGION }}
-          B2_BUCKET: ${{ vars.B2_BUCKET }}
-          REGIONAL_MODE: ${{ inputs.regional_mode || 'current' }}
-          HISTORY_STATION: ${{ inputs.history_station || 'all' }}
-          HISTORY_PRODUCT: ${{ inputs.history_product || 'wind' }}
-          HISTORY_DAY: ${{ inputs.history_day || '2016-01-01' }}
-        run: |
-          args=()
-          if [ "$REGIONAL_MODE" = "archive" ]; then
-            args+=(--archive)
-          elif [ "$REGIONAL_MODE" = "history" ]; then
-            args+=(--history-station "$HISTORY_STATION" --history-product "$HISTORY_PRODUCT" --history-day "$HISTORY_DAY")
-          fi
-          PYTHONPATH=src python -m mardorf_collector.wp13.regional_stations_v1 "${args[@]}"
