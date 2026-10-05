@@ -58,7 +58,8 @@ class RegionalStationTests(unittest.TestCase):
         args=dict(self.args,hourly=True,historical=True)
         with self.assertRaisesRegex(ValueError,'historical archive window'):
             dwd.prepare(sample(),'2026-10-05T02:00:00Z','04745','wind',**args)
-        self.assertTrue(all('https://opendata.dwd.de/' in url and '?' not in url
+        from urllib.parse import urlsplit
+        self.assertTrue(all(urlsplit(url).scheme == 'https' and urlsplit(url).hostname == 'opendata.dwd.de' and not urlsplit(url).query
             for product in self.policy['historical_urls'].values() for url in product.values()))
 
     def test_partial_poll_retry_does_not_duplicate_already_published_station(self):

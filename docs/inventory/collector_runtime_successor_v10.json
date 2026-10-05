@@ -21,7 +21,7 @@
     "src/mardorf_collector/wp13/regional_stations_v1.py": "0ffb78b22448bdef208c9a0c4b5940f0137ea19ae0fc20df64c6d8c267468a91",
     "config/dev03_wp12_domain_registry_v3.json": "c54e4702936cdf6746ab4d5fb921eed6f7691ac197d16a78d692bfcb48d966e0",
     "config/dev03_wp15_regional_stations_v1.json": "4115947eb0f29745d2bbde990b6d27b945af8d8cd76ccc852bef94f9f958b05e",
-    "tests/test_wp15_regional_stations.py": "162f46c5e795df4b31c900a409980734e764fefb5a493f963966fa087a176025"
+    "tests/test_wp15_regional_stations.py": "8ccc56478bf12fa2373ddc2fc059122dc7c33662b289ef9b635248f0876207bd"
   },
   "scope": "Registered four-station CDC intake in existing hourly public workflow; manual immutable 2016-2025 original archive and bounded day backfill; no private jobs added; no wind analysis or historical readers changed"
 }
