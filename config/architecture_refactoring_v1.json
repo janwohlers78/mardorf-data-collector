@@ -10,7 +10,7 @@
       "path": ".github/workflows/validate.yml",
       "preserved_path": "tests/fixtures/architecture/validate.yml",
       "baseline_sha256": "42c8b6d0ab4663a11d4d637b2df2f7dd403a78584a07cfd57d9e7fe745208d49",
-      "current_sha256": "9367e2f88b4a1682a5b01cf42d24250d2cbfce55d45142929ff590b5d9fe0c22",
+      "current_sha256": "27f7872dcda44afb57c8fc317e2227364bd305b2055c8f6272394ac4ecf74a36",
       "replacements": [
         {
           "before": "      - 'requirements-wp13-grib.txt'\n",
@@ -19,7 +19,7 @@
         },
         {
           "before": "permissions:\n  contents: read\n",
-          "after": "concurrency:\n  group: collector-validation-${{ github.event.pull_request.number || github.ref }}\n  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}\n\npermissions:\n  contents: read\n",
+          "after": "concurrency:\n  group: collector-validation-${{ github.event_name == 'workflow_dispatch' && format('manual-{0}', github.run_id) || github.event.pull_request.number || github.ref }}\n  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}\n\npermissions:\n  contents: read\n",
           "count": 1
         },
         {

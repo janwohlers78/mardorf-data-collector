@@ -22,7 +22,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: collector-validation-${{ github.event.pull_request.number || github.ref }}
+  group: collector-validation-${{ github.event_name == 'workflow_dispatch' && format('manual-{0}', github.run_id) || github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 
 permissions:
