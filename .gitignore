@@ -7,3 +7,8 @@ __pycache__/
 # Python artifacts are never project sources
 __pycache__/
 *.py[cod]
+
+# Local package build products
+*.egg-info/
+build/
+dist/

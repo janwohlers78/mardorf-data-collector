@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "audit_id": "AUD-20261005-ARCH",
+  "historical_validator": {
+    "path": "tests/fixtures/architecture/layout_before.py",
+    "sha256": "3571e978e69c0ed7c87afb84257d610e27b991a26a9e3ebfadc95b807c92ae27"
+  },
+  "workflows": [
+    {
+      "path": ".github/workflows/validate.yml",
+      "preserved_path": "tests/fixtures/architecture/validate.yml",
+      "baseline_sha256": "42c8b6d0ab4663a11d4d637b2df2f7dd403a78584a07cfd57d9e7fe745208d49",
+      "current_sha256": "9367e2f88b4a1682a5b01cf42d24250d2cbfce55d45142929ff590b5d9fe0c22",
+      "replacements": [
+        {
+          "before": "      - 'requirements-wp13-grib.txt'\n",
+          "after": "      - 'requirements-wp13-grib.txt'\n      - 'requirements-cloud.txt'\n      - 'requirements-wp15-models.txt'\n      - 'requirements-wp15-stations.txt'\n      - 'pyproject.toml'\n      - 'tools/**'\n",
+          "count": 1
+        },
+        {
+          "before": "permissions:\n  contents: read\n",
+          "after": "concurrency:\n  group: collector-validation-${{ github.event.pull_request.number || github.ref }}\n  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}\n\npermissions:\n  contents: read\n",
+          "count": 1
+        },
+        {
+          "before": "          python-version: '3.12'\n",
+          "after": "          python-version: '3.12'\n          cache: pip\n          cache-dependency-path: 'requirements*.txt'\n",
+          "count": 1
+        },
+        {
+          "before": "          python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-runtime.txt\n          python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-ci.txt\n          python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-wp13-grib.txt\n          python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-wp15-models.txt -r requirements-wp15-stations.txt\n",
+          "after": "          python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: \\\n            -r requirements-runtime.txt -r requirements-ci.txt -r requirements-cloud.txt \\\n            -r requirements-wp13-grib.txt -r requirements-wp15-models.txt -r requirements-wp15-stations.txt\n",
+          "count": 1
+        }
+      ]
+    }
+  ],
+  "current_validator_sha256": "0c0fa652229fd9ec4d793ddaf48537ee1100983550d736ecf83b05a7b0f7a5ff"
+}
