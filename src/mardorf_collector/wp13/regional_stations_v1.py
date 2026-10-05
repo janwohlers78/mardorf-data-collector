@@ -269,6 +269,18 @@ def publish_delivery(cloud, result, *, cursor=None, prior_cursor=None):
              'envelope_id':result['envelope']['envelope_id'],
              'files':{name:{'bytes':len(body),'sha256':hashlib.sha256(body).hexdigest()} for name,body in files.items()}}
     changes = {prefix+name:body for name,body in files.items()}
+    if result['envelope']['context'] == 'historical':
+        # Retain the shared historical ZIP once, never once per daily delivery.
+        for key,body in result['raw_bytes'].items():
+            if body.startswith(b'PK'):
+                name = 'raw-' + hashlib.sha256(key.encode()).hexdigest()
+                identity = hashlib.sha256(body).hexdigest()
+                archive_path = ORIGINALS + identity + '.zip'
+                original = cloud.read(archive_path)
+                if len(original) != len(body) or hashlib.sha256(original).hexdigest() != identity:
+                    raise ValueError('Shared historical CDC original identity mismatch')
+                ready['files'][name]['archive_path'] = archive_path
+                del changes[prefix+name]
     changes[prefix+'ready.json'] = canonical(ready)
     def merge(current, incoming):
         if cursor is not None and current.read(STATE, required=False) != prior_cursor:
