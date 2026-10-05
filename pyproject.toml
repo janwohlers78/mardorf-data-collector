@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mardorf-data-collector"
+version = "0.1.0"
+description = "Mardorf source acquisition checkout tools"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = ["requests==2.34.2", "urllib3==2.8.0", "ecmwf-opendata==0.3.34"]
+
+[project.optional-dependencies]
+cloud = ["boto3==1.43.108", "botocore==1.43.108"]
+grib = ["eccodes==2.49.0", "eccodeslib==2.49.0.30", "eckitlib==2.3.0.30"]
+stations = ["pyarrow==25.0.1", "jsonschema==4.26.0"]
+test = ["PyYAML==6.0.3"]
+
+[project.scripts]
+mardorf-collector = "mardorf_collector.__main__:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+py-modules = ["audit_integrity", "audit_secondary_integrity", "availability_contract", "availability_contract_v3", "cape_native_identity", "check_collection_due", "collect_full_horizon", "collect_icon_tier_a", "dev03_v3_convective_acquisition", "dev03_v3_parent_binding", "dev03_v3_transfer_shell", "ecmwf_registry", "extend_model_horizon", "fetch_dwd_additional_models", "fetch_etnw_metar", "fetch_extra_models", "fetch_model_data", "fetch_skm_optional", "fetch_svg_weatherlink", "fetch_wunstorf", "finalize_secondary_batch", "forecast_lead_identity", "full_horizon_contract", "gefs_full_members", "grib_identity", "icon_parameter_probe", "measure_gefs_sparse_policy", "measure_gefs_summary_qa", "noaa_weather_context", "prep_data01_metadata", "provider_cycle_gate", "provider_fetch", "push_private", "push_private_v3", "record_provider_failure", "relevant_meteorology_registry", "relevant_meteorology_registry_v2", "relevant_meteorology_registry_v3", "run_dev03_wp03_i10_public", "validate_dev03_pre_wp03_corrections", "validate_dev03_pre_wp03_corrections_v2", "validate_dev03_prep05_migration_topology", "validate_dev03_wp02_successor_design", "validate_dev03_wp03_i01", "validate_dev03_wp03_i02", "validate_dev03_wp03_i03", "validate_dev03_wp03_i04", "validate_dev03_wp03_i10_public", "validate_phase2_cross_repo_contract"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["mardorf_collector*"]
+namespaces = false

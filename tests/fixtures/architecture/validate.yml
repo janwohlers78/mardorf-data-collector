@@ -14,16 +14,7 @@ on:
       - 'requirements-runtime.txt'
       - 'requirements-ci.txt'
       - 'requirements-wp13-grib.txt'
-      - 'requirements-cloud.txt'
-      - 'requirements-wp15-models.txt'
-      - 'requirements-wp15-stations.txt'
-      - 'pyproject.toml'
-      - 'tools/**'
   workflow_dispatch:
-
-concurrency:
-  group: collector-validation-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 
 permissions:
   contents: read
@@ -40,8 +31,6 @@ jobs:
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: '3.12'
-          cache: pip
-          cache-dependency-path: 'requirements*.txt'
       - name: Reject obvious committed credential material
         run: |
           if git grep -nE '(github_pat_[A-Za-z0-9_]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----)' -- .; then
@@ -50,9 +39,10 @@ jobs:
           fi
       - name: Install pinned test/runtime dependencies
         run: |
-          python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: \
-            -r requirements-runtime.txt -r requirements-ci.txt -r requirements-cloud.txt \
-            -r requirements-wp13-grib.txt -r requirements-wp15-models.txt -r requirements-wp15-stations.txt
+          python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-runtime.txt
+          python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-ci.txt
+          python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-wp13-grib.txt
+          python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-wp15-models.txt -r requirements-wp15-stations.txt
       - name: Compile collector
         run: python -m compileall -q src tests
       - name: Run integrity regression tests

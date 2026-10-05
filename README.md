@@ -135,3 +135,10 @@ claiming stronger evidence than the provider exposes.
 Der [Repository-Katalog](docs/inventory/repository_catalog_v1.json) und die [Inventar-Übersicht](docs/inventory/README.md) trennen aktive Einstiegspunkte, manuelle Prüf-/Reproduktionspfade und historische Evidenz. Der Katalog ist ein versionierter Inventar-Snapshot, keine Laufzeit- oder Workflow-Statusquelle.
 
 Paketstruktur, CLI und Übergangsregeln: [PREP09 Paketlayout](docs/inventory/package_layout_v1.md).
+
+## Architecture and development
+
+See [ARCHITECTURE.md](ARCHITECTURE.md), [DEPENDENCIES.md](DEPENDENCIES.md) and
+[REFACTORING_REPORT.md](REFACTORING_REPORT.md). Python 3.12 checkout development:
+`python -m pip install -e '.[cloud,grib,stations,test]'`. Existing hash-pinned
+Linux production locks and provider/transfer contracts remain authoritative.
