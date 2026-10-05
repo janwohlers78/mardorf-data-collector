@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "artifact_version": "collector-runtime-successor-v14",
+  "predecessor": "docs/inventory/collector_runtime_successor_v13.json",
+  "predecessor_sha256": "bfedb7533d15c2f04a209f93438014c86663bd0b01948ab0a5b40f463128f8ab",
+  "validator_sha256": "3571e978e69c0ed7c87afb84257d610e27b991a26a9e3ebfadc95b807c92ae27",
+  "reason": "Use established runtime configuration fallback in public main and worker processes after pilot failed before processing",
+  "replacements": {
+    "tools/validate_prep09_layout.py": {
+      "preserved_path": "tests/fixtures/wp15/archive_packages_predecessor_v2/layout_validator.py",
+      "previous_sha256": "de06d7b45df012c9d1cfe360cb6a6600d4ca2137eaa43fd578c1b3e9c1b6d08b",
+      "sha256": "3571e978e69c0ed7c87afb84257d610e27b991a26a9e3ebfadc95b807c92ae27"
+    },
+    "src/mardorf_collector/wp15/packages_v1.py": {
+      "preserved_path": "tests/fixtures/wp15/archive_packages_predecessor_v2/packages.py",
+      "previous_sha256": "e2a82deb5679e62e1735fa30913d97cb2ecf63fa891df765ef6d7b306b2cc004",
+      "sha256": "6152b2bd66024e7cbd761d1435b2c5e2f6592bc9e1d3b024d9e238c390afb101"
+    },
+    "tests/test_wp15_packages.py": {
+      "preserved_path": "tests/fixtures/wp15/archive_packages_predecessor_v2/package_tests.py",
+      "previous_sha256": "ee39629e623fceb60138172cf2bcc6ef8c98521a58e47083d5ecf49b92eb2a4a",
+      "sha256": "898ec31cd3452f4bfb86e22a5f6414b80ddca524a72fcba746b85db246733ddd"
+    }
+  }
+}
