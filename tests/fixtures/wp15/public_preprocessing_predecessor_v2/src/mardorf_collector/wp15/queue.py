@@ -2,7 +2,6 @@
 from copy import deepcopy
 from datetime import datetime, timezone
 import re
-import hashlib
 
 from ..storage.objects import ObjectRef
 from ..wp13.core_v1 import canonical, digest, identify, strict_json, stamp, utc
@@ -13,21 +12,6 @@ PENDING = 'data/weather_native/station_preprocessed_v1/pending/'
 CATALOGS = 'data/weather_native/station_preprocessed_v1/admitted/'
 READINESS = 'data/weather_native/consumer_readiness_station_preprocessed_v1.json'
 ADMISSION = 'weather/station-admission/v1/'
-
-
-def admission_ref(backend, publication):
-    prefix=ADMISSION+identifier(publication)+'/'
-    listed=backend.list_page(prefix,limit=2)
-    if listed['cursor'] is not None:raise ValueError('Admission replay generation budget exceeded')
-    choices=[]
-    for key in listed['keys']:
-        meta=backend.head(key);ref=ObjectRef(key,meta['sha256'],meta['bytes'])
-        if not key.endswith('/'+ref.sha256):raise ValueError('Admission content-key mismatch')
-        body=strict_json(backend.get_bytes(ref))
-        if body['publication_id']!=publication or digest({k:v for k,v in body.items() if k!='receipt_id'})!=body['receipt_id']:
-            raise ValueError('Admission identity mismatch')
-        choices.append((body['private_received_at_utc'],key,ref))
-    return min(choices)[2] if choices else None
 
 
 def identifier(value):
@@ -50,7 +34,7 @@ def page(body, *, root=ROOT):
     for key, entry in value['entries'].items():
         identifier(key)
         ref = ObjectRef.parse(entry)
-        if ref.key != PREFIX + '/manifests/' + key + '/' + ref.sha256:
+        if ref.key != PREFIX + '/manifests/' + key:
             raise ValueError('Pending entry identity mismatch')
     return value
 
@@ -65,9 +49,9 @@ def enqueue(cloud, publication, *, root=ROOT, changes=None, expected_state=None)
     extra = dict(changes or {})
     def merge(current, incoming):
         # A retry after a successful admission must not requeue or move clocks.
-        completed = admission_ref(current.backend,identity)
+        completed = current.backend.head(ADMISSION + identity)
         if completed is not None:
-            proof = strict_json(current.backend.get_bytes(completed))
+            proof = strict_json(current.backend.get_bytes(ObjectRef(ADMISSION+identity, completed['sha256'], completed['bytes'])))
             if proof['manifest'] != reference:
                 raise ValueError('Conflicting admitted publication replay')
             out = {}
@@ -101,9 +85,9 @@ def admit(cloud, reference, *, expected_processor, root=ROOT):
     doc = read_manifest(cloud.backend, reference, expected_processor=expected_processor, root=root)
     identity = doc['publication_id']
     key = ADMISSION + identity
-    prior = admission_ref(cloud.backend,identity)
+    prior = cloud.backend.head(key)
     if prior:
-        ref = prior
+        ref = ObjectRef(key, prior['sha256'], prior['bytes'])
         receipt = strict_json(cloud.backend.get_bytes(ref))
         if receipt['manifest'] != reference:
             raise ValueError('Private admission replay conflict')
@@ -117,8 +101,7 @@ def admit(cloud, reference, *, expected_processor, root=ROOT):
             'public_verified_at_utc':doc['public_verified_at_utc'], 'original_capture_at_utc':doc['envelope']['capture']['retrieved_at_utc'],
             'context':doc['envelope']['context'], 'field_count':doc['field_count'],
             'native_fields_sha256':doc['native_fields_sha256'], 'scientific_gate':'OPEN'}, 'receipt_id')
-        body=canonical(receipt)
-        ref = cloud.backend.put_bytes(key+'/'+hashlib.sha256(body).hexdigest(),body)
+        ref = cloud.backend.put_bytes(key, canonical(receipt))
     # One private visibility commit installs all catalog references and removes
     # the exact pending entry. No weather bytes or re-normalization in private.
     path = pending_path(identity)

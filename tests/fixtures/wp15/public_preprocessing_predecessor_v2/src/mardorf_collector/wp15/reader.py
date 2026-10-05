@@ -115,7 +115,7 @@ class VerifiedReader:
                     or entry['context'] != doc['envelope']['context']):
                 raise ValueError('Admitted station catalog binding mismatch')
             receipt_ref = ObjectRef.parse(entry['admission'])
-            if receipt_ref.key != ADMISSION+identity+'/'+receipt_ref.sha256 or receipt_ref.bytes > policy(self.root)['admission_max_bytes']:
+            if receipt_ref.key != ADMISSION+identity or receipt_ref.bytes > policy(self.root)['admission_max_bytes']:
                 raise ValueError('Private admission reference mismatch')
             receipt = strict_json(self.get_bytes(receipt_ref))
             if (receipt['artifact_version'] != 'wp15-station-private-admission-v1'

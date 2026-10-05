@@ -119,7 +119,7 @@ def read_manifest(backend, reference, *, expected_processor=None, root=ROOT):
         raise ValueError('Prepared publication version/processor mismatch')
     identity = digest({'envelope_id': doc['envelope']['envelope_id'],
         'processor_sha256': doc['processor_sha256'], 'configuration_sha256': doc['configuration_sha256']})
-    if doc['publication_id'] != identity or ref.key != PREFIX + '/manifests/' + identity + '/' + ref.sha256:
+    if doc['publication_id'] != identity or ref.key != PREFIX + '/manifests/' + identity:
         raise ValueError('Prepared publication identity mismatch')
     if (doc['envelope']['configuration']['sha256'] != doc['configuration_sha256']
             or doc['configuration_sha256'] not in {v['configuration_sha256'] for v in p['providers'].values()}
@@ -217,17 +217,11 @@ def preprocess(backend, result, *, root=ROOT, archive_originals=None):
     publication = digest({'envelope_id':envelope['envelope_id'], 'processor_sha256':processor,
         'configuration_sha256':envelope['configuration']['sha256']})
     key = PREFIX + '/manifests/' + publication
-    previous = backend.list_page(key+'/',limit=2)
-    if previous['cursor'] is not None:
-        raise ValueError('Prepared replay generation budget exceeded')
+    prior = backend.head(key)
     expected_hash = digest(sorted(fields, key=lambda f:f['field_id']))
-    if previous['keys']:
-        choices=[]
-        for old_key in previous['keys']:
-            prior=backend.head(old_key);reference=ObjectRef(old_key,prior['sha256'],prior['bytes'])
-            document=read_manifest(backend,reference.json(),expected_processor=processor,root=root)
-            choices.append((document['public_verified_at_utc'],old_key,reference,document))
-        _,_,ref,existing=min(choices)
+    if prior is not None:
+        ref = ObjectRef(key, prior['sha256'], prior['bytes'])
+        existing = read_manifest(backend, ref.json(), expected_processor=processor, root=root)
         if existing['native_fields_sha256'] != expected_hash:
             raise ValueError('Prepared replay native conflict')
         read_records(backend, existing)
@@ -296,7 +290,7 @@ def preprocess(backend, result, *, root=ROOT, archive_originals=None):
     body = canonical(doc)
     if len(body) > p['manifest_max_bytes']:
         raise ValueError('Prepared manifest budget exceeded')
-    ref = backend.put_bytes(key + '/' + hashlib.sha256(body).hexdigest(), body)
+    ref = backend.put_bytes(key, body)
     read_manifest(backend, ref.json(), expected_processor=processor, root=root)
     return {'manifest':ref.json(), 'publication_id':publication, 'fields':len(fields),
         'status':'published', 'normalizations':len(fields), 'elapsed_seconds':time.monotonic()-started}

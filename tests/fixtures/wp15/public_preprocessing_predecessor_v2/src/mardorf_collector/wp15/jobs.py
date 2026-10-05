@@ -15,7 +15,7 @@ from ..wp13.core_v1 import canonical, digest, strict_json, stamp, utc
 from . import regional_v2 as dwd
 from .assets import ROOT
 from .prepared import CONTRACT, PREFIX, policy, processor_identity, preprocess, read_manifest, read_records
-from .queue import READINESS, enqueue, ADMISSION, admission_ref
+from .queue import READINESS, enqueue, ADMISSION
 
 
 def readiness(cloud, *, root=ROOT):
@@ -176,7 +176,7 @@ def reconcile(cloud, *, root=ROOT, limit=20):
     listed=cloud.backend.list_page(PREFIX+'/manifests/',limit=limit,cursor=cursor)
     recovered=0
     for key in listed['keys']:
-        if admission_ref(cloud.backend,key.split('/')[-2]) is not None:
+        if cloud.backend.head(ADMISSION+key.rsplit('/',1)[-1]) is not None:
             continue
         meta=cloud.backend.head(key)
         from ..storage.objects import ObjectRef

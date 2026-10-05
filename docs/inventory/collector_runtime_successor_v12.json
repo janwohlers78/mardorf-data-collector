@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "artifact_version": "collector-runtime-successor-v12",
+  "predecessor": "docs/inventory/collector_runtime_successor_v11.json",
+  "predecessor_sha256": "0b667df1eb8fee68d41aff6c157c5e6547c205c61a26eb0b238375373148d1cd",
+  "reason": "Real B2 admission requires byte-content hash suffix, separate from logical publication ID; actual clocks and pinned projections preserved",
+  "validator_sha256": "e6ccfe8600b76fb0d5810398f3487b7f0d29272fce15a462cb3921970b698da0",
+  "replacements": {
+    "tools/validate_prep09_layout.py": {
+      "preserved_path": "tests/fixtures/wp15/public_preprocessing_predecessor_v2/tools/validate_prep09_layout.py",
+      "previous_sha256": "3dcf50f3aef43c544e36d1d9f877c96a6657f40d3ce6e110f7883eaae6fd226a",
+      "sha256": "e6ccfe8600b76fb0d5810398f3487b7f0d29272fce15a462cb3921970b698da0"
+    },
+    "src/mardorf_collector/wp15/prepared.py": {
+      "preserved_path": "tests/fixtures/wp15/public_preprocessing_predecessor_v2/src/mardorf_collector/wp15/prepared.py",
+      "previous_sha256": "a7e3c53937929b0a9017bc01ea4bb998498b3191f80fa95059eed71f5a907773",
+      "sha256": "a4d9f3048b7b6233a0f2a45c15b7438aa1f80cde9ce241e0b14ce2aac882a49e"
+    },
+    "src/mardorf_collector/wp15/queue.py": {
+      "preserved_path": "tests/fixtures/wp15/public_preprocessing_predecessor_v2/src/mardorf_collector/wp15/queue.py",
+      "previous_sha256": "f576bb097ffe0482066066dec92744f39bd050c82101e3f4c3ecb6e4bc4910db",
+      "sha256": "c211b5ee7cb0314bf3f64f4ce416268e4d2829df535bf75001caf56159822069"
+    },
+    "src/mardorf_collector/wp15/reader.py": {
+      "preserved_path": "tests/fixtures/wp15/public_preprocessing_predecessor_v2/src/mardorf_collector/wp15/reader.py",
+      "previous_sha256": "2b49aa7c6270f16dad7a940baa955fb95db62f5c27964a77562a18924daa3a20",
+      "sha256": "5648f3440461e818f356a37bfa1f937f66a4ac231269a218a7c22fc703141ea4"
+    },
+    "src/mardorf_collector/wp15/jobs.py": {
+      "preserved_path": "tests/fixtures/wp15/public_preprocessing_predecessor_v2/src/mardorf_collector/wp15/jobs.py",
+      "previous_sha256": "b31803dd39e13d268c6900d929e0906e5ab982d5235e92ba5e5261b94091cb8c",
+      "sha256": "5d7e65c7b67e9a4304bd4c6e1a80c36901d913aa28b35fb9e9a55701d0d09e8b"
+    },
+    "tests/test_wp15_preprocessing.py": {
+      "preserved_path": "tests/fixtures/wp15/public_preprocessing_predecessor_v2/tests/test_wp15_preprocessing.py",
+      "previous_sha256": "e796578f179fc0456775e33ce6219fbafb9fe0917540b682ed611d498a25f98d",
+      "sha256": "bd5b74afcdaffd71e0737e2a65fbbb5806c405411f8bd5ad1ca76fe74010b5d0"
+    }
+  }
+}

@@ -2,7 +2,6 @@
 from copy import deepcopy
 from datetime import datetime, timezone
 import io
-import hashlib
 import json
 from pathlib import Path
 import tempfile
@@ -19,14 +18,6 @@ from mardorf_collector.wp13.store_v1 import read_delivery
 from mardorf_collector.wp15.assets import ROOT
 from mardorf_collector.wp15 import prepared, queue, jobs, regional_v2 as dwd
 from mardorf_collector.wp15.reader import VerifiedReader
-
-
-class DigestObjects(LocalObjects):
-    """Exercise the production B2 immutable content-key contract locally."""
-    def put_file(self,key,path):
-        if not key.endswith('/'+hashlib.sha256(Path(path).read_bytes()).hexdigest()):
-            raise ValueError('B2 content digest key required')
-        return super().put_file(key,path)
 
 
 class Head:
@@ -52,7 +43,7 @@ def result(value='2.5'):
 class PreprocessingTests(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
-        self.backend=DigestObjects(Path(self.temp.name)/'objects')
+        self.backend=LocalObjects(Path(self.temp.name)/'objects')
         ref=PackedArchive(self.backend,prefix='weather/archive').export(iter([]),metadata={})
         self.cloud=CloudRuntime({'schema_version':1,'artifact_version':'dev03-cloud-runtime-v1',
             'production_enabled':False,'archive_prefix':'weather/archive','private_repository':'fixture/repo',
@@ -174,8 +165,9 @@ class PreprocessingTests(unittest.TestCase):
         with patch.object(self.cloud,'publish',side_effect=ValueError('CAS interruption')):
             with self.assertRaisesRegex(ValueError,'CAS interruption'):
                 queue.admit(self.cloud,pub['manifest'],expected_processor=prepared.processor_identity())
-        ref=queue.admission_ref(self.backend,pub['publication_id'])
-        first=json.loads(self.backend.get_bytes(ref))
+        meta=self.backend.head(queue.ADMISSION+pub['publication_id'])
+        from mardorf_collector.storage.objects import ObjectRef
+        first=json.loads(self.backend.get_bytes(ObjectRef(queue.ADMISSION+pub['publication_id'],meta['sha256'],meta['bytes'])))
         again=queue.admit(self.cloud,pub['manifest'],expected_processor=prepared.processor_identity())
         self.assertEqual(first,again)
         self.assertEqual(jobs.reconcile(self.cloud)['recovered'],0)
