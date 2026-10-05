@@ -59,11 +59,6 @@ def validate(root):
     corrections = {item['implementation_path']: item for item in corrections_doc.get('modules', [])}
     if len(corrections) != len(corrections_doc.get('modules', [])):
         raise ValueError('duplicate corrected source path')
-    successor_v12_path=root/'docs/inventory/collector_runtime_successor_v12.json'
-    successor_v12=json.loads(successor_v12_path.read_text()) if successor_v12_path.exists() else None
-    def runtime_v11_path(name):
-        row=successor_v12.get('replacements',{}).get(name) if successor_v12 else None
-        return root/(row['preserved_path'] if row else name)
     successor_v11_path=root/'docs/inventory/collector_runtime_successor_v11.json'
     successor_v11=json.loads(successor_v11_path.read_text()) if successor_v11_path.exists() else None
     def predecessor_path(name):
@@ -421,34 +416,25 @@ def validate(root):
             if hashlib.sha256((root/path).read_bytes()).hexdigest()!=identity:
                 raise ValueError('Regional station artifact drift')
         expected[name]={'source_control_sha256':signature(yaml.load(active,Loader=yaml.BaseLoader))}
-    if successor_v12 is not None:
-        if (successor_v12.get('artifact_version')!='collector-runtime-successor-v12'
-                or successor_v12['predecessor_sha256']!=hashlib.sha256(successor_v11_path.read_bytes()).hexdigest()
-                or hashlib.sha256((root/'tools/validate_prep09_layout.py').read_bytes()).hexdigest()!=successor_v12['validator_sha256']):
-            raise ValueError('Unverified B2 immutable content-key successor')
-        for name,row in successor_v12['replacements'].items():
-            if (hashlib.sha256((root/row['preserved_path']).read_bytes()).hexdigest()!=row['previous_sha256']
-                    or hashlib.sha256((root/name).read_bytes()).hexdigest()!=row['sha256']):
-                raise ValueError('B2 content-key predecessor/runtime artifact drift')
     if successor_v11 is not None:
         if (successor_v11.get('artifact_version')!='collector-runtime-successor-v11'
                 or successor_v11['predecessor_sha256']!=hashlib.sha256(successor_v10_path.read_bytes()).hexdigest()
                 or hashlib.sha256(predecessor_path('tools/validate_prep09_layout.py').read_bytes()).hexdigest()!=successor_v10['validator_sha256']
-                or hashlib.sha256(runtime_v11_path('tools/validate_prep09_layout.py').read_bytes()).hexdigest()!=successor_v11['validator_sha256']):
+                or hashlib.sha256((root/'tools/validate_prep09_layout.py').read_bytes()).hexdigest()!=successor_v11['validator_sha256']):
             raise ValueError('Unverified shared station preprocessing successor')
         if set(successor_v11['replacements'])!={'tools/validate_prep09_layout.py','src/mardorf_collector/wp13/native_svg_v1.py','.github/workflows/collect-svg.yml','.github/workflows/validate.yml'}:
             raise ValueError('Station preprocessing replacement scope drift')
         for path,row in successor_v11['replacements'].items():
             if (hashlib.sha256(predecessor_path(path).read_bytes()).hexdigest()!=row['previous_sha256']
-                    or hashlib.sha256(runtime_v11_path(path).read_bytes()).hexdigest()!=row['sha256']):
+                    or hashlib.sha256((root/path).read_bytes()).hexdigest()!=row['sha256']):
                 raise ValueError('Station preprocessing frozen/active artifact drift')
             if path.startswith('.github/workflows/'):
                 name=Path(path).name
                 if signature(yaml.load(predecessor_path(path).read_bytes(),Loader=yaml.BaseLoader))!=expected[name]['source_control_sha256']:
                     raise ValueError('Station preprocessing workflow predecessor control drift')
-                expected[name]={'source_control_sha256':signature(yaml.load(runtime_v11_path(path).read_bytes(),Loader=yaml.BaseLoader))}
+                expected[name]={'source_control_sha256':signature(yaml.load((root/path).read_bytes(),Loader=yaml.BaseLoader))}
         for path,identity in successor_v11['artifacts'].items():
-            if hashlib.sha256(runtime_v11_path(path).read_bytes()).hexdigest()!=identity:
+            if hashlib.sha256((root/path).read_bytes()).hexdigest()!=identity:
                 raise ValueError('Shared station preprocessing artifact drift')
         reviewed=successor_v11['added_workflow']
         if reviewed['path']!='.github/workflows/station-preprocessing.yml' or hashlib.sha256((root/reviewed['path']).read_bytes()).hexdigest()!=reviewed['sha256']:
