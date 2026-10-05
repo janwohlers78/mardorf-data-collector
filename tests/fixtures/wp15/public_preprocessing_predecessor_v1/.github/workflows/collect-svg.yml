@@ -11,10 +11,6 @@ on:
       - 'config/integrity_policy.json'
       - 'requirements-runtime.txt'
       - 'src/mardorf_collector/wp13/regional_stations_v1.py'
-      - 'src/mardorf_collector/wp15/**'
-      - 'config/dev03_wp15_preprocessing_contract_v1.json'
-      - 'config/dev03_wp15_reference_bundle_v1.json'
-      - 'requirements-wp15-stations.txt'
       - 'config/dev03_wp15_regional_stations_v1.json'
       - 'config/dev03_wp12_domain_registry_v3.json'
       - '.github/workflows/collect-svg.yml'
@@ -94,7 +90,7 @@ jobs:
       - name: Install dependency
         if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || steps.due.outputs.due == 'true'
         run: |
-          python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-runtime.txt -r requirements-wp15-models.txt -r requirements-wp15-stations.txt
+          python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-runtime.txt
           if [ "${{ inputs.cloud_canary }}" = "true" ] || python -c "import json,sys; sys.exit(0 if json.load(open('config/dev03_cloud_runtime_v1.json'))['production_enabled'] is True else 1)"; then
             python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-cloud.txt
           fi
@@ -177,8 +173,4 @@ jobs:
           elif [ "$REGIONAL_MODE" = "history" ]; then
             args+=(--history-station "$HISTORY_STATION" --history-product "$HISTORY_PRODUCT" --history-day "$HISTORY_DAY")
           fi
-          if [ "$REGIONAL_MODE" = "current" ]; then
-            PYTHONPATH=src python -m mardorf_collector.wp15.jobs current
-          else
-            PYTHONPATH=src python -m mardorf_collector.wp13.regional_stations_v1 "${args[@]}"
-          fi
+          PYTHONPATH=src python -m mardorf_collector.wp13.regional_stations_v1 "${args[@]}"

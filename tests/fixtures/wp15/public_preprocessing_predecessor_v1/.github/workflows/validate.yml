@@ -42,7 +42,7 @@ jobs:
           python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-runtime.txt
           python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-ci.txt
           python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-wp13-grib.txt
-          python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-wp15-models.txt -r requirements-wp15-stations.txt
+          python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-wp15-models.txt
       - name: Compile collector
         run: python -m compileall -q src tests
       - name: Run integrity regression tests

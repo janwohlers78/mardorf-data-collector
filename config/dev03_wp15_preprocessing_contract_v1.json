@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "artifact_version": "wp15-public-station-preprocessing-contract-v1",
+  "consumer_capability": "wp15-public-station-preprocessed-v1",
+  "processor_files": [
+    "config/dev03_wp12_domain_registry_v3.json",
+    "config/dev03_wp13_contract_bundle_v1.json",
+    "config/dev03_wp15_reference_bundle_v1.json",
+    "config/dev03_wp15_regional_stations_v1.json",
+    "requirements-wp15-models.txt",
+    "requirements-wp15-stations.txt",
+    "src/mardorf_collector/wp13/adapters_v1.py",
+    "src/mardorf_collector/wp13/collector_v2.py",
+    "src/mardorf_collector/wp13/core_v1.py",
+    "src/mardorf_collector/wp13/native_svg_v1.py",
+    "src/mardorf_collector/wp13/regional_stations_v1.py",
+    "src/mardorf_collector/wp13/status_codec_v1.py",
+    "src/mardorf_collector/wp13/store_v1.py",
+    "src/mardorf_collector/wp15/__init__.py",
+    "src/mardorf_collector/wp15/assets.py",
+    "src/mardorf_collector/wp15/format.py",
+    "src/mardorf_collector/wp15/jobs.py",
+    "src/mardorf_collector/wp15/prepared.py",
+    "src/mardorf_collector/wp15/queue.py",
+    "src/mardorf_collector/wp15/reader.py",
+    "src/mardorf_collector/wp15/reference/__init__.py",
+    "src/mardorf_collector/wp15/reference/domain_v1.py",
+    "src/mardorf_collector/wp15/reference/domain_v2.py",
+    "src/mardorf_collector/wp15/reference/fields_v1.py",
+    "src/mardorf_collector/wp15/reference/fields_v2.py",
+    "src/mardorf_collector/wp15/reference/paths.py",
+    "src/mardorf_collector/wp15/regional_v2.py"
+  ],
+  "providers": {
+    "dwd_cdc": {
+      "configuration_sha256": "3500ca0fc44c281c03591c8dec73055f50ad878df1c815760bbb99a2f96225f7",
+      "profile_id": "svg-regional-weather-development-v1",
+      "selection_ref": "config/dev03_wp15_regional_stations_v1.json",
+      "products": [
+        "hourly_products",
+        "current_products"
+      ],
+      "native_unit_rule": "registered product fields; native-only unknown semantics retained"
+    },
+    "svg": {
+      "configuration_sha256": "1cbdf4f4bef40e23e75f3d12ff3385fd53d973ea859b1a0b89fdc3e8ec84aae7",
+      "profile_id": "svg-general-weather-development-v2",
+      "selection_ref": "config/dev03_wp15_reference_bundle_v1.json",
+      "binding_ref": "config/dev03_wp12_source_bindings_v1.json#weatherlink_fields",
+      "native_unit_rule": "existing current/archive bindings retained, no field narrowing"
+    }
+  },
+  "normalization_ref": "config/dev03_wp15_reference_bundle_v1.json#config/dev03_wp12_normalization_policy_v1.json",
+  "science": "OPEN",
+  "manifest_max_bytes": 1048576,
+  "sidecar_max_bytes": 16777216,
+  "original_max_bytes": 8388608,
+  "max_fields": 4096,
+  "max_partitions": 64,
+  "pending_page_entries": 256,
+  "catalog_max_entries": 4096,
+  "admission_max_bytes": 16384,
+  "max_work_units": 4,
+  "max_concurrent_jobs": 2,
+  "max_processing_seconds": 1200,
+  "max_history_years_per_request": 1,
+  "query_limits": {
+    "max_days": 31,
+    "max_rows": 65536,
+    "max_source_bytes": 134217728,
+    "max_partitions": 64,
+    "max_runtime_seconds": 30
+  },
+  "cache_max_bytes": 67108864,
+  "activation": "exact private consumer readiness before new producer; old route until ready",
+  "measurements": {
+    "blocking": false,
+    "mode": "automatic_routine",
+    "extra_measurement_dispatches": false,
+    "observation_hours_target": [
+      24,
+      48
+    ]
+  },
+  "full_backfill_enabled": false,
+  "protected_cohort_reprocessing": false,
+  "raw_deletion_enabled": false
+}

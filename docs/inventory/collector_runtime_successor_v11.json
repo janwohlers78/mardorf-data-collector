@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "artifact_version": "collector-runtime-successor-v11",
+  "audit_id": "WP15-I05-public-preprocessing",
+  "predecessor_sha256": "2ebc4c1eced730c288718b99f299a54f2dbb7172dd46d3104874366074caa1fd",
+  "validator_sha256": "3dcf50f3aef43c544e36d1d9f877c96a6657f40d3ce6e110f7883eaae6fd226a",
+  "scope": "Shared public DWD/SVG preprocessing, bounded archive entrypoint, unchanged old native/model scientific contracts",
+  "replacements": {
+    "tools/validate_prep09_layout.py": {
+      "preserved_path": "tests/fixtures/wp15/public_preprocessing_predecessor_v1/tools/validate_prep09_layout.py",
+      "previous_sha256": "3d754fad7543021dba0b11838009c1a41b7de66e3e7d1c283ecf8aec5f1b0a06",
+      "sha256": "3dcf50f3aef43c544e36d1d9f877c96a6657f40d3ce6e110f7883eaae6fd226a"
+    },
+    "src/mardorf_collector/wp13/native_svg_v1.py": {
+      "preserved_path": "tests/fixtures/wp15/public_preprocessing_predecessor_v1/src/mardorf_collector/wp13/native_svg_v1.py",
+      "previous_sha256": "730616ee33846890f8e2e4abcf278cb7827872e9bc31cf973a1f87207c6a0549",
+      "sha256": "1615cc63613d572af176e8e9f430e4fda04d21992c336e6eded558f63148e8dd"
+    },
+    ".github/workflows/collect-svg.yml": {
+      "preserved_path": "tests/fixtures/wp15/public_preprocessing_predecessor_v1/.github/workflows/collect-svg.yml",
+      "previous_sha256": "6af6f6b51b66e6e955d90a21d70077b1b682170a33583345a20e696bba5e3215",
+      "sha256": "979000c7465148828bc88817c2eb7a8bd6c2ca483b0f3af40deab2b71d77a304"
+    },
+    ".github/workflows/validate.yml": {
+      "preserved_path": "tests/fixtures/wp15/public_preprocessing_predecessor_v1/.github/workflows/validate.yml",
+      "previous_sha256": "ac0f5e9d9ad46623851631e4b1b15ea1fd3915aa49c7ad22e7a58d2cec330926",
+      "sha256": "42c8b6d0ab4663a11d4d637b2df2f7dd403a78584a07cfd57d9e7fe745208d49"
+    }
+  },
+  "artifacts": {
+    "src/mardorf_collector/wp15/__init__.py": "f8ad8f6d5ab91a371a84867e06a32c54a874eac2dbf0041143e6a97c9d30544d",
+    "src/mardorf_collector/wp15/assets.py": "da2f2e0a675ac5ba5f178fa6d391fd37176e6d7b6719875d52535ccad733ba4c",
+    "src/mardorf_collector/wp15/format.py": "ec53f3d0b2e10dd28d8ee17fbb299050cd461d8ef322333dc2767d20fdf1c802",
+    "src/mardorf_collector/wp15/jobs.py": "b31803dd39e13d268c6900d929e0906e5ab982d5235e92ba5e5261b94091cb8c",
+    "src/mardorf_collector/wp15/prepared.py": "a7e3c53937929b0a9017bc01ea4bb998498b3191f80fa95059eed71f5a907773",
+    "src/mardorf_collector/wp15/queue.py": "f576bb097ffe0482066066dec92744f39bd050c82101e3f4c3ecb6e4bc4910db",
+    "src/mardorf_collector/wp15/reader.py": "2b49aa7c6270f16dad7a940baa955fb95db62f5c27964a77562a18924daa3a20",
+    "src/mardorf_collector/wp15/reference/__init__.py": "2facdbcb794dda4d5cf08eaaf1f3823d8750c6eb56947e315855257c05953ee1",
+    "src/mardorf_collector/wp15/reference/domain_v1.py": "a229a980c3c0b2ac1ab5f396018f415fc29fd942e9474e9b44f88ae8ca251646",
+    "src/mardorf_collector/wp15/reference/domain_v2.py": "92c20032612fe00f7f4cd42097ff8f1a2cf70259594d1f135c59c2c8ffff62b5",
+    "src/mardorf_collector/wp15/reference/fields_v1.py": "fd5e107dbc407229dba4aa375ac199bbe7dc0bc1c002fc8f84abb2ee8d68af3b",
+    "src/mardorf_collector/wp15/reference/fields_v2.py": "8bc813eed91deff6029caad90aaf0f11605f4639cfc48748833f3866a3fb5b5a",
+    "src/mardorf_collector/wp15/reference/paths.py": "3650f09b5794f5d19863c68ea311dd4206fbf85a16f519794c52514a39ec374b",
+    "src/mardorf_collector/wp15/regional_v2.py": "5cbda0f855614eaa0dc07ed30b1b0eee7eb4b7dbb59691047168bec87f90cc6b",
+    "config/dev03_wp15_preprocessing_contract_v1.json": "edf6cc364405d9711be6b7827334ccff93c50df2bcb2e75995a03d80d94a365a",
+    "config/dev03_wp15_reference_bundle_v1.json": "ca23437023a889f7c839a0f8d328ace0c74470f1ac32ad4415b4cc8a5da809f4",
+    "requirements-wp15-stations.txt": "be61bddbe4a0ba36f052a4346001a9b3d27d1a8f252ef78172b43f56ba9e9404",
+    "tests/test_wp15_preprocessing.py": "e796578f179fc0456775e33ce6219fbafb9fe0917540b682ed611d498a25f98d"
+  },
+  "added_workflow": {
+    "path": ".github/workflows/station-preprocessing.yml",
+    "sha256": "be43e940e97776380f6d5d54e86bfa91863d0799cb1bfd2decaac3a7b8fb096f"
+  }
+}
