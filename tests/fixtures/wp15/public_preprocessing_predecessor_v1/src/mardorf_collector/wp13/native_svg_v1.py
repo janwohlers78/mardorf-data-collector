@@ -117,16 +117,6 @@ def publish(*, cloud=None, directory=WORK):
     from mardorf_collector.runtime.cloud_environment import environment
     from .store_v1 import read_delivery
     runtime = cloud or load_runtime(Path.cwd(), environ=environment(Path.cwd()))
-    from ..wp15.jobs import route_enabled, publish_result
-    if route_enabled(runtime, 'svg', root=ROOT):
-        directory = Path(directory)
-        prepared = json.loads((directory / 'prepared.json').read_bytes())
-        reports = [publish_result(runtime, read_delivery(directory / 'prepared', item['receipt_id']), root=ROOT)
-                   for item in prepared]
-        print('WP15_PREPROCESSED_SVG=' + json.dumps({'deliveries':len(reports),
-            'fields':sum(r['fields'] for r in reports),'provider_requests_added':0,
-            'weather_git_bytes_written':0,'measurement_gate':'NONBLOCKING_ROUTINE'}),flush=True)
-        return reports
     ready = json.loads(runtime.read('data/weather_native/consumer_readiness_v1.json'))
     if ready.get('available') is not True or ready.get('configuration_sha256') != ContractsV1().configuration['sha256']:
         raise ValueError('Deployed native consumer readiness required')
