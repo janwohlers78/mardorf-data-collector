@@ -132,3 +132,19 @@ class ModelOriginalsTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+class UnboundEPSRetentionTests(unittest.TestCase):
+    def test_other_capture_retains_arrays_without_borrowing_current_wind_binding(self):
+        from mardorf_collector.wp13.model_store_v1 import eps_records
+        payload={'hourly':{'time':['2026-10-06T00:00'],'wind_speed_10m':[3.]},'hourly_units':{'wind_speed_10m':'m/s'},'utc_offset_seconds':0}
+        logical=hashlib.sha256(json.dumps(payload,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+        item={'sha256':'a'*64,'parent':{'key':'weather/original','sha256':'a'*64,'bytes':1,'schema_version':1},'metadata':{'acquisition_model':'ICON-D2-EPS','stage':'base','source_url':'https://ensemble-api.open-meteo.com/v1/ensemble','captured_at_utc':'2026-10-06T01:00:00Z','canonical_json_sha256':logical}}
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/'original.json';path.write_text(json.dumps(payload))
+            records=list(eps_records(path,item,{'latitude':52.5,'longitude':9.25},{'response_sha256':'b'*64}))
+            self.assertEqual(len(records),1);r=records[0]
+            self.assertFalse(r['point_available']);self.assertIsNone(r['run_time_utc'])
+            self.assertEqual(r['header_native']['values_native'],[3.])
+            self.assertNotIn('cycle_evidence_sha256',r)
+            item['metadata']['canonical_json_sha256']='c'*64
+            with self.assertRaises(ObjectError):list(eps_records(path,item,{},None))

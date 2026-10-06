@@ -154,9 +154,25 @@ def eps_records(path, item, requested, ensemble):
         yield record
         return
     logical = digest(json.dumps(payload, sort_keys=True, separators=(',', ':'), allow_nan=False).encode())
-    if (not isinstance(ensemble, dict) or ensemble.get('response_sha256') != logical
-            or item['metadata'].get('canonical_json_sha256') != logical):
-        raise ObjectError('EPS original/verified cycle metadata identity mismatch')
+    if item['metadata'].get('canonical_json_sha256') != logical:
+        raise ObjectError('EPS original/capture canonical identity mismatch')
+    if not isinstance(ensemble, dict) or ensemble.get('response_sha256') != logical:
+        # Capture keeps every original response; the current wind binding belongs
+        # to exactly one of them. Unrelated/earlier responses retain all native
+        # arrays and units, but never inherit its run/spatial/member qualification.
+        hourly=payload.get('hourly')
+        fields=hourly if isinstance(hourly,dict) else {'provider_document':payload}
+        units=payload.get('hourly_units') or {}
+        for index,(parameter,values) in enumerate(sorted(fields.items())):
+            if parameter=='time':continue
+            record=base_record(item,index,parameter,dict(provider_parameter=parameter,
+                units=units.get(parameter),values_native=values,
+                times_native=hourly.get('time') if isinstance(hourly,dict) else None,
+                utc_offset_seconds=payload.get('utc_offset_seconds')))
+            record['point_unavailable_reason']='original_response_has_no_matching_cycle_spatial_binding'
+            record['field_id']=digest(canonical(record))
+            yield record
+        return
     if (ensemble.get('model') != 'dwd_icon_d2_eps'
             or ensemble.get('response_run_binding', {}).get('metadata_stable_across_response') is not True
             or ensemble.get('spatial_provenance_verified') is not True
