@@ -138,6 +138,32 @@
           "count": 1
         }
       ]
+    },
+    {
+      "path": "src/mardorf_collector/wp13/native_models_v1.py",
+      "preserved_path": "tests/fixtures/architecture/native_cold_reads_predecessor_native_models_v1.py",
+      "baseline_sha256": "a47ded4c7c6fd849e387470d7afc989e376426f51fc3d637b07dc9c968af77f1",
+      "current_sha256": "d4a1a1c57ffcfad7dccbcf215ab8b6aea86b79a77c38005cf638c8bce8178aac",
+      "replacements": [
+        {
+          "before": "    proof = ModelReader(runtime.backend).verify(prepared['catalog'])",
+          "after": "    from . import model_store_v1\n    from .native_cold_reads_v1 import ColdModelReads\n    with ColdModelReads(runtime.backend, model_store_v1, prepared['catalog']) as reads:\n        proof = ModelReader(reads).verify(prepared['catalog'])",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "path": "tests/test_wp15_native_models.py",
+      "preserved_path": "tests/fixtures/architecture/native_cold_reads_predecessor_test_wp15_native_models.py",
+      "baseline_sha256": "69b250c7013c0204ffefe5d133cd422cbc43d44fe76aebdd7d293aca61c606de",
+      "current_sha256": "d33332d547109be894f8db83e01c6f6a767c62c33ed3d3b647c0fc904177a699",
+      "replacements": [
+        {
+          "before": "\n\nif __name__ == '__main__':\n    unittest.main()\n",
+          "after": "\n    def test_parallel_cold_verifier_reads_all_original_bytes_and_preserves_full_proof(self):\n        import threading,time\n        from mardorf_collector.wp13 import model_store_v1 as model\n        from mardorf_collector.wp13.native_cold_reads_v1 import ColdModelReads\n        ref=write_catalog(self.capture.backend,[self.item],self.point)\n        expected=ModelReader(self.capture.backend).verify(ref)\n        backend=self.capture.backend\n        class Reads:\n            def __init__(self):\n                self.active=0;self.maximum=0;self.keys=[];self.lock=threading.Lock()\n            def get_bytes(self,reference):\n                with self.lock:\n                    self.active+=1;self.maximum=max(self.maximum,self.active);self.keys.append(reference.key)\n                try:\n                    time.sleep(.01)\n                    return backend.get_bytes(reference)\n                finally:\n                    with self.lock:self.active-=1\n        cold=Reads()\n        with ColdModelReads(cold,model,ref.json()) as reads:\n            proof=ModelReader(reads).verify(ref)\n        self.assertEqual(proof,expected);self.assertTrue(proof['originals_fully_read'])\n        self.assertLessEqual(cold.maximum,4);self.assertGreaterEqual(cold.maximum,2)\n        parent=model.ParentStore(backend,prefix=model.PREFIX).manifest(self.item['parent'])\n        self.assertTrue(all(chunk['key'] in cold.keys for chunk in parent['chunks']))\n\n    def test_parallel_cold_verifier_still_rejects_forged_projection(self):\n        from mardorf_collector.wp13 import model_store_v1 as model\n        from mardorf_collector.wp13.native_cold_reads_v1 import ColdModelReads\n        ref=write_catalog(self.capture.backend,[self.item],self.point)\n        reader=ModelReader(self.capture.backend);catalog=reader.catalog(ref);rows=list(reader.query(ref))\n        rows[0]['unit_native']='invented'\n        body=model.parquet_bytes(rows)\n        catalog['fragments'][0]['parquet']=self.capture.backend.put_bytes(EXTRACT_PREFIX+'/parquet/'+digest(body),body).json()\n        body=canonical(catalog);forged=self.capture.backend.put_bytes(EXTRACT_PREFIX+'/catalogs/'+digest(body),body)\n        with ColdModelReads(self.capture.backend,model,forged.json()) as reads:\n            with self.assertRaisesRegex(ObjectError,'projection mismatch'):\n                ModelReader(reads).verify(forged)\n\n\nif __name__ == '__main__':\n    unittest.main()\n",
+          "count": 1
+        }
+      ]
     }
   ]
 }

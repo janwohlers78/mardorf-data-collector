@@ -73,10 +73,7 @@ def publish(*, cloud=None, directory=WORK):
     # Same bounded concurrency already qualified for historical additive imports.
     with ThreadPoolExecutor(max_workers=4) as executor:
         list(executor.map(upload, sorted(refs, key=lambda ref: ref.key)))
-    from . import model_store_v1
-    from .native_cold_reads_v1 import ColdModelReads
-    with ColdModelReads(runtime.backend, model_store_v1, prepared['catalog']) as reads:
-        proof = ModelReader(reads).verify(prepared['catalog'])
+    proof = ModelReader(runtime.backend).verify(prepared['catalog'])
     marker = dict(prepared, artifact_version='wp15-native-model-ingress-v1', cold_readback=proof)
     identity = digest(canonical(marker))
     name = INGRESS + identity + '.json'

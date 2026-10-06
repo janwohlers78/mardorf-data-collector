@@ -183,45 +183,6 @@ runpy.run_module('mardorf_collector.wp13.model_capture_v2', run_name='__main__',
         with self.assertRaisesRegex(ObjectError, 'member values contradiction'):
             write_catalog(capture.backend, capture.captures, self.point, ensemble=ensemble)
 
-    def test_parallel_cold_verifier_reads_all_original_bytes_and_preserves_full_proof(self):
-        import threading,time
-        from mardorf_collector.wp13 import model_store_v1 as model
-        from mardorf_collector.wp13.native_cold_reads_v1 import ColdModelReads
-        ref=write_catalog(self.capture.backend,[self.item],self.point)
-        expected=ModelReader(self.capture.backend).verify(ref)
-        backend=self.capture.backend
-        class Reads:
-            def __init__(self):
-                self.active=0;self.maximum=0;self.keys=[];self.lock=threading.Lock()
-            def get_bytes(self,reference):
-                with self.lock:
-                    self.active+=1;self.maximum=max(self.maximum,self.active);self.keys.append(reference.key)
-                try:
-                    time.sleep(.01)
-                    return backend.get_bytes(reference)
-                finally:
-                    with self.lock:self.active-=1
-        cold=Reads()
-        with ColdModelReads(cold,model,ref.json()) as reads:
-            proof=ModelReader(reads).verify(ref)
-        self.assertEqual(proof,expected);self.assertTrue(proof['originals_fully_read'])
-        self.assertLessEqual(cold.maximum,4);self.assertGreaterEqual(cold.maximum,2)
-        parent=model.ParentStore(backend,prefix=model.PREFIX).manifest(self.item['parent'])
-        self.assertTrue(all(chunk['key'] in cold.keys for chunk in parent['chunks']))
-
-    def test_parallel_cold_verifier_still_rejects_forged_projection(self):
-        from mardorf_collector.wp13 import model_store_v1 as model
-        from mardorf_collector.wp13.native_cold_reads_v1 import ColdModelReads
-        ref=write_catalog(self.capture.backend,[self.item],self.point)
-        reader=ModelReader(self.capture.backend);catalog=reader.catalog(ref);rows=list(reader.query(ref))
-        rows[0]['unit_native']='invented'
-        body=model.parquet_bytes(rows)
-        catalog['fragments'][0]['parquet']=self.capture.backend.put_bytes(EXTRACT_PREFIX+'/parquet/'+digest(body),body).json()
-        body=canonical(catalog);forged=self.capture.backend.put_bytes(EXTRACT_PREFIX+'/catalogs/'+digest(body),body)
-        with ColdModelReads(self.capture.backend,model,forged.json()) as reads:
-            with self.assertRaisesRegex(ObjectError,'projection mismatch'):
-                ModelReader(reads).verify(forged)
-
 
 if __name__ == '__main__':
     unittest.main()
