@@ -33,6 +33,24 @@
           "count": 1
         }
       ]
+    },
+    {
+      "path": ".github/workflows/station-preprocessing.yml",
+      "preserved_path": "tests/fixtures/architecture/station_preprocessing_before_wp17.yml",
+      "baseline_sha256": "be43e940e97776380f6d5d54e86bfa91863d0799cb1bfd2decaac3a7b8fb096f",
+      "current_sha256": "56f6f36bae008fd5757779367c38cf688111aeb80f7ec28eb672aa24c1a8f5c6",
+      "replacements": [
+        {
+          "before": "        options: [verify, backfill, archive-capture]",
+          "after": "        options: [verify, backfill, archive-capture, regime-archive]",
+          "count": 1
+        },
+        {
+          "before": "          PYTHONPATH=src python -m mardorf_collector.wp15.jobs \"$STATION_OPERATION\" --stations \"$STATION_IDS\" --products \"$STATION_PRODUCTS\" --year \"$STATION_YEAR\" --max-units \"$STATION_MAX_UNITS\"\n",
+          "after": "          if [ \"$STATION_OPERATION\" = \"regime-archive\" ]; then\n            PYTHONPATH=src python -m mardorf_collector.wp17.regimes_v1\n          else\n            PYTHONPATH=src python -m mardorf_collector.wp15.jobs \"$STATION_OPERATION\" --stations \"$STATION_IDS\" --products \"$STATION_PRODUCTS\" --year \"$STATION_YEAR\" --max-units \"$STATION_MAX_UNITS\"\n          fi\n      - name: Retain immutable regime import evidence\n        if: inputs.operation == 'regime-archive'\n        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02\n        with:\n          name: wp17-regime-archive\n          path: work/wp17_regime_archive.json\n          if-no-files-found: error\n          retention-days: 14\n",
+          "count": 1
+        }
+      ]
     }
   ],
   "current_validator_sha256": "0c0fa652229fd9ec4d793ddaf48537ee1100983550d736ecf83b05a7b0f7a5ff"

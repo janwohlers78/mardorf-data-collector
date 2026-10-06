@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "artifact_version": "wp17-public-regime-archive-contract-v1",
+  "source_id": "grams-era5-year-round-v1.3",
+  "doi": "10.5281/zenodo.21468336",
+  "study_doi": "10.5194/wcd-7-1641-2026",
+  "license": "CC-BY-4.0",
+  "attribution": "Christian M. Grams (2026), Year-round North Atlantic-European Weather Regimes in ERA5 reanalyses, version 1.3",
+  "published_at_utc": "2026-07-20T00:00:00Z",
+  "role": "retrospective_diagnostic_only",
+  "archive": {
+    "url": "https://zenodo.org/api/records/21468336/files/wr_data_package_V1.3.zip/content",
+    "bytes": 31683868,
+    "sha256": "463ce2594ff5796bcc641df3efb80548e72a9535fd47cb3fb3913a4bfa7b8db7"
+  },
+  "readme": {
+    "member": "wr_data_package_V1.3/Readme.md",
+    "bytes": 34440,
+    "sha256": "2bbfcf1fa47895e3e4ab9b1b661253097c3cec72e092b41f37b271775132c601"
+  },
+  "classes": {
+    "member": "wr_data_package_V1.3/wr_data/WR_LCattribution.txt",
+    "bytes": 7609340,
+    "sha256": "c36036c0415ff19e710403c9abe936938d3e2fc1b86e888e41b1be8114869dc5"
+  },
+  "indices": {
+    "member": "wr_data_package_V1.3/wr_data/WRI_projections.txt",
+    "bytes": 28838957,
+    "sha256": "99ec89efc34aaf9533f28afdcf767107936e673672e1c4972af42a5ca324a960"
+  },
+  "period": {"start_utc": "1950-01-11T00:00:00Z", "end_utc": "2026-07-05T00:00:00Z", "step_hours": 3},
+  "class_names": ["no_regime", "AT", "ZO", "ScTr", "AR", "EuBL", "ScBL", "GL"],
+  "reference_period": [1979, 2019],
+  "max_zip_expanded_bytes": 83886080,
+  "max_output_bytes": 67108864,
+  "max_runtime_seconds": 1200,
+  "index_path": "data/weather_native/regimes_v1/index.json"
+}

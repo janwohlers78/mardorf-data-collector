@@ -5,7 +5,7 @@ on:
     inputs:
       operation:
         type: choice
-        options: [verify, backfill, archive-capture, regime-archive]
+        options: [verify, backfill, archive-capture]
         default: verify
       stations:
         description: Registered CDC station IDs separated by commas
@@ -91,19 +91,7 @@ jobs:
           STATION_YEAR: ${{ inputs.year }}
           STATION_MAX_UNITS: ${{ inputs.max_units }}
         run: |
-          if [ "$STATION_OPERATION" = "regime-archive" ]; then
-            PYTHONPATH=src python -m mardorf_collector.wp17.regimes_v1
-          else
-            PYTHONPATH=src python -m mardorf_collector.wp15.jobs "$STATION_OPERATION" --stations "$STATION_IDS" --products "$STATION_PRODUCTS" --year "$STATION_YEAR" --max-units "$STATION_MAX_UNITS"
-          fi
-      - name: Retain immutable regime import evidence
-        if: inputs.operation == 'regime-archive'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: wp17-regime-archive
-          path: work/wp17_regime_archive.json
-          if-no-files-found: error
-          retention-days: 14
+          PYTHONPATH=src python -m mardorf_collector.wp15.jobs "$STATION_OPERATION" --stations "$STATION_IDS" --products "$STATION_PRODUCTS" --year "$STATION_YEAR" --max-units "$STATION_MAX_UNITS"
       - name: Publish aggregate nonblocking telemetry
         if: always()
         run: |
