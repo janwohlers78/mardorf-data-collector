@@ -116,11 +116,6 @@ def main():
     check(frozen_code == expected_frozen, "frozen predecessor producer blob inventory drift", problems)
     for rel, expected_sha in expected_frozen.items():
         candidate = ROOT / rel
-        if rel == 'src/fetch_dwd_additional_models.py':
-            import importlib.util
-            spec=importlib.util.spec_from_file_location('reviewed_layout',ROOT/'tools/validate_prep09_layout.py')
-            reviewed=importlib.util.module_from_spec(spec);spec.loader.exec_module(reviewed)
-            candidate=reviewed.reviewed_predecessor(ROOT,rel)
         if rel == 'src/extend_model_horizon.py':
             review_path=ROOT/'docs/inventory/collector_runtime_successor_v5.json'
             if review_path.exists():
