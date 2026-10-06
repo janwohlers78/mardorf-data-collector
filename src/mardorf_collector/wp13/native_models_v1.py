@@ -66,18 +66,25 @@ def publish(*, cloud=None, directory=WORK):
         refs.update(ObjectRef.parse(value) for value in parents.manifest(item['parent'])['chunks'])
     for fragment in catalog['fragments']:
         refs.update(ObjectRef.parse(fragment[kind]) for kind in ('native', 'parquet'))
+    from .native_cold_reads_v1 import ColdModelReads, publish_object
+    cache_root = os.environ.get('MARDORF_NATIVE_OBJECT_CACHE')
+    verified_reads = None
+    if cache_root:
+        from mardorf_collector.storage.verified_reads_v1 import VerifiedReads
+        verified_reads = VerifiedReads(runtime.backend, cache_root, max_bytes=2*1024**3)
     def upload(ref):
-        result = runtime.backend.put_file(ref.key, local.root / ref.key)
+        result = publish_object(runtime.backend, local, ref, verified_reads=verified_reads)
         if result != ref:
             raise ValueError('Original model upload identity mismatch')
     # Same bounded concurrency already qualified for historical additive imports.
     with ThreadPoolExecutor(max_workers=4) as executor:
         list(executor.map(upload, sorted(refs, key=lambda ref: ref.key)))
     from . import model_store_v1
-    from .native_cold_reads_v1 import ColdModelReads
-    with ColdModelReads(runtime.backend, model_store_v1, prepared['catalog']) as reads:
+    with ColdModelReads(verified_reads or runtime.backend, model_store_v1, prepared['catalog']) as reads:
         proof = ModelReader(reads).verify(prepared['catalog'])
     marker = dict(prepared, artifact_version='wp15-native-model-ingress-v1', cold_readback=proof)
+    if verified_reads is not None:
+        marker['canonical_readback_mode'] = 'first_seen_canonical_cold_then_full_sha_verified_immutable_cache'
     identity = digest(canonical(marker))
     name = INGRESS + identity + '.json'
     body = canonical(marker)
@@ -90,6 +97,9 @@ def publish(*, cloud=None, directory=WORK):
     result = {'status': 'PASS', 'receipt_id': identity, 'catalog': prepared['catalog'],
         'cold_readback': proof, 'publication': publication, 'objects': len(refs),
         'provider_requests_added': 0, 'weather_git_bytes_written': 0}
+    result['canonical_readback_mode'] = marker.get('canonical_readback_mode', 'independent_canonical_cold')
+    if verified_reads is not None:
+        result['canonical_cache_metrics'] = dict(verified_reads.cache.metrics)
     (directory / 'published.json').write_bytes(canonical(result))
     print('WP15_NATIVE_MODELS=' + json.dumps(result), flush=True)
     return result

@@ -223,5 +223,43 @@ runpy.run_module('mardorf_collector.wp13.model_capture_v2', run_name='__main__',
                 ModelReader(reads).verify(forged)
 
 
+    def test_verified_canonical_cache_reuses_every_original_without_network_reread(self):
+        from mardorf_collector.storage.verified_reads_v1 import VerifiedReads
+        from mardorf_collector.wp13 import model_store_v1 as model
+        from mardorf_collector.wp13.native_cold_reads_v1 import ColdModelReads
+        ref=write_catalog(self.capture.backend,[self.item],self.point)
+        cached=VerifiedReads(self.capture.backend,self.root/'canonical-cache')
+        with patch.object(self.capture.backend,'get_bytes',wraps=self.capture.backend.get_bytes) as network:
+            with ColdModelReads(cached,model,ref.json()) as reads:first=ModelReader(reads).verify(ref)
+            self.assertGreater(network.call_count,0);network.reset_mock()
+            with ColdModelReads(cached,model,ref.json()) as reads:second=ModelReader(reads).verify(ref)
+            self.assertEqual(network.call_count,0)
+        self.assertEqual(first,second);self.assertTrue(second['originals_fully_read'])
+
+    def test_corrupt_canonical_cache_refetches_original_and_never_accepts_changed_bytes(self):
+        from mardorf_collector.storage.verified_reads_v1 import VerifiedReads
+        ref=self.capture.backend.put_bytes('weather/model-native/test/object',b'correct original')
+        cached=VerifiedReads(self.capture.backend,self.root/'canonical-cache')
+        self.assertEqual(cached.get_bytes(ref),b'correct original')
+        (cached.cache.root/ref.sha256).write_bytes(b'corrupt original')
+        with patch.object(self.capture.backend,'get_bytes',wraps=self.capture.backend.get_bytes) as network:
+            self.assertEqual(cached.get_bytes(ref),b'correct original');self.assertEqual(network.call_count,1)
+        self.assertEqual(cached.cache.metrics['corrupt_entries'],1)
+
+    def test_cached_publication_requires_live_matching_head_and_restores_deleted_original(self):
+        from mardorf_collector.storage.verified_reads_v1 import VerifiedReads
+        from mardorf_collector.wp13.native_cold_reads_v1 import publish_object
+        local=self.capture.backend;ref=local.put_bytes('weather/model-native/test/object',b'original')
+        remote=LocalObjects(self.root/'canonical-remote');remote.put_file(ref.key,local.root/ref.key)
+        cached=VerifiedReads(remote,self.root/'canonical-cache');cached.get_bytes(ref)
+        with patch.object(remote,'put_file',wraps=remote.put_file) as upload:
+            self.assertEqual(publish_object(remote,local,ref,verified_reads=cached),ref);self.assertEqual(upload.call_count,0)
+            (remote.root/ref.key).unlink()
+            self.assertEqual(publish_object(remote,local,ref,verified_reads=cached),ref);self.assertEqual(upload.call_count,1)
+        (remote.root/ref.key).write_bytes(b'changed!')
+        with self.assertRaisesRegex(ValueError,'Immutable cached publication conflict'):
+            publish_object(remote,local,ref,verified_reads=cached)
+
+
 if __name__ == '__main__':
     unittest.main()

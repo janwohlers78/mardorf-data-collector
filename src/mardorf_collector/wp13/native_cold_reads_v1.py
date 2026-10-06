@@ -92,3 +92,21 @@ class ColdModelReads:
 
     def __exit__(self, *args):
         self.close()
+
+
+def publish_object(backend, local, reference, *, verified_reads=None):
+    """Skip unchanged uploads only with prior canonical bytes plus a live head.
+
+    A miss uses the original collision checks and cold write readback. Cache
+    contents are only inserted after an independent canonical read, never from
+    producer-local files. A deleted object is restored, a conflict fails closed.
+    """
+    if verified_reads is not None:
+        hit=verified_reads.cache.existing(backend,reference)
+        if hit is not None:
+            metadata=backend.head(reference.key)
+            if metadata is not None:
+                if metadata['bytes']!=reference.bytes or metadata['sha256']!=reference.sha256:
+                    raise ValueError('Immutable cached publication conflict')
+                return reference
+    return backend.put_file(reference.key,local.root/reference.key)
