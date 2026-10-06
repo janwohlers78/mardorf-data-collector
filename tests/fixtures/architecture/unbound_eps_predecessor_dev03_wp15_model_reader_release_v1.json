@@ -4,7 +4,7 @@
   "artifact_sha256": {
     "src/mardorf_collector/storage/parents.py": "3183c9b8e6834487e3e117880f131bf12fd53b1540fb3c1727a564d2348651e9",
     "src/mardorf_collector/wp13/model_originals_v1.py": "5cf71db289ebf65af58c425421abd8dfdfbd44357927d8bfcd6903b6f5953b94",
-    "src/mardorf_collector/wp13/model_store_v1.py": "70038eec582250f6590e7baf93b0b995e102c36c3a3eacc55c2bc61dc7e94811"
+    "src/mardorf_collector/wp13/model_store_v1.py": "fc2622595f51def12e93eef30a2bdc5d665d130e31919b6bbbbebee99af6569d"
   },
   "contract": {
     "wire_http_bytes": 536870912,
@@ -17,7 +17,5 @@
     "compact_fragment_bytes": 8388608
   },
   "frozen_wp13_contracts_changed": false,
-  "scientific_gate": "OPEN",
-  "predecessor_release_sha256": "3f40cd12f1bc968a5a98eb08bea31feae1eec4e7e396540796d3fd98abef7dea",
-  "qualification_policy": "per_original_response_binding_unbound_native_arrays_retained_without_point_qualification"
+  "scientific_gate": "OPEN"
 }
