@@ -241,7 +241,7 @@ def verify_dwd_spatial_provenance(eps_url,regular_url,base,valid,returned):
     dlat=abs(rlat-nlat);dlon=abs(rlon-nlon)
     tolerance=0.011
     coordinate_ok=dlat<=tolerance and dlon<=tolerance
-    result = {
+    return {
         'verified':bool(native_ok and coordinate_ok),
         'method':'direct_eps_native_grid_identity_plus_dwd_regular_grid_coordinate_parity_v2',
         'eps_native_grid_identity_verified':bool(native_ok),
@@ -257,16 +257,6 @@ def verify_dwd_spatial_provenance(eps_url,regular_url,base,valid,returned):
         'native_coordinate_parity_claimed':False,
         'native_coordinate_parity_limitation':'DWD ICON-D2-EPS Open Data is native triangular grid and requires the external DWD grid-definition file for direct native-point localization; no native-coordinate equality is claimed.',
     }
-
-    if native_ok and not coordinate_ok:
-        from mardorf_collector.wp13.native_grid_v1 import point_report
-        proof=point_report(returned,native_identity,S)
-        result['native_coordinate_proof']=proof
-        if proof['verified']:
-            result.update(verified=True,method='direct_eps_grid_uuid_and_native_returned_cell_v3',
-                native_coordinate_parity_claimed=True,
-                native_coordinate_parity_limitation='Returned cell independently identified in matching native grid; provider cell-selection reason and model-generation history remain separate.')
-    return result
 
 
 def fetch_icon_eu(leads,required_cycle_lead=None,return_selection_evidence=False):
@@ -485,7 +475,7 @@ def _hourly_source(payload,r,meta_before,meta_after,identity,base,response_retri
         'spatial_provenance_evidence':identity['spatial_provenance'],
         'dwd_eps_native_grid_identity_verified':bool(identity['spatial_provenance'].get('eps_native_grid_identity_verified')),
         'dwd_regular_grid_coordinate_parity_verified':bool(identity['spatial_provenance'].get('dwd_regular_grid_coordinate_parity_verified')),
-        'native_grid_parity_verified':bool(identity['spatial_provenance'].get('native_coordinate_parity_claimed')),
+        'native_grid_parity_verified':False,
         'native_grid_parity_limitation':identity['spatial_provenance'].get('native_coordinate_parity_limitation'),
         'run_time_utc':base.isoformat(),
         'times_utc':times,

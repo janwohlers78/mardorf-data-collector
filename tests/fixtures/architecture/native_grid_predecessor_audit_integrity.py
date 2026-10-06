@@ -338,18 +338,7 @@ def audit_eps_hourly_source(source,run,expected_members=20):
     if source.get("dwd_eps_native_grid_identity_verified") is not True:
         failures.append({"reason":"hourly_source_dwd_eps_native_grid_identity_unverified",
                          "evidence":spatial.get("eps_native_grid_identity")})
-    native=spatial.get("native_coordinate_proof") or {}
-    native_identity=spatial.get("eps_native_grid_identity") or {}
-    direct_native=(source.get("native_grid_parity_verified") is True
-        and spatial.get("native_coordinate_parity_claimed") is True
-        and native.get("verified") is True
-        and native.get("method")=="provider_returned_point_matched_to_native_eps_cell_v1"
-        and native.get("grid_uuid")==native_identity.get("uuid_of_horizontal_grid")
-        and type(native.get("native_cell_index")) is int
-        and 0<=native["native_cell_index"]<int(native_identity.get("number_of_data_points",0))
-        and finite(native.get("coordinate_difference_m"))
-        and 0<=native["coordinate_difference_m"]<=1 and native.get("tolerance_m")==1)
-    if source.get("dwd_regular_grid_coordinate_parity_verified") is not True and not direct_native:
+    if source.get("dwd_regular_grid_coordinate_parity_verified") is not True:
         failures.append({"reason":"hourly_source_dwd_regular_grid_coordinate_parity_unverified",
                          "evidence":spatial})
     binding=source.get("response_run_binding") if isinstance(source.get("response_run_binding"),dict) else {}
