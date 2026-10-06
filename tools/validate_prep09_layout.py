@@ -37,7 +37,7 @@ def validate(root):
     overrides={'tools/validate_prep09_layout.py':root/proof['historical_validator']['path']}
     for item in proof['workflows'] + proof.get('artifact_successors', []):
         name=item['path']
-        if not name.startswith(('.github/workflows/', 'tests/')) or '..' in Path(name).parts or name in overrides:
+        if not name.startswith(('.github/workflows/', 'tests/', 'src/', 'config/')) or '..' in Path(name).parts or name in overrides:
             raise ValueError('Duplicate or invalid workflow review path')
         before=root/item['preserved_path'];current=root/name
         if sha(before)!=item['baseline_sha256'] or sha(current)!=item['current_sha256']:
