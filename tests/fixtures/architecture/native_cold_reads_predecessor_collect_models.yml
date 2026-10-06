@@ -311,14 +311,6 @@ jobs:
         if: always() && ((github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || (steps.due.outputs.due == 'true' && steps.cycle_gate.outputs.any_work == 'true'))
         run: cat work/model_integrity.md >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Restore verified canonical native object cache
-        if: always() && inputs.cloud_canary != true && inputs.test_mode != true && ((github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || (steps.due.outputs.due == 'true' && steps.cycle_gate.outputs.any_work == 'true'))
-        uses: actions/cache@v4
-        with:
-          path: ${{ runner.temp }}/native-canonical-objects
-          key: native-canonical-v1-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: native-canonical-v1-${{ runner.os }}-
-
       - name: Transfer payload and integrity history to private repository
         if: always() && ((github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || (steps.due.outputs.due == 'true' && steps.cycle_gate.outputs.any_work == 'true')) && (inputs.test_mode != true || inputs.cloud_canary == true)
         shell: bash
@@ -330,7 +322,6 @@ jobs:
           B2_ENDPOINT_URL: ${{ vars.B2_ENDPOINT_URL }}
           B2_REGION: ${{ vars.B2_REGION }}
           B2_BUCKET: ${{ vars.B2_BUCKET }}
-          MARDORF_NATIVE_OBJECT_CACHE: ${{ runner.temp }}/native-canonical-objects
         run: |
           if [ -z "$PRIVATE_REPO_TOKEN" ]; then
             echo 'PRIVATE_REPO_TOKEN is not configured; private transfer skipped.'
