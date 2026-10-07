@@ -328,13 +328,14 @@ jobs:
 
       - name: Restore verified canonical native object cache
         if: (steps.storage_gate.outcome == 'success' || (inputs.test_mode == true && inputs.cloud_canary != true)) && (always() && inputs.cloud_canary != true && inputs.test_mode != true && ((github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || (steps.due.outputs.due == 'true' && steps.cycle_gate.outputs.any_work == 'true')))
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: ${{ runner.temp }}/native-canonical-objects
           key: native-canonical-v1-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: native-canonical-v1-${{ runner.os }}-
 
       - name: Transfer payload and integrity history to private repository
+        id: native_transfer
         if: (steps.storage_gate.outcome == 'success' || (inputs.test_mode == true && inputs.cloud_canary != true)) && (always() && ((github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || (steps.due.outputs.due == 'true' && steps.cycle_gate.outputs.any_work == 'true')) && (inputs.test_mode != true || inputs.cloud_canary == true))
         shell: bash
         env:
@@ -359,6 +360,31 @@ jobs:
             PYTHONPATH=src python -m mardorf_collector.wp13.native_models_v1 prepare
             PYTHONPATH=src python -m mardorf_collector.wp13.native_models_v1 publish
           fi
+
+      - name: Qualify reusable canonical native cache
+        id: native_cache_proof
+        if: always() && steps.native_transfer.outcome == 'success' && steps.storage_gate.outcome == 'success' && inputs.cloud_canary != true && inputs.test_mode != true
+        run: |
+          python - <<'PYTHON'
+          import json, os
+          from pathlib import Path
+          path = Path('work/model_originals_v1/published.json')
+          value = json.loads(path.read_text()) if path.is_file() else {}
+          proof = value.get('cold_readback', {})
+          ready = (value.get('status') == 'PASS' and proof.get('status') == 'PASS'
+                   and proof.get('originals_fully_read') is True
+                   and proof.get('parquet_exact_native_match') is True
+                   and isinstance(value.get('canonical_cache_metrics'), dict))
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('save=' + ('true' if ready else 'false') + '\n')
+          PYTHON
+
+      - name: Save verified native cache independently of later integrity failure
+        if: always() && steps.storage_gate.outcome == 'success' && steps.native_cache_proof.outputs.save == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/native-canonical-objects
+          key: native-canonical-v1-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Fail workflow when granular integrity audit found errors
         if: (steps.storage_gate.outcome == 'success' || (inputs.test_mode == true && inputs.cloud_canary != true)) && (always() && ((github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || (steps.due.outputs.due == 'true' && steps.cycle_gate.outputs.any_work == 'true')))
