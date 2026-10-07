@@ -261,5 +261,26 @@ runpy.run_module('mardorf_collector.wp13.model_capture_v2', run_name='__main__',
             publish_object(remote,local,ref,verified_reads=cached)
 
 
+    def test_projection_transport_uses_shared_archive_and_preserves_every_original_hash(self):
+        from mardorf_collector.wp13.native_models_v1 import projection_pack
+        from mardorf_collector.storage.archive import PackedArchive
+        ref = write_catalog(self.capture.backend, [self.item], self.point)
+        catalog = ModelReader(self.capture.backend).catalog(ref)
+        remote = LocalObjects(self.root/'projection-remote')
+        packed = projection_pack(remote, self.capture.backend, ref.json(), catalog)
+        archive = PackedArchive(remote, prefix=EXTRACT_PREFIX+'/projection', file_bytes=8*1024**2)
+        root = archive.read_json(packed)
+        self.assertEqual(root['metadata']['catalog_sha256'], ref.sha256)
+        expected = [catalog['fragments'][0][kind] for kind in ('parquet','native')]
+        records = list(archive.records(packed))
+        self.assertEqual(len(records), len(expected))
+        for index, (record, value) in enumerate(zip(records, expected)):
+            self.assertEqual(record['path'], f'objects/{index:08d}')
+            self.assertEqual(record['sha256'], value['sha256'])
+            self.assertEqual(record['bytes'], value['bytes'])
+            self.assertEqual(archive.read_file(record), self.capture.backend.get_bytes(__import__(
+                'mardorf_collector.storage.objects', fromlist=['ObjectRef']).ObjectRef.parse(value)))
+        self.assertEqual(ModelReader(self.capture.backend).verify(ref)['status'], 'PASS')
+
 if __name__ == '__main__':
     unittest.main()
