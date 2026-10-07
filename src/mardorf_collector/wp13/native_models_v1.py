@@ -40,6 +40,28 @@ def prepare(directory=WORK, *, snapshot=None):
     return prepared
 
 
+def projection_pack(backend, local, catalog_ref, catalog):
+    """Bundle unchanged compact objects using the shared immutable archive.
+
+    Consumption order keeps large deliveries sequential with a 32-MiB reader
+    cache. Original chunks stay separate and every native/Parquet hash remains.
+    """
+    from mardorf_collector.storage.archive import PackedArchive
+    from .model_store_v1 import EXTRACT_PREFIX
+    references = []
+    if catalog.get('cycle_evidence'):
+        references.append(ObjectRef.parse(catalog['cycle_evidence']))
+    for fragment in catalog['fragments']:
+        references.extend(ObjectRef.parse(fragment[kind]) for kind in ('parquet', 'native'))
+    references = list(dict.fromkeys(references))
+    metadata = {'artifact_version': 'wp15-native-projection-pack-v1',
+        'catalog_sha256': ObjectRef.parse(catalog_ref).sha256,
+        'references_sha256': digest(canonical([ref.json() for ref in references]))}
+    archive = PackedArchive(backend, prefix=EXTRACT_PREFIX+'/projection', file_bytes=8*1024**2)
+    files = ((f'objects/{index:08d}', local.get_bytes(ref)) for index, ref in enumerate(references))
+    return archive.export(files, metadata=metadata)
+
+
 def publish(*, cloud=None, directory=WORK):
     from mardorf_collector.storage.runtime import load_runtime
     from mardorf_collector.runtime.cloud_environment import environment
@@ -82,7 +104,9 @@ def publish(*, cloud=None, directory=WORK):
     from . import model_store_v1
     with ColdModelReads(verified_reads or runtime.backend, model_store_v1, prepared['catalog']) as reads:
         proof = ModelReader(reads).verify(prepared['catalog'])
-    marker = dict(prepared, artifact_version='wp15-native-model-ingress-v1', cold_readback=proof)
+    packed = projection_pack(runtime.backend, local, prepared['catalog'], catalog)
+    marker = dict(prepared, artifact_version='wp15-native-model-ingress-v1', cold_readback=proof,
+        projection_pack=packed.json())
     if verified_reads is not None:
         marker['canonical_readback_mode'] = 'first_seen_canonical_cold_then_full_sha_verified_immutable_cache'
     identity = digest(canonical(marker))
@@ -97,6 +121,7 @@ def publish(*, cloud=None, directory=WORK):
     result = {'status': 'PASS', 'receipt_id': identity, 'catalog': prepared['catalog'],
         'cold_readback': proof, 'publication': publication, 'objects': len(refs),
         'provider_requests_added': 0, 'weather_git_bytes_written': 0}
+    result['projection_pack'] = packed.json()
     result['canonical_readback_mode'] = marker.get('canonical_readback_mode', 'independent_canonical_cold')
     if verified_reads is not None:
         result['canonical_cache_metrics'] = dict(verified_reads.cache.metrics)
