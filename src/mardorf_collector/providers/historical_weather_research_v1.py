@@ -33,8 +33,7 @@ def plan(operation, root=ROOT):
         url=GFS+stem;valid=(datetime.combine(day,datetime.min.time(),tzinfo=timezone.utc)+timedelta(hours=30)).isoformat()
         tasks.append(dict(url=url+'/dataset.xml',params=None,run=value+'T00:00:00Z',
                           lead_hours=30,product='dataset_metadata',limit_bytes=2*1024**2,suffix='.xml'))
-        tasks.append(dict(url=url,params=[['var','u-component_of_wind_height_above_ground'],
-            ['var','v-component_of_wind_height_above_ground'],['var','Wind_speed_gust_surface'],
+        tasks.append(dict(url=url,params=[['var','u-component_of_wind_height_above_ground,v-component_of_wind_height_above_ground,Wind_speed_gust_surface'],
             ['latitude','52.47371'],['longitude','9.37979'],['vertCoord','10'],
             ['time',valid],['accept','csv'],['addLatLon','true']],run=value+'T00:00:00Z',
             lead_hours=30,product='original_NCSS_point_CSV_NOT_native_GRIB',limit_bytes=2*1024**2,suffix='.csv'))
@@ -60,8 +59,15 @@ def fetch(spec, session=requests):
     if spec['product']=='dataset_metadata' and response.status_code==200:
         try:
             doc=ET.fromstring(raw)
-            record['grid_fields']=[dict(name=g.get('name'),units=g.get('units'),
-                                       description=g.get('desc'),shape=g.get('shape')) for g in doc.iter('grid')]
+            fields=[]
+            for g in doc.iter('grid'):
+                attributes={c.get('name'):c.get('value') for c in g.iter()
+                            if c.tag.rsplit('}',1)[-1]=='attribute'}
+                axes=[c.get('name') for c in g.iter() if c.tag.rsplit('}',1)[-1]=='axisRef']
+                fields.append(dict(name=g.get('name'),units=g.get('units') or attributes.get('units'),
+                                   description=g.get('desc'),shape=g.get('shape') or axes,
+                                   native_attributes=attributes))
+            record['grid_fields']=fields
         except ET.ParseError:record['metadata_parse']='invalid_XML_retained'
     if spec['suffix']=='.csv' and response.status_code==200:
         record['csv_header']=raw.decode('utf-8',errors='replace').splitlines()[:2]
