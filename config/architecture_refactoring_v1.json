@@ -384,8 +384,8 @@
     },
     {
       "path": ".github/workflows/historical-weather-research-v1.yml",
-      "sha256": "b3353f39ef1457c9913fe5d1c4757899a58affcd8f37710cb0094345a4b31362",
-      "reason": "User requested complete ten-year CDC/SVG/forecast matching and public-repository provider acquisition. Manual40/12request bounded proof; no production head or fitting."
+      "sha256": "80c4c8a096200d22bfe8d3359db705c295d9a9f3d26ce387c838de55572c5096",
+      "reason": "Manual, bounded immutable CDC refresh and GFS archive/subset operator probes; read-only contents; no production pointer updates or weather Git bytes"
     }
   ],
   "window_probe_validator_predecessor": {
