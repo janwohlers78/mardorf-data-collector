@@ -6,7 +6,7 @@ on:
       operation:
         description: Registered CDC refresh or ten-year GFS access probes
         type: choice
-        options: [dwd-recent, gfs-archive-probe, gfs-subset-probe, gfs-temporal-probe, gfs-archive-range]
+        options: [dwd-recent, dwd-wind-clock-probe, gfs-archive-probe, gfs-subset-probe, gfs-temporal-probe, gfs-archive-range]
         default: dwd-recent
       start:
         description: Explicit completed UTC range start for bounded GFS archive

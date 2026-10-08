@@ -22,6 +22,20 @@ class Session:
 
 
 class HistoricalWeatherTests(unittest.TestCase):
+    def test_clock_probe_binds_both_cadences_to_each_registered_station(self):
+        tasks=research.plan('dwd-wind-clock-probe')
+        policy,_=research.configuration()
+        self.assertEqual(len(tasks),2*len(policy['stations']))
+        for station in policy['stations']:
+            own=[t for t in tasks if t['site']==station['id']]
+            self.assertEqual({t['product'] for t in own},{'wind_clock_10_minutes','wind_clock_hourly'})
+            for task in own:
+                self.assertTrue(task['url'].startswith(policy['base_url']))
+                self.assertIn('/recent/',task['url'])
+                self.assertIn(station['id']+'_akt.zip',task['url'])
+                self.assertEqual(task['limit_bytes'],policy['max_original_bytes'])
+                self.assertIsNone(task['params'])
+
     def test_registered_urls_budgets_and_forecast_lead_are_fixed(self):
         tasks=research.plan('gfs-archive-probe');self.assertEqual(len(tasks),12)
         self.assertTrue(all(t['lead_hours']==30 for t in tasks))
