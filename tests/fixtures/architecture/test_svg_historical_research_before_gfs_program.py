@@ -117,8 +117,6 @@ class HistoricalSourceTests(unittest.TestCase):
                          proof['historical_validator']['path'],proof['research_validator_predecessor']['path'],
                          proof['window_probe_validator_predecessor']['path'],
                          proof['auxiliary_research_validator_predecessor']['path'],
-                         proof['gfs_program_validator_predecessor']['path'],
-                         '.github/workflows/gfs-archive-program-v1.yml',
                          '.github/workflows/historical-weather-research-v1.yml',relative]:
                 path=target/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes((root/name).read_bytes())
             path=target/relative

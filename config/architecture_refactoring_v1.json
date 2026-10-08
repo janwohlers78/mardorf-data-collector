@@ -369,6 +369,20 @@
           "count": 1
         }
       ]
+    },
+    {
+      "path": "tests/test_svg_historical_research_v1.py",
+      "preserved_path": "tests/fixtures/architecture/test_svg_historical_research_before_gfs_program.py",
+      "baseline_sha256": "9d1d4c3b7ec24dca989f459606f2d3d410db223c2d27e257dfea8bc0453e5342",
+      "current_sha256": "bd208112341f2b3c14dbb8a541ab1a0c6a08cb881a1b45b0a718829022b74bc7",
+      "reason": "Fixture-only addition of new reviewed predecessor and workflow; adversarial schedule rejection assertion unchanged",
+      "replacements": [
+        {
+          "before": "                         proof['auxiliary_research_validator_predecessor']['path'],\n                         '.github/workflows/historical-weather-research-v1.yml',relative]:",
+          "after": "                         proof['auxiliary_research_validator_predecessor']['path'],\n                         proof['gfs_program_validator_predecessor']['path'],\n                         '.github/workflows/gfs-archive-program-v1.yml',\n                         '.github/workflows/historical-weather-research-v1.yml',relative]:",
+          "count": 1
+        }
+      ]
     }
   ],
   "research_validator_predecessor": {
