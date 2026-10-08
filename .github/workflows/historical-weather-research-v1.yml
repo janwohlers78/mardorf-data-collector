@@ -1,0 +1,41 @@
+name: Retrieve bounded historical weather research originals
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Registered CDC refresh or ten-year GFS access probes
+        type: choice
+        options: [dwd-recent, gfs-archive-probe]
+        default: dwd-recent
+
+permissions:
+  contents: read
+concurrency:
+  group: historical-weather-research-v1
+  cancel-in-progress: false
+jobs:
+  acquire:
+    if: github.repository == 'janwohlers78/mardorf-data-collector'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Install pinned research dependencies
+        run: |
+          python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-runtime.txt -r requirements-cloud.txt
+      - name: Register bounded request and retain immutable originals
+        env:
+          B2_APPLICATION_KEY_ID: ${{ secrets.B2_APPLICATION_KEY_ID }}
+          B2_APPLICATION_KEY: ${{ secrets.B2_APPLICATION_KEY }}
+          B2_ENDPOINT_URL: ${{ vars.B2_ENDPOINT_URL }}
+          B2_REGION: ${{ vars.B2_REGION }}
+          B2_BUCKET: ${{ vars.B2_BUCKET }}
+          RESEARCH_OPERATION: ${{ inputs.operation }}
+        run: |
+          PYTHONPATH=src python -m mardorf_collector.providers.historical_weather_research_v1 "$RESEARCH_OPERATION"

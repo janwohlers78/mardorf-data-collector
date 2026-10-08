@@ -115,7 +115,9 @@ class HistoricalSourceTests(unittest.TestCase):
             target=Path(temporary)
             for name in ['config/architecture_refactoring_v1.json','tools/validate_prep09_layout.py',
                          proof['historical_validator']['path'],proof['research_validator_predecessor']['path'],
-                         proof['window_probe_validator_predecessor']['path'],relative]:
+                         proof['window_probe_validator_predecessor']['path'],
+                         proof['auxiliary_research_validator_predecessor']['path'],
+                         '.github/workflows/historical-weather-research-v1.yml',relative]:
                 path=target/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes((root/name).read_bytes())
             path=target/relative
             path.write_text(path.read_text().replace('on:\n','on:\n  schedule:\n    - cron: "0 * * * *"\n',1))
