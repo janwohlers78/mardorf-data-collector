@@ -46,9 +46,13 @@ def days(start, end, probe_days=''):
     return result
 
 
-def capture(day, key, secret, *, session=S):
+def capture(day, key, secret, *, session=S, window_days=None):
     began = datetime.now(timezone.utc).isoformat()
     start, end = history.request_bounds(day)
+    if window_days is not None:
+        if window_days not in (1,2,7,31) or day+timedelta(days=window_days)>datetime.now(timezone.utc).date():
+            raise ValueError('Only registered completed1/2/7/31day window probes')
+        end=start+timedelta(days=window_days,seconds=-1)
     spec = dict(station_id=STATION_ID, endpoint=f'{BASE}/historic/{STATION_ID}',
                 start_timestamp=int(start.timestamp()), end_timestamp=int(end.timestamp()))
     record = dict(date_utc=day.isoformat(), request=spec, started_at_utc=began,
@@ -89,6 +93,9 @@ def capture(day, key, secret, *, session=S):
         record['status']='unsupported_sensor_operator'
         return record, gzip.compress(raw, mtime=0), None
     records=selected[0].get('data', [])
+    record['native_records_returned']=len(records)
+    stamps=[r.get('ts') for r in records if isinstance(r.get('ts'),(int,float))]
+    record['native_timestamp_extent']=[min(stamps),max(stamps)] if stamps else None
     record['archive_interval_seconds']=dict(Counter(str(r.get('arch_int')) for r in records))
     record['native_field_inventory']=sorted({k for r in records for k in r})
     try:
@@ -145,9 +152,13 @@ def main(argv=None):
     parser.add_argument('--start',type=date.fromisoformat,required=True)
     parser.add_argument('--end-exclusive',type=date.fromisoformat,required=True)
     parser.add_argument('--probe-days',default='')
+    parser.add_argument('--block-probe',action='store_true')
     parser.add_argument('--output',type=Path,default=Path('work/svg-history-research'))
     args=parser.parse_args(argv)
     selected=days(args.start,args.end_exclusive,args.probe_days)
+    if args.block_probe and (len(selected)!=1 or selected[0]!=args.start):
+        raise ValueError('Window probe requires one explicit UTC start day')
+    planned=[(args.start,w) for w in (1,2,7,31)] if args.block_probe else [(d,None) for d in selected]
     args.output.mkdir(parents=True,exist_ok=True)
     key=os.getenv('WEATHERLINK_API_KEY');secret=os.getenv('WEATHERLINK_API_SECRET')
     if not key or not secret:
@@ -167,12 +178,16 @@ def main(argv=None):
         transport='hash_verified14day_checkpoint_zip' if len(selected)>12 else 'individual_objects',
         max_unpublished_days=14,min_seconds_between_logical_requests=4,
         default_provider_limits='1000_per_hour_10_per_second; reserve routine calls; HTTP retries remain bounded')
+    registration.update(purpose='window_capacity_probe_NOT_training' if args.block_probe else 'historical_originals',
+        requested_windows_days=[w for d,w in planned] if args.block_probe else None,
+        maximum_logical_requests=len(planned))
     registration_ref=publish(backend,prefix,args.output,'registration.json',canonical(registration))
     records=[];pending=[];files=[]
-    for day in selected:
-        if len(selected)>12:time.sleep(4)
-        record,raw,normalized=capture(day,key,secret)
-        packed=len(selected)>12
+    for day,window in planned:
+        if len(selected)>12 or args.block_probe:time.sleep(4)
+        record,raw,normalized=(capture(day,key,secret,window_days=window) if args.block_probe else capture(day,key,secret))
+        if args.block_probe:record['requested_window_days']=window
+        packed=len(selected)>12 and not args.block_probe
         for kind,body,name in [('raw',raw,'source.json.gz'),('normalized',normalized,'normalized.json')]:
             if body is None:continue
             if packed:
@@ -182,7 +197,7 @@ def main(argv=None):
         records.append(record)
         if packed:
             pending.append(record)
-            if len(pending)==14 or len(records)==len(selected):
+            if len(pending)==14 or len(records)==len(planned):
                 if files:
                     pack,members=publish_pack(backend,prefix,args.output,files)
                     for item in pending:
@@ -194,10 +209,11 @@ def main(argv=None):
                     timestamps=record.get('coverage',{}).get('unique_day_timestamps'),checkpoint_pending=True)),flush=True)
                 continue
         index=dict(artifact_version='svg-history-research-index-v1',registration=registration_ref,
-                   records=records,complete=len(records)==len(selected),scientific_release=False,
+                   records=records,complete=len(records)==len(planned),scientific_release=False,
                    production_head_updated=False,git_weather_bytes_written=0)
         ref=publish(backend,prefix,args.output,'index.json',canonical(index))
         print(json.dumps(dict(date_utc=record['date_utc'],status=record['status'],http_status=record['http_status'],
+            requested_window_days=window,native_records_returned=record.get('native_records_returned'),
             five_minute_operator_verified=record.get('five_minute_operator_verified'),
             timestamps=record.get('coverage',{}).get('unique_day_timestamps'),index=ref)),flush=True)
     result=dict(index=ref,status_counts=dict(Counter(r['status'] for r in records)),
@@ -209,7 +225,7 @@ def main(argv=None):
     # Archive completeness means all dated requests and outcomes are retained.
     # Missing historical source data is a scientific admission failure, not an
     # infrastructure failure that should prevent querying the remaining years.
-    return int(any(r['status'] not in ('captured','empty') for r in records)) if len(selected)<=12 else 0
+    return int(any(r['status'] not in ('captured','empty') for r in records)) if len(selected)<=12 and not args.block_probe else 0
 
 
 if __name__=='__main__':
