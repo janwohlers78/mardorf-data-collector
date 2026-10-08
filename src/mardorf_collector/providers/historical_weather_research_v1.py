@@ -26,6 +26,26 @@ def plan(operation, root=ROOT):
         return [dict(url=source_url(policy,s['id'],p,hourly=True),params=None,
                      site=s['id'],product=p,limit_bytes=policy['max_original_bytes'],suffix='.zip')
                 for s in policy['stations'] for p in policy['hourly_products']]
+    if operation=='gfs-subset-probe':
+        tasks=[]
+        winds='u-component_of_wind_height_above_ground,v-component_of_wind_height_above_ground'
+        gust='Wind_speed_gust_surface'
+        for value in ('2016-10-08','2023-01-15','2026-04-15'):
+            day=date.fromisoformat(value);url=GFS+day.strftime('%Y/%Y%m%d/gfs.0p25.%Y%m%d00.f030.grib2')
+            valid=(datetime.combine(day,datetime.min.time(),tzinfo=timezone.utc)+timedelta(hours=30)).isoformat()
+            for product,variables,format,grid in (
+                ('winds_point_csv',winds,'csv',False),('gust_point_csv',gust,'csv',False),
+                ('winds_point_netcdf3',winds,'netcdf3',False),('gust_point_netcdf3',gust,'netcdf3',False),
+                ('combined_grid_netcdf3',winds+','+gust,'netcdf3',True)):
+                params=[['var',variables],['time',valid],['accept',format],['addLatLon','true']]
+                if grid:
+                    params.extend([['north','52.75'],['south','52.25'],['west','9.0'],['east','9.75'],['horizStride','1']])
+                else:
+                    params.extend([['latitude','52.47371'],['longitude','9.37979']])
+                if variables!=gust:params.append(['vertCoord','10'])
+                tasks.append(dict(url=url,params=params,run=value+'T00:00:00Z',lead_hours=30,
+                    product=product,limit_bytes=2*1024**2,suffix='.csv' if format=='csv' else '.nc'))
+        return tasks
     if operation!='gfs-archive-probe':raise ValueError('Unregistered research operation')
     tasks=[]
     for value in PROBE_DATES:
@@ -105,7 +125,7 @@ def run(operation, output, backend, root=ROOT):
 
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('operation',choices=['dwd-recent','gfs-archive-probe'])
+    p=argparse.ArgumentParser();p.add_argument('operation',choices=['dwd-recent','gfs-archive-probe','gfs-subset-probe'])
     p.add_argument('--output',type=Path,default=Path('work/historical-weather-research'));a=p.parse_args()
     defaults=json.loads((ROOT/'config/dev03_cloud_runtime_v1.json').read_bytes())['b2_location']
     env=dict(os.environ)
