@@ -384,8 +384,8 @@
     },
     {
       "path": ".github/workflows/historical-weather-research-v1.yml",
-      "sha256": "082ae3e14120958d74dd6b76e0efbd717850c38eaa1c023fd0735eaf4faaab5f",
-      "reason": "Bounded manual immutable CDC/GFS research; add fixed hourly-file and catalog aggregation probes before bulk acquisition; no production pointers or Git weather bytes"
+      "sha256": "b482511c3e3582f890d379420687169421c84231d6da393f006c21ceb64778de",
+      "reason": "Manual bounded CDC/GFS research plus explicit max90day GFS archive, native3h knots, fourworkers and23minute softbudget; exact retries cold-verified; no production changes"
     }
   ],
   "window_probe_validator_predecessor": {

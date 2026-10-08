@@ -6,8 +6,16 @@ on:
       operation:
         description: Registered CDC refresh or ten-year GFS access probes
         type: choice
-        options: [dwd-recent, gfs-archive-probe, gfs-subset-probe, gfs-temporal-probe]
+        options: [dwd-recent, gfs-archive-probe, gfs-subset-probe, gfs-temporal-probe, gfs-archive-range]
         default: dwd-recent
+      start:
+        description: Explicit completed UTC range start for bounded GFS archive
+        type: string
+        required: false
+      end_exclusive:
+        description: Explicit UTC end for bounded GFS archive, maximum90days
+        type: string
+        required: false
 
 permissions:
   contents: read
@@ -37,5 +45,7 @@ jobs:
           B2_REGION: ${{ vars.B2_REGION }}
           B2_BUCKET: ${{ vars.B2_BUCKET }}
           RESEARCH_OPERATION: ${{ inputs.operation }}
+          RESEARCH_START: ${{ inputs.start }}
+          RESEARCH_END_EXCLUSIVE: ${{ inputs.end_exclusive }}
         run: |
           PYTHONPATH=src python -m mardorf_collector.providers.historical_weather_research_v1 "$RESEARCH_OPERATION"
