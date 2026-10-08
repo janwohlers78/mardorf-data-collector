@@ -30,7 +30,7 @@ def plan(start, end_exclusive):
             valid = (datetime.combine(day, datetime.min.time(), tzinfo=timezone.utc)+timedelta(hours=lead)).isoformat()
             tasks.append(dict(url=url, params=[['var', ','.join(FIELDS)], ['time', valid],
                 ['accept', 'netcdf3'], ['addLatLon', 'true'],
-                ['north', '52.75'], ['south', '52.25'], ['west', '9.0'], ['east', '9.75']],
+                ['north', '53.5'], ['south', '51.0'], ['west', '8.0'], ['east', '11.5']],
                 run=day.isoformat()+'T00:00:00Z', lead_hours=lead,
                 product='native_3h_GFS_small_grid_NCSS_NOT_native_GRIB', limit_bytes=2*1024**2, suffix='.nc'))
     return tasks
@@ -48,6 +48,7 @@ def run(start, end_exclusive, output, backend, *, workers=4, seconds=23*60, cloc
         max_attempts=2, workers=workers, seconds_budget=seconds, native_forecast_knots_hours=list(LEADS),
         registered_at_utc=datetime.now(timezone.utc).isoformat(),
         source_operator='NCSS GRIB-derived instantaneous grid fields; three-hourly knots, no invented intermediate forecasts',
+        spatial_scope='SVG plus CDC00662/00963/01691/04745, native0.25degree regional rectangle; historical station geometry must be verified before matching',
         optional_meteorological_heights='All native heights retained; verify actual2m temperature/humidity and10m wind axes before admitting fields',
         forecast_generation='Changes must be independently dated and scoped before fitting; never silently pool ten years',
         scientific_release=False, native_admission=False, production_head_updated=False, git_weather_bytes_written=0)
