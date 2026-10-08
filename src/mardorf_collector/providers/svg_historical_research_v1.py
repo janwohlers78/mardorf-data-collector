@@ -14,7 +14,8 @@ from pathlib import Path
 
 from . import svg_history_v2 as history
 from .fetch_svg_weatherlink import BASE, S, STATION_ID
-from ..storage.runtime import load_runtime
+from ..storage.configuration import b2_settings, resolve_b2_bucket
+from ..storage.objects import B2Objects
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -127,7 +128,7 @@ def main(argv=None):
     env=dict(os.environ)
     for k,v in settings['b2_location'].items():
         if not env.get(k):env[k]=v
-    cloud=load_runtime(ROOT,environ=env)
+    backend=B2Objects(resolve_b2_bucket(b2_settings(env)))
     prefix=settings['archive_prefix']+'/research/wp06-svg-history-v1'
     registration=dict(artifact_version='svg-history-research-registration-v1',
         registered_at_utc=datetime.now(timezone.utc).isoformat(),station_id=STATION_ID,
@@ -135,17 +136,17 @@ def main(argv=None):
         workflow_run_id=os.getenv('GITHUB_RUN_ID'),code_commit=os.getenv('GITHUB_SHA'),
         source_operator='retain native archive interval; only verified300s supports existing twelve-interval truth',
         scientific_release=False,production_head_updated=False,git_weather_bytes_written=0)
-    registration_ref=publish(cloud.backend,prefix,args.output,'registration.json',canonical(registration))
+    registration_ref=publish(backend,prefix,args.output,'registration.json',canonical(registration))
     records=[]
     for day in selected:
         record,raw,normalized=capture(day,key,secret)
-        if raw is not None:record['raw_object']=publish(cloud.backend,prefix,args.output,'source.json.gz',raw)
-        if normalized is not None:record['normalized_object']=publish(cloud.backend,prefix,args.output,'normalized.json',normalized)
+        if raw is not None:record['raw_object']=publish(backend,prefix,args.output,'source.json.gz',raw)
+        if normalized is not None:record['normalized_object']=publish(backend,prefix,args.output,'normalized.json',normalized)
         records.append(record)
         index=dict(artifact_version='svg-history-research-index-v1',registration=registration_ref,
                    records=records,complete=len(records)==len(selected),scientific_release=False,
                    production_head_updated=False,git_weather_bytes_written=0)
-        ref=publish(cloud.backend,prefix,args.output,'index.json',canonical(index))
+        ref=publish(backend,prefix,args.output,'index.json',canonical(index))
         print(json.dumps(dict(date_utc=record['date_utc'],status=record['status'],http_status=record['http_status'],
             five_minute_operator_verified=record.get('five_minute_operator_verified'),
             timestamps=record.get('coverage',{}).get('unique_day_timestamps'),index=ref)),flush=True)

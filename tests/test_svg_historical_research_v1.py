@@ -4,6 +4,9 @@ from datetime import date
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
+from contextlib import redirect_stdout
+from io import StringIO
 
 from mardorf_collector.providers import svg_historical_research_v1 as research
 from mardorf_collector.storage.objects import LocalObjects
@@ -66,6 +69,20 @@ class HistoricalSourceTests(unittest.TestCase):
             root=Path(root);folder=root/'work';folder.mkdir();backend=LocalObjects(root/'objects')
             raw=b'original exact historical bytes';reference=research.publish(backend,'research/svg',folder,'source.gz',raw)
             self.assertEqual(reference['sha256'],research.sha(raw));self.assertIn(research.sha(raw),reference['key'])
+
+    def test_complete_research_cli_needs_no_github_control_credentials(self):
+        record,raw,norm=research.capture(date(2023,1,1),'dummy-key','dummy-secret',session=Session(self.payload()))
+        with tempfile.TemporaryDirectory() as root:
+            root=Path(root);backend=LocalObjects(root/'objects');output=root/'result'
+            with patch.dict(research.os.environ,{'WEATHERLINK_API_KEY':'dummy-key','WEATHERLINK_API_SECRET':'dummy-secret'},clear=True), \
+                 patch.object(research,'capture',return_value=(record,raw,norm)), \
+                 patch.object(research,'b2_settings',return_value={}), \
+                 patch.object(research,'resolve_b2_bucket',return_value={}), \
+                 patch.object(research,'B2Objects',return_value=backend),redirect_stdout(StringIO()):
+                self.assertEqual(research.main(['--start','2023-01-01','--end-exclusive','2023-01-02','--output',str(output)]),0)
+            result=json.loads((output/'result.json').read_bytes())
+            self.assertFalse(result['production_head_updated']);self.assertEqual(result['git_weather_bytes_written'],0)
+            self.assertEqual(result['status_counts'],{'captured':1})
 
 
 if __name__=='__main__':unittest.main()
