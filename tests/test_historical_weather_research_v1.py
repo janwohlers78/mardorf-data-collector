@@ -49,6 +49,21 @@ class HistoricalWeatherTests(unittest.TestCase):
         self.assertEqual(record['grid_fields'][0]['units'],'m/s')
         self.assertEqual(record['grid_fields'][0]['shape'],['time'])
 
+    def test_subset_probe_separates_surface_gust_and_ten_metre_winds(self):
+        tasks=research.plan('gfs-subset-probe');self.assertEqual(len(tasks),15)
+        for task in tasks:
+            params=dict(task['params'])
+            self.assertTrue(task['url'].startswith(research.GFS))
+            self.assertEqual(task['lead_hours'],30)
+            if task['product'].startswith('gust_point'):
+                self.assertNotIn('vertCoord',params)
+                self.assertEqual(params['var'],'Wind_speed_gust_surface')
+            else:self.assertEqual(params['vertCoord'],'10')
+            if task['product']=='combined_grid_netcdf3':
+                self.assertNotIn('latitude',params)
+                self.assertEqual(params['accept'],'netcdf3')
+                self.assertLess(float(params['north'])-float(params['south']),1.)
+
     def test_registration_before_fetch_and_cold_packed_originals(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);backend=LocalObjects(root/'objects');folder=root/'work'
