@@ -237,7 +237,7 @@
       "current_sha256": "54e6317e3134950eccc2d8de359e948aae6900ac3512af192ee656d76af63aca"
     }
   ],
-  "current_validator_sha256": "5aeb2002db90ceea9b55fbfd9aab656481487abf569b61f662bfe77a1bba3b7c",
+  "current_validator_sha256": "cbd58a1c941615f5859fc49772215d39d9cde1e952eaa3a11a9307c69553a1b5",
   "artifact_successors": [
     {
       "path": "src/mardorf_collector/wp13/model_store_v1.py",
@@ -381,11 +381,21 @@
       "path": ".github/workflows/svg-historical-research-v1.yml",
       "sha256": "8a3cc1bd3f51ea40a1e4fa66e0b999c1b2e1848847a7fe0248789a071222bb42",
       "reason": "User requested authenticated historical SVG access verification and bounded originals for independent scientific calibration; no production head, Git weather data, schedule or forecast training."
+    },
+    {
+      "path": ".github/workflows/historical-weather-research-v1.yml",
+      "sha256": "b3353f39ef1457c9913fe5d1c4757899a58affcd8f37710cb0094345a4b31362",
+      "reason": "User requested complete ten-year CDC/SVG/forecast matching and public-repository provider acquisition. Manual40/12request bounded proof; no production head or fitting."
     }
   ],
   "window_probe_validator_predecessor": {
     "path": "tests/fixtures/architecture/layout_before_window_probe.py",
     "sha256": "fb267b4e880c1b1e4ae0343c6278031a5bbef7474956d646402436b3ce2ee27d",
     "reason": "Optional explicitly bounded1/2/7/31day original WeatherLink window probe with isolated manual concurrency, normal acquisition unchanged"
+  },
+  "auxiliary_research_validator_predecessor": {
+    "path": "tests/fixtures/architecture/layout_before_auxiliary_research.py",
+    "sha256": "5aeb2002db90ceea9b55fbfd9aab656481487abf569b61f662bfe77a1bba3b7c",
+    "reason": "Bounded registered public CDC refresh and GFS NCSS access probes, read-only research objects; original scheduled and native routes unchanged."
   }
 }
