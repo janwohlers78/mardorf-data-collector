@@ -398,8 +398,8 @@
     },
     {
       "path": ".github/workflows/historical-weather-research-v1.yml",
-      "sha256": "b482511c3e3582f890d379420687169421c84231d6da393f006c21ceb64778de",
-      "reason": "Manual bounded CDC/GFS research plus explicit max90day GFS archive, native3h knots, fourworkers and23minute softbudget; exact retries cold-verified; no production changes"
+      "sha256": "4727cf3c18513d93025bc9c21ac50cc42f089c7e3471f1facca4947d900d719e",
+      "reason": "Manual bounded CDC/GFS research plus explicit max90day GFS archive, native3h knots, fourworkers and23minute softbudget; exact retries cold-verified; no production changes; reviewed successor adds the bounded manual CDC wind-clock probe for the same four registered stations, without schedules or production publication"
     },
     {
       "path": ".github/workflows/gfs-archive-program-v1.yml",
