@@ -1,0 +1,300 @@
+{
+  "artifact_version": "wp06-GFS-ten-year-acquisition-registration-v2",
+  "registered_at_utc": "2026-10-08T10:39:46.980480+00:00",
+  "ranges": [
+    {
+      "start": "2022-11-30",
+      "end_exclusive": "2023-02-28",
+      "days": 90,
+      "role": "development_GFSv16_3"
+    },
+    {
+      "start": "2023-02-28",
+      "end_exclusive": "2023-05-29",
+      "days": 90,
+      "role": "development_GFSv16_3"
+    },
+    {
+      "start": "2023-05-29",
+      "end_exclusive": "2023-07-01",
+      "days": 33,
+      "role": "development_GFSv16_3"
+    },
+    {
+      "start": "2023-07-01",
+      "end_exclusive": "2023-09-29",
+      "days": 90,
+      "role": "protected_new_truth_no_outcome_inspection"
+    },
+    {
+      "start": "2023-09-29",
+      "end_exclusive": "2023-12-28",
+      "days": 90,
+      "role": "protected_new_truth_no_outcome_inspection"
+    },
+    {
+      "start": "2023-12-28",
+      "end_exclusive": "2024-03-14",
+      "days": 77,
+      "role": "protected_new_truth_no_outcome_inspection"
+    },
+    {
+      "start": "2021-05-01",
+      "end_exclusive": "2021-07-30",
+      "days": 90,
+      "role": "earlier_generation_development_only"
+    },
+    {
+      "start": "2021-07-30",
+      "end_exclusive": "2021-10-28",
+      "days": 90,
+      "role": "earlier_generation_development_only"
+    },
+    {
+      "start": "2021-10-28",
+      "end_exclusive": "2022-01-26",
+      "days": 90,
+      "role": "earlier_generation_development_only"
+    },
+    {
+      "start": "2022-01-26",
+      "end_exclusive": "2022-04-26",
+      "days": 90,
+      "role": "earlier_generation_development_only"
+    },
+    {
+      "start": "2022-04-26",
+      "end_exclusive": "2022-07-25",
+      "days": 90,
+      "role": "earlier_generation_development_only"
+    },
+    {
+      "start": "2022-07-25",
+      "end_exclusive": "2022-10-23",
+      "days": 90,
+      "role": "earlier_generation_development_only"
+    },
+    {
+      "start": "2022-10-23",
+      "end_exclusive": "2022-11-30",
+      "days": 38,
+      "role": "earlier_generation_development_only"
+    },
+    {
+      "start": "2024-03-14",
+      "end_exclusive": "2024-06-12",
+      "days": 90,
+      "role": "previously_seen_truth_no_new_qualification"
+    },
+    {
+      "start": "2024-06-12",
+      "end_exclusive": "2024-09-10",
+      "days": 90,
+      "role": "previously_seen_truth_no_new_qualification"
+    },
+    {
+      "start": "2024-09-10",
+      "end_exclusive": "2024-12-09",
+      "days": 90,
+      "role": "previously_seen_truth_no_new_qualification"
+    },
+    {
+      "start": "2024-12-09",
+      "end_exclusive": "2025-03-09",
+      "days": 90,
+      "role": "previously_seen_truth_no_new_qualification"
+    },
+    {
+      "start": "2025-03-09",
+      "end_exclusive": "2025-06-07",
+      "days": 90,
+      "role": "previously_seen_truth_no_new_qualification"
+    },
+    {
+      "start": "2025-06-07",
+      "end_exclusive": "2025-09-05",
+      "days": 90,
+      "role": "previously_seen_truth_no_new_qualification"
+    },
+    {
+      "start": "2025-09-05",
+      "end_exclusive": "2025-12-04",
+      "days": 90,
+      "role": "previously_seen_truth_no_new_qualification"
+    },
+    {
+      "start": "2025-12-04",
+      "end_exclusive": "2026-03-04",
+      "days": 90,
+      "role": "previously_seen_truth_no_new_qualification"
+    },
+    {
+      "start": "2026-03-04",
+      "end_exclusive": "2026-06-02",
+      "days": 90,
+      "role": "previously_seen_truth_no_new_qualification"
+    },
+    {
+      "start": "2026-06-02",
+      "end_exclusive": "2026-08-31",
+      "days": 90,
+      "role": "previously_seen_truth_no_new_qualification"
+    },
+    {
+      "start": "2026-08-31",
+      "end_exclusive": "2026-10-08",
+      "days": 38,
+      "role": "previously_seen_truth_no_new_qualification"
+    },
+    {
+      "start": "2016-10-08",
+      "end_exclusive": "2017-01-06",
+      "days": 90,
+      "role": "ten_year_extension_DWD_matching_local_where_available"
+    },
+    {
+      "start": "2017-01-06",
+      "end_exclusive": "2017-04-06",
+      "days": 90,
+      "role": "ten_year_extension_DWD_matching_local_where_available"
+    },
+    {
+      "start": "2017-04-06",
+      "end_exclusive": "2017-07-05",
+      "days": 90,
+      "role": "ten_year_extension_DWD_matching_local_where_available"
+    },
+    {
+      "start": "2017-07-05",
+      "end_exclusive": "2017-10-03",
+      "days": 90,
+      "role": "ten_year_extension_DWD_matching_local_where_available"
+    },
+    {
+      "start": "2017-10-03",
+      "end_exclusive": "2018-01-01",
+      "days": 90,
+      "role": "ten_year_extension_DWD_matching_local_where_available"
+    },
+    {
+      "start": "2018-01-01",
+      "end_exclusive": "2018-04-01",
+      "days": 90,
+      "role": "ten_year_extension_DWD_matching_local_where_available"
+    },
+    {
+      "start": "2018-04-01",
+      "end_exclusive": "2018-06-30",
+      "days": 90,
+      "role": "ten_year_extension_DWD_matching_local_where_available"
+    },
+    {
+      "start": "2018-06-30",
+      "end_exclusive": "2018-09-28",
+      "days": 90,
+      "role": "ten_year_extension_DWD_matching_local_where_available"
+    },
+    {
+      "start": "2018-09-28",
+      "end_exclusive": "2018-12-27",
+      "days": 90,
+      "role": "ten_year_extension_DWD_matching_local_where_available"
+    },
+    {
+      "start": "2018-12-27",
+      "end_exclusive": "2019-03-27",
+      "days": 90,
+      "role": "ten_year_extension_DWD_matching_local_where_available"
+    },
+    {
+      "start": "2019-03-27",
+      "end_exclusive": "2019-06-25",
+      "days": 90,
+      "role": "ten_year_extension_DWD_matching_local_where_available"
+    },
+    {
+      "start": "2019-06-25",
+      "end_exclusive": "2019-09-23",
+      "days": 90,
+      "role": "ten_year_extension_DWD_matching_local_where_available"
+    },
+    {
+      "start": "2019-09-23",
+      "end_exclusive": "2019-12-22",
+      "days": 90,
+      "role": "ten_year_extension_DWD_matching_local_where_available"
+    },
+    {
+      "start": "2019-12-22",
+      "end_exclusive": "2020-03-21",
+      "days": 90,
+      "role": "ten_year_extension_DWD_matching_local_where_available"
+    },
+    {
+      "start": "2020-03-21",
+      "end_exclusive": "2020-06-19",
+      "days": 90,
+      "role": "ten_year_extension_DWD_matching_local_where_available"
+    },
+    {
+      "start": "2020-06-19",
+      "end_exclusive": "2020-09-17",
+      "days": 90,
+      "role": "ten_year_extension_DWD_matching_local_where_available"
+    },
+    {
+      "start": "2020-09-17",
+      "end_exclusive": "2020-12-16",
+      "days": 90,
+      "role": "ten_year_extension_DWD_matching_local_where_available"
+    },
+    {
+      "start": "2020-12-16",
+      "end_exclusive": "2021-03-16",
+      "days": 90,
+      "role": "ten_year_extension_DWD_matching_local_where_available"
+    },
+    {
+      "start": "2021-03-16",
+      "end_exclusive": "2021-05-01",
+      "days": 46,
+      "role": "ten_year_extension_DWD_matching_local_where_available"
+    }
+  ],
+  "dates": 3652,
+  "native_leads_hours": [
+    24,
+    27,
+    30,
+    33,
+    36,
+    39,
+    42,
+    45,
+    48
+  ],
+  "native_forecast_files": 32868,
+  "maximum_range_days": 90,
+  "maximum_parallel_workflows": 1,
+  "maximum_parallel_HTTP_workers": 4,
+  "attempts_per_request": 2,
+  "requests_per_range_catalog": 1,
+  "source_repository": "janwohlers78/mardorf-data-collector",
+  "visibility": "public",
+  "private_acquisition_workflow_minutes": 0,
+  "workflow": "historical-weather-research-v1.yml",
+  "operation": "gfs-archive-range",
+  "protected_split_sha256": "291b7aa7192efd2a7931550a1947c649a94ad38c0c3705f8879f3aae14892f4e",
+  "code_commit": "57318f1d995fa9e1a803a78bee36b92ab3272b74",
+  "source_role": "actual_GRIB_derived_NCSS_archive_distinct_from_OpenMeteo_IFS_hindcasts",
+  "source_operator": "native3h_forecast_grid_instantaneous_wind_and_diagnostic_gust; hourly_interpolation_if_used_explicit_proxy",
+  "generation_policy": "independent_implementation_dates; distinct_source_generation_fits; no silent ten_year_pool",
+  "scientific_release": false,
+  "native_admission": false,
+  "prospective_ready": false,
+  "production_head_updated": false,
+  "git_weather_bytes_written": 0,
+  "predecessor_sha256": "b908854d2dcad12ffed601a986978d5eb978345d0aea2ace36b32a6ad88a6ab2",
+  "spatial_scope": "native0.25deg grid 51.0..53.5N 8.0..11.5E; SVG and dated four CDC stations",
+  "vertical_scope": "all original model height axes retained; selected2m/10m only from actual coordinate values"
+}

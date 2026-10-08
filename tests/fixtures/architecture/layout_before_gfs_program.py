@@ -34,7 +34,7 @@ def validate(root):
         raise ValueError('Explicit architecture successor identity required')
     if sha(root/'tools/validate_prep09_layout.py')!=proof['current_validator_sha256']:
         raise ValueError('Current layout validator bytes changed without review')
-    for key in ('research_validator_predecessor','window_probe_validator_predecessor','auxiliary_research_validator_predecessor','gfs_program_validator_predecessor'):
+    for key in ('research_validator_predecessor','window_probe_validator_predecessor','auxiliary_research_validator_predecessor'):
         predecessor = proof.get(key)
         if predecessor and sha(root/predecessor['path']) != predecessor['sha256']:
             raise ValueError('Research route validator predecessor byte drift')
@@ -45,24 +45,10 @@ def validate(root):
     import yaml
     for item in proof.get('added_workflows', []):
         name = item['path']
-        if name not in ('.github/workflows/svg-historical-research-v1.yml', '.github/workflows/historical-weather-research-v1.yml', '.github/workflows/gfs-archive-program-v1.yml') or name in added:
+        if name not in ('.github/workflows/svg-historical-research-v1.yml', '.github/workflows/historical-weather-research-v1.yml') or name in added:
             raise ValueError('Invalid additive research route')
         path = root/name
         data = yaml.load(path.read_bytes(), Loader=yaml.BaseLoader)
-        if name.endswith('/gfs-archive-program-v1.yml'):
-            if (sha(path) != item['sha256'] or not item.get('reason')
-                    or set(data['on']) != {'workflow_dispatch'}
-                    or data['permissions'] != {'contents': 'read'}
-                    or data['concurrency'] != {'group': 'historical-weather-research-v1', 'cancel-in-progress': 'false'}
-                    or set(data['jobs']) != {'plan','priority','acquire'}
-                    or data['jobs']['plan']['timeout-minutes'] != '5'
-                    or data['jobs']['priority']['timeout-minutes'] != '110'
-                    or data['jobs']['acquire']['timeout-minutes'] != '30'
-                    or data['jobs']['acquire']['strategy']['max-parallel'] != '1'
-                    or data['jobs']['acquire']['needs'] != ['plan','priority']):
-                raise ValueError('Registered serial GFS program drift')
-            added.add(name)
-            continue
         expected_group = ("${{ inputs.block_probe && 'svg-history-window-probe' || 'svg-historical-research-v1' }}"
                           if name.endswith('/svg-historical-research-v1.yml') else 'historical-weather-research-v1')
         timeout = '60' if name.endswith('/svg-historical-research-v1.yml') else '30'

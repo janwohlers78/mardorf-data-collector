@@ -237,7 +237,7 @@
       "current_sha256": "54e6317e3134950eccc2d8de359e948aae6900ac3512af192ee656d76af63aca"
     }
   ],
-  "current_validator_sha256": "cbd58a1c941615f5859fc49772215d39d9cde1e952eaa3a11a9307c69553a1b5",
+  "current_validator_sha256": "7ae97fb074e49bfb41279f1f27954dcf57d5306e597ea46460c7d6a0ad3046ae",
   "artifact_successors": [
     {
       "path": "src/mardorf_collector/wp13/model_store_v1.py",
@@ -369,6 +369,20 @@
           "count": 1
         }
       ]
+    },
+    {
+      "path": "tests/test_svg_historical_research_v1.py",
+      "preserved_path": "tests/fixtures/architecture/test_svg_historical_research_before_gfs_program.py",
+      "baseline_sha256": "9d1d4c3b7ec24dca989f459606f2d3d410db223c2d27e257dfea8bc0453e5342",
+      "current_sha256": "bd208112341f2b3c14dbb8a541ab1a0c6a08cb881a1b45b0a718829022b74bc7",
+      "reason": "Fixture-only addition of new reviewed predecessor and workflow; adversarial schedule rejection assertion unchanged",
+      "replacements": [
+        {
+          "before": "                         proof['auxiliary_research_validator_predecessor']['path'],\n                         '.github/workflows/historical-weather-research-v1.yml',relative]:",
+          "after": "                         proof['auxiliary_research_validator_predecessor']['path'],\n                         proof['gfs_program_validator_predecessor']['path'],\n                         '.github/workflows/gfs-archive-program-v1.yml',\n                         '.github/workflows/historical-weather-research-v1.yml',relative]:",
+          "count": 1
+        }
+      ]
     }
   ],
   "research_validator_predecessor": {
@@ -386,6 +400,11 @@
       "path": ".github/workflows/historical-weather-research-v1.yml",
       "sha256": "b482511c3e3582f890d379420687169421c84231d6da393f006c21ceb64778de",
       "reason": "Manual bounded CDC/GFS research plus explicit max90day GFS archive, native3h knots, fourworkers and23minute softbudget; exact retries cold-verified; no production changes"
+    },
+    {
+      "path": ".github/workflows/gfs-archive-program-v1.yml",
+      "sha256": "17b60af6437ac7ce3ec56b99171e90f3e21d64ff99f8bb416f6ffe093b8055e5",
+      "reason": "User-authorized full ten-year public acquisition, first4remaining ranges serial priority then1matrixjob at a time; per-range23minute budget, only immutable B2 objects and refs-only14day artifacts, no schedule or forecast activation"
     }
   ],
   "window_probe_validator_predecessor": {
@@ -397,5 +416,10 @@
     "path": "tests/fixtures/architecture/layout_before_auxiliary_research.py",
     "sha256": "5aeb2002db90ceea9b55fbfd9aab656481487abf569b61f662bfe77a1bba3b7c",
     "reason": "Bounded registered public CDC refresh and GFS NCSS access probes, read-only research objects; original scheduled and native routes unchanged."
+  },
+  "gfs_program_validator_predecessor": {
+    "path": "tests/fixtures/architecture/layout_before_gfs_program.py",
+    "sha256": "cbd58a1c941615f5859fc49772215d39d9cde1e952eaa3a11a9307c69553a1b5",
+    "reason": "Explicit manual serial full archive successor: same registered requests, bounded90day units and4workers; durable public workflow independent of workstation, no private compute or operational mutations"
   }
 }
