@@ -26,6 +26,25 @@ def plan(operation, root=ROOT):
         return [dict(url=source_url(policy,s['id'],p,hourly=True),params=None,
                      site=s['id'],product=p,limit_bytes=policy['max_original_bytes'],suffix='.zip')
                 for s in policy['stations'] for p in policy['hourly_products']]
+    if operation=='gfs-temporal-probe':
+        tasks=[]
+        for value in ('2016-10-08','2023-01-15','2026-04-15'):
+            day=date.fromisoformat(value)
+            for lead in (25,26,31):
+                url=GFS+day.strftime('%Y/%Y%m%d/gfs.0p25.%Y%m%d00.')+f'f{lead:03d}.grib2'
+                valid=(datetime.combine(day,datetime.min.time(),tzinfo=timezone.utc)+timedelta(hours=lead)).isoformat()
+                params=[['var','u-component_of_wind_height_above_ground,v-component_of_wind_height_above_ground,Wind_speed_gust_surface'],
+                    ['time',valid],['accept','netcdf3'],['addLatLon','true'],['vertCoord','10'],
+                    ['north','52.75'],['south','52.25'],['west','9.0'],['east','9.75']]
+                tasks.append(dict(url=url,params=params,run=value+'T00:00:00Z',lead_hours=lead,
+                    product='hourly_archive_grid_probe',limit_bytes=2*1024**2,suffix='.nc'))
+            catalog='https://tds.gdex.ucar.edu/thredds/catalog/files/g/d084001/'+day.strftime('%Y/%Y%m%d/catalog.xml')
+            tasks.append(dict(url=catalog,params=None,run=value+'T00:00:00Z',lead_hours=None,
+                product='archive_catalog_metadata',limit_bytes=2*1024**2,suffix='.xml'))
+        for path in ('catalog.xml','aggregations/g/d084001/catalog.xml','files/g/d084001/catalog.xml'):
+            tasks.append(dict(url='https://tds.gdex.ucar.edu/thredds/catalog/'+path,params=None,run=None,
+                lead_hours=None,product='archive_catalog_metadata',limit_bytes=2*1024**2,suffix='.xml'))
+        return tasks
     if operation=='gfs-subset-probe':
         tasks=[]
         winds='u-component_of_wind_height_above_ground,v-component_of_wind_height_above_ground'
@@ -125,7 +144,7 @@ def run(operation, output, backend, root=ROOT):
 
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('operation',choices=['dwd-recent','gfs-archive-probe','gfs-subset-probe'])
+    p=argparse.ArgumentParser();p.add_argument('operation',choices=['dwd-recent','gfs-archive-probe','gfs-subset-probe','gfs-temporal-probe'])
     p.add_argument('--output',type=Path,default=Path('work/historical-weather-research'));a=p.parse_args()
     defaults=json.loads((ROOT/'config/dev03_cloud_runtime_v1.json').read_bytes())['b2_location']
     env=dict(os.environ)

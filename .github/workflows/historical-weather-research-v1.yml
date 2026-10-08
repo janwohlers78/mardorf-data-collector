@@ -6,7 +6,7 @@ on:
       operation:
         description: Registered CDC refresh or ten-year GFS access probes
         type: choice
-        options: [dwd-recent, gfs-archive-probe, gfs-subset-probe]
+        options: [dwd-recent, gfs-archive-probe, gfs-subset-probe, gfs-temporal-probe]
         default: dwd-recent
 
 permissions:

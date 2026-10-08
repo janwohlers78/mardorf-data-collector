@@ -384,8 +384,8 @@
     },
     {
       "path": ".github/workflows/historical-weather-research-v1.yml",
-      "sha256": "80c4c8a096200d22bfe8d3359db705c295d9a9f3d26ce387c838de55572c5096",
-      "reason": "Manual, bounded immutable CDC refresh and GFS archive/subset operator probes; read-only contents; no production pointer updates or weather Git bytes"
+      "sha256": "082ae3e14120958d74dd6b76e0efbd717850c38eaa1c023fd0735eaf4faaab5f",
+      "reason": "Bounded manual immutable CDC/GFS research; add fixed hourly-file and catalog aggregation probes before bulk acquisition; no production pointers or Git weather bytes"
     }
   ],
   "window_probe_validator_predecessor": {

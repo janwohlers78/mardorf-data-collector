@@ -64,6 +64,16 @@ class HistoricalWeatherTests(unittest.TestCase):
                 self.assertEqual(params['accept'],'netcdf3')
                 self.assertLess(float(params['north'])-float(params['south']),1.)
 
+    def test_hourly_probe_never_substitutes_three_hourly_forecast_files(self):
+        tasks=research.plan('gfs-temporal-probe');self.assertEqual(len(tasks),15)
+        actual=[t for t in tasks if t['product']=='hourly_archive_grid_probe']
+        self.assertEqual(len(actual),9)
+        for task in actual:
+            self.assertIn(task['lead_hours'],(25,26,31))
+            self.assertIn(f".f{task['lead_hours']:03d}.grib2",task['url'])
+            self.assertTrue(task['url'].startswith(research.GFS))
+            self.assertEqual(dict(task['params'])['accept'],'netcdf3')
+
     def test_registration_before_fetch_and_cold_packed_originals(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);backend=LocalObjects(root/'objects');folder=root/'work'
