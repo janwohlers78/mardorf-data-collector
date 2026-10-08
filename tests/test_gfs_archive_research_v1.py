@@ -20,6 +20,9 @@ class GFSArchiveTests(unittest.TestCase):
         for task in tasks[1:]:
             self.assertEqual(dict(task['params'])['accept'], 'netcdf3')
             self.assertEqual(len(dict(task['params'])['var'].split(',')), 8)
+            self.assertNotIn('vertCoord', dict(task['params']))
+            parameters = dict(task['params'])
+            self.assertEqual((parameters['south'], parameters['north'], parameters['west'], parameters['east']), ('51.0','53.5','8.0','11.5'))
         for start, end in [('2016-10-08','2017-02-01'), ('2016-10-07','2016-10-08'), ('2026-10-08','2026-10-09')]:
             with self.assertRaises(ValueError): research.plan(start, end)
 
