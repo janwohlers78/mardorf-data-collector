@@ -21,6 +21,17 @@ PROBE_DATES=('2016-10-08','2018-01-15','2021-05-01','2023-01-15','2024-03-15','2
 
 
 def plan(operation, root=ROOT):
+    if operation=='dwd-wind-clock-probe':
+        policy,_=configuration(root)
+        tasks=[]
+        for station in policy['stations']:
+            for cadence in ('10_minutes','hourly'):
+                url=source_url(policy,station['id'],'wind',hourly=cadence=='hourly')
+                if cadence=='10_minutes':
+                    url=url.replace('/now/','/recent/').replace('_now.zip','_akt.zip')
+                tasks.append(dict(url=url,params=None,site=station['id'],
+                    product='wind_clock_'+cadence,limit_bytes=policy['max_original_bytes'],suffix='.zip'))
+        return tasks
     if operation=='dwd-recent':
         policy,_=configuration(root)
         return [dict(url=source_url(policy,s['id'],p,hourly=True),params=None,
@@ -122,7 +133,8 @@ def run(operation, output, backend, root=ROOT):
         code_commit=os.getenv('GITHUB_SHA'),provider_acquisition_repository='public_mardorf_data_collector',
         requests=tasks,maximum_logical_requests=len(tasks),max_attempts=1,
         registered_at_utc=datetime.now(timezone.utc).isoformat(),scientific_release=False,
-        forecast_operator='GFS NCSS instantaneous point winds/gust; full-hour truth compatibility remains unqualified',
+        forecast_operator=('not_applicable_CDC_observation_clock_probe' if operation=='dwd-wind-clock-probe'
+            else 'GFS NCSS instantaneous point winds/gust; full-hour truth compatibility remains unqualified'),
         native_admission=False,production_head_updated=False,git_weather_bytes_written=0)
     reference=publish(backend,prefix,output,'registration.json',canonical(registration));records=[];files=[]
     for i,spec in enumerate(tasks):
@@ -144,7 +156,7 @@ def run(operation, output, backend, root=ROOT):
 
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('operation',choices=['dwd-recent','gfs-archive-probe','gfs-subset-probe','gfs-temporal-probe','gfs-archive-range'])
+    p=argparse.ArgumentParser();p.add_argument('operation',choices=['dwd-recent','dwd-wind-clock-probe','gfs-archive-probe','gfs-subset-probe','gfs-temporal-probe','gfs-archive-range'])
     p.add_argument('--start',default=os.getenv('RESEARCH_START'))
     p.add_argument('--end-exclusive',default=os.getenv('RESEARCH_END_EXCLUSIVE'))
     p.add_argument('--output',type=Path,default=Path('work/historical-weather-research'));a=p.parse_args()
