@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import zipfile
 
 from . import svg_history_v2 as history
 from .fetch_svg_weatherlink import BASE, S, STATION_ID
@@ -73,6 +74,9 @@ def capture(day, key, secret, *, session=S):
     except (ValueError, TypeError):
         record['status']='invalid_json'
         return record, gzip.compress(raw, mtime=0), None
+    if not isinstance(payload,dict):
+        record['status']='invalid_payload_shape'
+        return record,gzip.compress(raw,mtime=0),None
     if payload.get('station_id') != STATION_ID:
         record.update(status='station_identity_mismatch', returned_station_id=payload.get('station_id'))
         return record, gzip.compress(raw, mtime=0), None
@@ -112,6 +116,29 @@ def publish(backend, prefix, folder, name, raw):
     return reference.json()
 
 
+def publish_pack(backend,prefix,folder,files):
+    """Bounded checkpoint retaining every exact original and normalized hash."""
+    if len(files)>28:raise ValueError('Maximum14 source days per checkpoint')
+    members=[dict(path=name,bytes=len(raw),sha256=sha(raw)) for name,raw in files]
+    path=folder/'checkpoint.zip'
+    with zipfile.ZipFile(path,'w') as archive:
+        for name,raw in files:
+            archive.writestr(name,raw,compress_type=zipfile.ZIP_DEFLATED)
+        archive.writestr('member-manifest.json',canonical(members))
+    raw=path.read_bytes()
+    if len(raw)>64*1024**2:raise ValueError('Research checkpoint exceeds64MiB')
+    reference=publish(backend,prefix,folder,'checkpoint.zip',raw)
+    # Cold bytes were checked by publish; also verify every member of that exact
+    # archive, not merely the container checksum.
+    with zipfile.ZipFile(path) as archive:
+        if archive.testzip() is not None:raise RuntimeError('Corrupt research checkpoint')
+        for member in members:
+            body=archive.read(member['path'])
+            if len(body)!=member['bytes'] or sha(body)!=member['sha256']:
+                raise RuntimeError('Research checkpoint original member mismatch')
+    return reference,{m['path']:m for m in members}
+
+
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--start',type=date.fromisoformat,required=True)
@@ -135,14 +162,34 @@ def main(argv=None):
         days=[d.isoformat() for d in selected],max_days=190,probe_max_days=12,
         workflow_run_id=os.getenv('GITHUB_RUN_ID'),code_commit=os.getenv('GITHUB_SHA'),
         source_operator='retain native archive interval; only verified300s supports existing twelve-interval truth',
-        scientific_release=False,production_head_updated=False,git_weather_bytes_written=0)
+        scientific_release=False,production_head_updated=False,git_weather_bytes_written=0,
+        transport='hash_verified14day_checkpoint_zip' if len(selected)>12 else 'individual_objects',
+        max_unpublished_days=14)
     registration_ref=publish(backend,prefix,args.output,'registration.json',canonical(registration))
-    records=[]
+    records=[];pending=[];files=[]
     for day in selected:
         record,raw,normalized=capture(day,key,secret)
-        if raw is not None:record['raw_object']=publish(backend,prefix,args.output,'source.json.gz',raw)
-        if normalized is not None:record['normalized_object']=publish(backend,prefix,args.output,'normalized.json',normalized)
+        packed=len(selected)>12
+        for kind,body,name in [('raw',raw,'source.json.gz'),('normalized',normalized,'normalized.json')]:
+            if body is None:continue
+            if packed:
+                member=day.isoformat()+'/'+name;files.append((member,body))
+                record[kind+'_archive']=dict(path=member,sha256=sha(body),bytes=len(body))
+            else:record[kind+'_object']=publish(backend,prefix,args.output,name,body)
         records.append(record)
+        if packed:
+            pending.append(record)
+            if len(pending)==14 or len(records)==len(selected):
+                if files:
+                    pack,members=publish_pack(backend,prefix,args.output,files)
+                    for item in pending:
+                        for kind in ('raw','normalized'):
+                            if kind+'_archive' in item:item[kind+'_archive']['container']=pack
+                pending=[];files=[]
+            else:
+                print(json.dumps(dict(date_utc=record['date_utc'],status=record['status'],http_status=record['http_status'],
+                    timestamps=record.get('coverage',{}).get('unique_day_timestamps'),checkpoint_pending=True)),flush=True)
+                continue
         index=dict(artifact_version='svg-history-research-index-v1',registration=registration_ref,
                    records=records,complete=len(records)==len(selected),scientific_release=False,
                    production_head_updated=False,git_weather_bytes_written=0)
@@ -151,10 +198,15 @@ def main(argv=None):
             five_minute_operator_verified=record.get('five_minute_operator_verified'),
             timestamps=record.get('coverage',{}).get('unique_day_timestamps'),index=ref)),flush=True)
     result=dict(index=ref,status_counts=dict(Counter(r['status'] for r in records)),
+                acquisition_complete=True,all_requested_days_have_wind=False,
+                source_outcome='COMPLETE_REQUESTS_WITH_SOURCE_GAPS' if any(r['status']!='captured' for r in records) else 'COMPLETE_REQUESTS',
                 production_head_updated=False,git_weather_bytes_written=0)
     (args.output/'result.json').write_bytes(canonical(result))
     print(json.dumps(result),flush=True)
-    return int(any(r['status'] not in ('captured','empty') for r in records))
+    # Archive completeness means all dated requests and outcomes are retained.
+    # Missing historical source data is a scientific admission failure, not an
+    # infrastructure failure that should prevent querying the remaining years.
+    return int(any(r['status'] not in ('captured','empty') for r in records)) if len(selected)<=12 else 0
 
 
 if __name__=='__main__':

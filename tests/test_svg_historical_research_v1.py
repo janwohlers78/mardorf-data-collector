@@ -70,6 +70,18 @@ class HistoricalSourceTests(unittest.TestCase):
             raw=b'original exact historical bytes';reference=research.publish(backend,'research/svg',folder,'source.gz',raw)
             self.assertEqual(reference['sha256'],research.sha(raw));self.assertIn(research.sha(raw),reference['key'])
 
+    def test_checkpoint_preserves_every_original_byte_and_is_bounded(self):
+        import zipfile
+        with tempfile.TemporaryDirectory() as root:
+            root=Path(root);backend=LocalObjects(root/'objects');folder=root/'work';folder.mkdir()
+            files=[('2016-10-08/source.json.gz',gzip.compress(b'original exact source',mtime=0)),
+                   ('2016-10-08/normalized.json',b'{"normalized":true}\n')]
+            reference,members=research.publish_pack(backend,'research/svg',folder,files)
+            with zipfile.ZipFile(backend.root/reference['key']) as archive:
+                for name,raw in files:
+                    self.assertEqual(archive.read(name),raw);self.assertEqual(members[name]['sha256'],research.sha(raw))
+            with self.assertRaises(ValueError):research.publish_pack(backend,'research/svg',folder,files*15)
+
     def test_complete_research_cli_needs_no_github_control_credentials(self):
         record,raw,norm=research.capture(date(2023,1,1),'dummy-key','dummy-secret',session=Session(self.payload()))
         with tempfile.TemporaryDirectory() as root:
@@ -102,6 +114,23 @@ class HistoricalSourceTests(unittest.TestCase):
             (target/'config/architecture_refactoring_v1.json').write_text(json.dumps(proof))
             with self.assertRaisesRegex(ValueError,'Bounded manual research workflow drift'):
                 gate.validate(target)
+
+    def test_multiday_checkpoint_cli_keeps_source_gaps_and_exact_index_lineage(self):
+        record,raw,norm=research.capture(date(2023,1,1),'dummy-key','dummy-secret',session=Session({'error':'not available'},403))
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary);backend=LocalObjects(root/'objects');output=root/'output'
+            def outcome(day,*args):return dict(record,date_utc=day.isoformat()),raw,norm
+            with patch.dict(research.os.environ,{'WEATHERLINK_API_KEY':'dummy-key','WEATHERLINK_API_SECRET':'dummy-secret'},clear=True), \
+                 patch.object(research,'capture',side_effect=outcome), \
+                 patch.object(research,'b2_settings',return_value={}), \
+                 patch.object(research,'resolve_b2_bucket',return_value={}), \
+                 patch.object(research,'B2Objects',return_value=backend),redirect_stdout(StringIO()):
+                self.assertEqual(research.main(['--start','2016-10-08','--end-exclusive','2016-10-22','--output',str(output)]),0)
+            result=json.loads((output/'result.json').read_bytes());index=json.loads((output/'index.json').read_bytes())
+            self.assertEqual(result['status_counts'],{'provider_error':14})
+            self.assertEqual(result['source_outcome'],'COMPLETE_REQUESTS_WITH_SOURCE_GAPS')
+            self.assertTrue(index['complete']);self.assertFalse(index['scientific_release'])
+            self.assertTrue(all('raw_archive' in r and 'container' in r['raw_archive'] for r in index['records']))
 
 
 if __name__=='__main__':unittest.main()
