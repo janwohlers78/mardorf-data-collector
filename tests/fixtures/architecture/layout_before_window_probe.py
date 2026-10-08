@@ -34,10 +34,9 @@ def validate(root):
         raise ValueError('Explicit architecture successor identity required')
     if sha(root/'tools/validate_prep09_layout.py')!=proof['current_validator_sha256']:
         raise ValueError('Current layout validator bytes changed without review')
-    for key in ('research_validator_predecessor','window_probe_validator_predecessor'):
-        predecessor = proof.get(key)
-        if predecessor and sha(root/predecessor['path']) != predecessor['sha256']:
-            raise ValueError('Research route validator predecessor byte drift')
+    predecessor = proof.get('research_validator_predecessor')
+    if predecessor and sha(root/predecessor['path']) != predecessor['sha256']:
+        raise ValueError('Research route validator predecessor byte drift')
     overrides={'tools/validate_prep09_layout.py':root/proof['historical_validator']['path']}
     # Additive research routes are checked in the current tree. The immutable
     # historical gate then sees exactly its original workflow set.
@@ -52,7 +51,7 @@ def validate(root):
         if (sha(path) != item['sha256'] or not item.get('reason')
                 or set(data['on']) != {'workflow_dispatch'}
                 or data['permissions'] != {'contents': 'read'}
-                or data['concurrency'] != {'group': "${{ inputs.block_probe && 'svg-history-window-probe' || 'svg-historical-research-v1' }}", 'cancel-in-progress': 'false'}
+                or data['concurrency'] != {'group': 'svg-historical-research-v1', 'cancel-in-progress': 'false'}
                 or data['jobs']['acquire']['timeout-minutes'] != '60'
                 or set(data['jobs']) != {'acquire'}):
             raise ValueError('Bounded manual research workflow drift')

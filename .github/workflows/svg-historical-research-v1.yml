@@ -15,11 +15,15 @@ on:
         description: Optional comma-separated exact days (maximum 12)
         type: string
         default: ''
+      block_probe:
+        description: Test 1/2/7/31 day API windows only; no training admission
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 concurrency:
-  group: svg-historical-research-v1
+  group: ${{ inputs.block_probe && 'svg-history-window-probe' || 'svg-historical-research-v1' }}
   cancel-in-progress: false
 jobs:
   acquire:
@@ -48,4 +52,8 @@ jobs:
           START_DAY: ${{ inputs.start }}
           END_DAY: ${{ inputs.end_exclusive }}
           PROBE_DAYS: ${{ inputs.probe_days }}
-        run: PYTHONPATH=src python -m mardorf_collector.providers.svg_historical_research_v1 --start "$START_DAY" --end-exclusive "$END_DAY" --probe-days "$PROBE_DAYS"
+          BLOCK_PROBE: ${{ inputs.block_probe }}
+        run: |
+          args=(--start "$START_DAY" --end-exclusive "$END_DAY" --probe-days "$PROBE_DAYS")
+          if [ "$BLOCK_PROBE" = 'true' ]; then args+=(--block-probe); fi
+          PYTHONPATH=src python -m mardorf_collector.providers.svg_historical_research_v1 "${args[@]}"

@@ -47,6 +47,14 @@ class HistoricalSourceTests(unittest.TestCase):
         error,raw,norm=research.capture(date(2023,1,1),'dummy-key','dummy-secret',session=Session({'error':'forbidden'},403))
         self.assertEqual(error['status'],'provider_error');self.assertEqual(error['http_status'],403);self.assertIsNone(norm)
 
+    def test_window_probe_is_explicit_bounded_and_preserves_provider_rejection(self):
+        session=Session({'error':'window exceeds maximum'},400)
+        r,raw,norm=research.capture(date(2025,1,15),'dummy-key','dummy-secret',session=session,window_days=7)
+        self.assertEqual(r['http_status'],400);self.assertEqual(r['status'],'provider_error')
+        self.assertEqual(r['request']['end_timestamp']-r['request']['start_timestamp'],7*86400-1)
+        self.assertIsNotNone(raw);self.assertIsNone(norm)
+        with self.assertRaises(ValueError):research.capture(date(2025,1,15),'dummy-key','dummy-secret',session=session,window_days=365)
+
     def test_station_and_nonfive_minute_operators_are_not_silently_admitted(self):
         payload=self.payload();payload['station_id']=1
         record,_,norm=research.capture(date(2023,1,1),'dummy-key','dummy-secret',session=Session(payload))
@@ -106,7 +114,8 @@ class HistoricalSourceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             target=Path(temporary)
             for name in ['config/architecture_refactoring_v1.json','tools/validate_prep09_layout.py',
-                         proof['historical_validator']['path'],proof['research_validator_predecessor']['path'],relative]:
+                         proof['historical_validator']['path'],proof['research_validator_predecessor']['path'],
+                         proof['window_probe_validator_predecessor']['path'],relative]:
                 path=target/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes((root/name).read_bytes())
             path=target/relative
             path.write_text(path.read_text().replace('on:\n','on:\n  schedule:\n    - cron: "0 * * * *"\n',1))
