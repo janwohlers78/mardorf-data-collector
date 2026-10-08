@@ -1,0 +1,51 @@
+name: Retrieve historical SVG research originals
+
+on:
+  workflow_dispatch:
+    inputs:
+      start:
+        description: First UTC day inclusive (maximum 190 days)
+        required: true
+        type: string
+      end_exclusive:
+        description: Last UTC day exclusive
+        required: true
+        type: string
+      probe_days:
+        description: Optional comma-separated exact days (maximum 12)
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+concurrency:
+  group: svg-historical-research-v1
+  cancel-in-progress: false
+jobs:
+  acquire:
+    if: github.repository == 'janwohlers78/mardorf-data-collector'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Install pinned research acquisition dependencies
+        run: |
+          python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-runtime.txt -r requirements-cloud.txt
+      - name: Register request and retain original responses in immutable private B2 objects
+        env:
+          WEATHERLINK_API_KEY: ${{ secrets.WEATHERLINK_API_KEY }}
+          WEATHERLINK_API_SECRET: ${{ secrets.WEATHERLINK_API_SECRET }}
+          B2_APPLICATION_KEY_ID: ${{ secrets.B2_APPLICATION_KEY_ID }}
+          B2_APPLICATION_KEY: ${{ secrets.B2_APPLICATION_KEY }}
+          B2_ENDPOINT_URL: ${{ vars.B2_ENDPOINT_URL }}
+          B2_REGION: ${{ vars.B2_REGION }}
+          B2_BUCKET: ${{ vars.B2_BUCKET }}
+          START_DAY: ${{ inputs.start }}
+          END_DAY: ${{ inputs.end_exclusive }}
+          PROBE_DAYS: ${{ inputs.probe_days }}
+        run: PYTHONPATH=src python -m mardorf_collector.providers.svg_historical_research_v1 --start "$START_DAY" --end-exclusive "$END_DAY" --probe-days "$PROBE_DAYS"
