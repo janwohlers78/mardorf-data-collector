@@ -122,10 +122,13 @@ class HistoricalSourceTests(unittest.TestCase):
             def outcome(day,*args):return dict(record,date_utc=day.isoformat()),raw,norm
             with patch.dict(research.os.environ,{'WEATHERLINK_API_KEY':'dummy-key','WEATHERLINK_API_SECRET':'dummy-secret'},clear=True), \
                  patch.object(research,'capture',side_effect=outcome), \
+                 patch.object(research.time,'sleep') as pacing, \
                  patch.object(research,'b2_settings',return_value={}), \
                  patch.object(research,'resolve_b2_bucket',return_value={}), \
                  patch.object(research,'B2Objects',return_value=backend),redirect_stdout(StringIO()):
                 self.assertEqual(research.main(['--start','2016-10-08','--end-exclusive','2016-10-22','--output',str(output)]),0)
+                self.assertEqual(pacing.call_count,14)
+                pacing.assert_called_with(4)
             result=json.loads((output/'result.json').read_bytes());index=json.loads((output/'index.json').read_bytes())
             self.assertEqual(result['status_counts'],{'provider_error':14})
             self.assertEqual(result['source_outcome'],'COMPLETE_REQUESTS_WITH_SOURCE_GAPS')

@@ -12,6 +12,7 @@ import json
 import os
 from pathlib import Path
 import zipfile
+import time
 
 from . import svg_history_v2 as history
 from .fetch_svg_weatherlink import BASE, S, STATION_ID
@@ -164,10 +165,12 @@ def main(argv=None):
         source_operator='retain native archive interval; only verified300s supports existing twelve-interval truth',
         scientific_release=False,production_head_updated=False,git_weather_bytes_written=0,
         transport='hash_verified14day_checkpoint_zip' if len(selected)>12 else 'individual_objects',
-        max_unpublished_days=14)
+        max_unpublished_days=14,min_seconds_between_logical_requests=4,
+        default_provider_limits='1000_per_hour_10_per_second; reserve routine calls; HTTP retries remain bounded')
     registration_ref=publish(backend,prefix,args.output,'registration.json',canonical(registration))
     records=[];pending=[];files=[]
     for day in selected:
+        if len(selected)>12:time.sleep(4)
         record,raw,normalized=capture(day,key,secret)
         packed=len(selected)>12
         for kind,body,name in [('raw',raw,'source.json.gz'),('normalized',normalized,'normalized.json')]:
