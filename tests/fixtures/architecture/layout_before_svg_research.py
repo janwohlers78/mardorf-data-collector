@@ -34,28 +34,7 @@ def validate(root):
         raise ValueError('Explicit architecture successor identity required')
     if sha(root/'tools/validate_prep09_layout.py')!=proof['current_validator_sha256']:
         raise ValueError('Current layout validator bytes changed without review')
-    predecessor = proof.get('research_validator_predecessor')
-    if predecessor and sha(root/predecessor['path']) != predecessor['sha256']:
-        raise ValueError('Research route validator predecessor byte drift')
     overrides={'tools/validate_prep09_layout.py':root/proof['historical_validator']['path']}
-    # Additive research routes are checked in the current tree. The immutable
-    # historical gate then sees exactly its original workflow set.
-    added = set()
-    import yaml
-    for item in proof.get('added_workflows', []):
-        name = item['path']
-        if name != '.github/workflows/svg-historical-research-v1.yml' or name in added:
-            raise ValueError('Invalid additive research route')
-        path = root/name
-        data = yaml.load(path.read_bytes(), Loader=yaml.BaseLoader)
-        if (sha(path) != item['sha256'] or not item.get('reason')
-                or set(data['on']) != {'workflow_dispatch'}
-                or data['permissions'] != {'contents': 'read'}
-                or data['concurrency'] != {'group': 'svg-historical-research-v1', 'cancel-in-progress': 'false'}
-                or data['jobs']['acquire']['timeout-minutes'] != '60'
-                or set(data['jobs']) != {'acquire'}):
-            raise ValueError('Bounded manual research workflow drift')
-        added.add(name)
     for item in proof['workflows'] + proof.get('artifact_successors', []):
         name=item['path']
         if not name.startswith(('.github/workflows/', 'tests/', 'src/', 'config/')) or '..' in Path(name).parts or name in overrides:
@@ -77,19 +56,17 @@ def validate(root):
         view=Path(temporary)
         def populate(relative):
             source=root/relative;target=view/relative;key=relative.as_posix()
-            if key in added:return
             if key in overrides:
                 target.symlink_to(overrides[key]);return
             prefix='' if key=='.' else key+'/'
-            if source.is_dir() and any(name.startswith(prefix) for name in set(overrides) | added):
+            if source.is_dir() and any(name.startswith(prefix) for name in overrides):
                 target.mkdir(exist_ok=True)
                 for child in sorted(source.iterdir()):populate(relative/child.name)
             else:
                 target.symlink_to(source,target_is_directory=source.is_dir())
         populate(Path('.'))
         result=module.validate(view)
-    return dict(result,architecture_reviewed_workflows=len(proof['workflows']),
-                architecture_added_workflows=len(added))
+    return dict(result,architecture_reviewed_workflows=len(proof['workflows']))
 
 
 def reviewed_predecessor(root, relative):

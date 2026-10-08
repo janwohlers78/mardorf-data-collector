@@ -237,7 +237,7 @@
       "current_sha256": "54e6317e3134950eccc2d8de359e948aae6900ac3512af192ee656d76af63aca"
     }
   ],
-  "current_validator_sha256": "f5d8e1baef22fbfbc4da4266f78b8f645be506c5bbb51feee4dabec37c44428d",
+  "current_validator_sha256": "fb267b4e880c1b1e4ae0343c6278031a5bbef7474956d646402436b3ce2ee27d",
   "artifact_successors": [
     {
       "path": "src/mardorf_collector/wp13/model_store_v1.py",
@@ -369,6 +369,18 @@
           "count": 1
         }
       ]
+    }
+  ],
+  "research_validator_predecessor": {
+    "path": "tests/fixtures/architecture/layout_before_svg_research.py",
+    "sha256": "f5d8e1baef22fbfbc4da4266f78b8f645be506c5bbb51feee4dabec37c44428d",
+    "reason": "Explicit additive manual historical research route; existing historical validators and workflows retained byte for byte."
+  },
+  "added_workflows": [
+    {
+      "path": ".github/workflows/svg-historical-research-v1.yml",
+      "sha256": "b8f4774459cafa302ba22a14775d4afccf298d95c8210b30d9f7afaa1e38caa3",
+      "reason": "User requested authenticated historical SVG access verification and bounded originals for independent scientific calibration; no production head, Git weather data, schedule or forecast training."
     }
   ]
 }

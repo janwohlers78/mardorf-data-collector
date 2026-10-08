@@ -84,5 +84,24 @@ class HistoricalSourceTests(unittest.TestCase):
             self.assertFalse(result['production_head_updated']);self.assertEqual(result['git_weather_bytes_written'],0)
             self.assertEqual(result['status_counts'],{'captured':1})
 
+    def test_additive_workflow_rejects_schedule_even_with_restamped_hash(self):
+        import importlib.util
+        root=research.ROOT
+        spec=importlib.util.spec_from_file_location('research_layout',root/'tools/validate_prep09_layout.py')
+        gate=importlib.util.module_from_spec(spec);spec.loader.exec_module(gate)
+        proof=json.loads((root/'config/architecture_refactoring_v1.json').read_bytes())
+        relative='.github/workflows/svg-historical-research-v1.yml'
+        with tempfile.TemporaryDirectory() as temporary:
+            target=Path(temporary)
+            for name in ['config/architecture_refactoring_v1.json','tools/validate_prep09_layout.py',
+                         proof['historical_validator']['path'],proof['research_validator_predecessor']['path'],relative]:
+                path=target/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes((root/name).read_bytes())
+            path=target/relative
+            path.write_text(path.read_text().replace('on:\n','on:\n  schedule:\n    - cron: "0 * * * *"\n',1))
+            proof['added_workflows'][0]['sha256']=research.sha(path.read_bytes())
+            (target/'config/architecture_refactoring_v1.json').write_text(json.dumps(proof))
+            with self.assertRaisesRegex(ValueError,'Bounded manual research workflow drift'):
+                gate.validate(target)
+
 
 if __name__=='__main__':unittest.main()
