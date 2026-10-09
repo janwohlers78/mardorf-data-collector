@@ -39,4 +39,4 @@ jobs:
           PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
           B2_APPLICATION_KEY_ID: ${{ secrets.B2_APPLICATION_KEY_ID }}
           B2_APPLICATION_KEY: ${{ secrets.B2_APPLICATION_KEY }}
-        run: PYTHONPATH=src python -m mardorf_collector.runtime.wp06_single_run_v1
+        run: PYTHONPATH=src python -m mardorf_collector.runtime.wp06_single_run_v1 --with-wp07
