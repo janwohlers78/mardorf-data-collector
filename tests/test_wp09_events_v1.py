@@ -32,5 +32,6 @@ class Events(unittest.TestCase):
         backend=Backend();raw=b'[]';receipt=dict(captured_utc='2026-10-09T16:00:00Z',records=[dict(quantity='ETNW',source_bytes=2,source_sha256=hashlib.sha256(raw).hexdigest(),status='valid')])
         paths,pointer=publication(receipt,{'ETNW':raw},backend)
         self.assertIn('data/inbox/wp09_events/latest.json',paths)
+        self.assertTrue(any('/2026/10/09/' in p for p in paths))
         self.assertEqual(pointer['kind'],'wp09_events');self.assertTrue(pointer['readback_verified'])
         self.assertNotIn('records',pointer);self.assertTrue(all('/wp09-events/' in k for k in backend.data))

@@ -9,6 +9,9 @@ fitting, negative lightning labels or additional forecast owner is introduced.
 `config/wp09_events_v1.json` binds sources and station identities.
 Originals and receipts are SHA256/byte checked after B2 publication;
 `config/cloud_refs/wp09_events_ingress_v1.json` is transport control only.
+All dated receipts remain under `data/inbox/wp09_events/YYYY/MM/DD/` so a
+whole prospective window can be rebuilt from every original capture, despite
+the live provider's 48-hour horizon. The latest pointer is not a full archive.
 Failures and empty responses retain their original bytes. Empty data are not
 negative observations. Consumers must verify original report clocks and parse
 observation, recent weather, vicinity and forecast trends separately.

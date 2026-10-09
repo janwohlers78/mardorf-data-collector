@@ -53,4 +53,5 @@ def publication(receipt,originals,backend,*,domain='wp08',collection='labels'):
     if backend.get_bytes(ref)!=raw:raise ValueError('WP08_label_receipt_readback')
     pointer=dict(schema_version=1,artifact_version=f'{domain}-{collection}-ingress-control-v1',kind=f'{domain}_{collection}',generated_at_utc=receipt['captured_utc'],snapshot=ref.json(),readback_verified=True,bundle_ready=any(r['status']=='valid' for r in receipt['records']))
     stamp=receipt['captured_utc'].replace(':','')
-    return {f'data/inbox/{domain}_{collection}/'+stamp+'.json':raw,f'data/inbox/{domain}_{collection}/latest.json':raw},pointer
+    dated=stamp if domain=='wp08' else datetime.fromisoformat(receipt['captured_utc'].replace('Z','+00:00')).strftime('%Y/%m/%d/')+stamp
+    return {f'data/inbox/{domain}_{collection}/'+dated+'.json':raw,f'data/inbox/{domain}_{collection}/latest.json':raw},pointer
