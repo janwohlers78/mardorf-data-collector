@@ -237,7 +237,7 @@
       "current_sha256": "54e6317e3134950eccc2d8de359e948aae6900ac3512af192ee656d76af63aca"
     }
   ],
-  "current_validator_sha256": "7ae97fb074e49bfb41279f1f27954dcf57d5306e597ea46460c7d6a0ad3046ae",
+  "current_validator_sha256": "f4fe84d274fbd779e79f88853cd0dde6b50ba127ea8ae7a9b4c644c16d543d3b",
   "artifact_successors": [
     {
       "path": "src/mardorf_collector/wp13/model_store_v1.py",
@@ -405,6 +405,11 @@
       "path": ".github/workflows/gfs-archive-program-v1.yml",
       "sha256": "17b60af6437ac7ce3ec56b99171e90f3e21d64ff99f8bb416f6ffe093b8055e5",
       "reason": "User-authorized full ten-year public acquisition, first4remaining ranges serial priority then1matrixjob at a time; per-range23minute budget, only immutable B2 objects and refs-only14day artifacts, no schedule or forecast activation"
+    },
+    {
+      "path": ".github/workflows/wp06-single-run-daily.yml",
+      "sha256": "ba2c04f1d958da21f50aafd64c1dda11f647bb3dc432e3368084c0451a731a7b",
+      "reason": "Explicit user-authorized daily 07:35 Berlin original API capture for byte-frozen WP06; five-minute bound, B2 originals and refs-only private ingress; no production model change."
     }
   ],
   "window_probe_validator_predecessor": {

@@ -45,10 +45,21 @@ def validate(root):
     import yaml
     for item in proof.get('added_workflows', []):
         name = item['path']
-        if name not in ('.github/workflows/svg-historical-research-v1.yml', '.github/workflows/historical-weather-research-v1.yml', '.github/workflows/gfs-archive-program-v1.yml') or name in added:
+        if name not in ('.github/workflows/svg-historical-research-v1.yml', '.github/workflows/historical-weather-research-v1.yml', '.github/workflows/gfs-archive-program-v1.yml', '.github/workflows/wp06-single-run-daily.yml') or name in added:
             raise ValueError('Invalid additive research route')
         path = root/name
         data = yaml.load(path.read_bytes(), Loader=yaml.BaseLoader)
+        if name.endswith('/wp06-single-run-daily.yml'):
+            if (sha(path) != item['sha256'] or not item.get('reason')
+                    or set(data['on']) != {'schedule', 'workflow_dispatch'}
+                    or data['on']['schedule'] != [{'cron': '35 5,6 * * *'}]
+                    or data['permissions'] != {'contents': 'read'}
+                    or data['concurrency'] != {'group': 'wp06-single-run-daily', 'cancel-in-progress': 'false'}
+                    or set(data['jobs']) != {'capture'}
+                    or data['jobs']['capture']['timeout-minutes'] != '5'):
+                raise ValueError('Bounded daily WP06 acquisition route drift')
+            added.add(name)
+            continue
         if name.endswith('/gfs-archive-program-v1.yml'):
             if (sha(path) != item['sha256'] or not item.get('reason')
                     or set(data['on']) != {'workflow_dispatch'}
