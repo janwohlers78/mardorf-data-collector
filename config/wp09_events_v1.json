@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "artifact_version": "wp09-reported-thunder-binding-v1",
+  "stations": {"ETNW": {"latitude": 52.4581, "longitude": 9.4283}, "EDDV": {"latitude": 52.4658, "longitude": 9.6797}},
+  "sources": {
+    "ETNW": "https://aviationweather.gov/api/data/metar?ids=ETNW&format=json&hours=48",
+    "EDDV": "https://aviationweather.gov/api/data/metar?ids=EDDV&format=json&hours=48"
+  },
+  "historical_endpoint": "https://mesonet.agron.iastate.edu/cgi-bin/request/asos.py",
+  "maximum_original_bytes": 16777216,
+  "maximum_daily_records": 512,
+  "all_original_fields_retained": true,
+  "target_role": "regional_original_reported_weather_not_SVG_10km_lightning_truth",
+  "scientific_status": "NOT_READY"
+}

@@ -72,7 +72,7 @@ def capture(*,now=None,get=requests.get):
     return receipt,body
 
 
-def publish(receipt,body,runtime,*,companion=None,label_companion=None):
+def publish(receipt,body,runtime,*,companion=None,label_companion=None,event_companion=None):
     backend=runtime.backend
     source=backend.put_bytes(PREFIX+'/originals/'+receipt['source_sha256'],body)
     if backend.get_bytes(source)!=body:raise ValueError('API_original_readback')
@@ -101,6 +101,11 @@ def publish(receipt,body,runtime,*,companion=None,label_companion=None):
         from .wp08_labels_v1 import publication
         paths,labels_pointer=publication(*label_companion,backend)
         companion_paths.update(paths)
+    event_pointer=None
+    if event_companion is not None:
+        from .wp09_events_v1 import publication as event_publication
+        paths,event_pointer=event_publication(*event_companion,backend)
+        companion_paths.update(paths)
     def merge(reader,changes):
         previous=reader.read('data/inbox/wp06_api/latest.json',required=False)
         if previous and json.loads(previous)['captured_utc']>=receipt['captured_utc']:
@@ -113,6 +118,7 @@ def publish(receipt,body,runtime,*,companion=None,label_companion=None):
         pointers={POINTER:pointer}
         if companion_pointer is not None:pointers['config/cloud_refs/wp07_api_ingress_v1.json']=companion_pointer
         if labels_pointer is not None:pointers['config/cloud_refs/wp08_labels_ingress_v1.json']=labels_pointer
+        if event_pointer is not None:pointers['config/cloud_refs/wp09_events_ingress_v1.json']=event_pointer
         return pointers
     result=runtime.publish({path:raw,'data/inbox/wp06_api/latest.json':raw,**companion_paths},
         metadata=dict(channel='wp06-single-run-original-capture-v1',original_generated_at_utc=receipt['captured_utc'],
@@ -139,7 +145,7 @@ def latest_capture(*,now=None,get=requests.get):
 
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--capture-only',type=Path);p.add_argument('--gate',action='store_true');p.add_argument('--with-wp07',action='store_true');p.add_argument('--with-wp08-labels',action='store_true');a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--capture-only',type=Path);p.add_argument('--gate',action='store_true');p.add_argument('--with-wp07',action='store_true');p.add_argument('--with-wp08-labels',action='store_true');p.add_argument('--with-wp09-events',action='store_true');a=p.parse_args()
     if a.gate:
         print('true' if datetime.now(ZoneInfo('Europe/Berlin')).hour==7 else 'false');return
     receipt,body=latest_capture()
@@ -151,6 +157,10 @@ def main():
     if a.with_wp08_labels:
         from .wp08_labels_v1 import capture as label_capture
         label_companion=label_capture()
+    event_companion=None
+    if a.with_wp09_events:
+        from .wp09_events_v1 import capture as event_capture
+        event_companion=event_capture()
     if a.capture_only:
         a.capture_only.mkdir(parents=True,exist_ok=True)
         (a.capture_only/'receipt.json').write_bytes(canonical(receipt));(a.capture_only/'response.body').write_bytes(body)
@@ -159,9 +169,12 @@ def main():
         if label_companion:
             (a.capture_only/'wp08-label-receipt.json').write_bytes(canonical(label_companion[0]))
             for name,raw in label_companion[1].items():(a.capture_only/('wp08-'+name+'.zip')).write_bytes(raw)
+        if event_companion:
+            (a.capture_only/'wp09-event-receipt.json').write_bytes(canonical(event_companion[0]))
+            for name,raw in event_companion[1].items():(a.capture_only/('wp09-'+name+'.json')).write_bytes(raw)
         print(json.dumps({k:receipt[k] for k in ('status','http_status','reason','source_bytes','source_sha256')}));return
     root=Path(__file__).resolve().parents[3]
-    result=publish(receipt,body,load_runtime(root,environ=environment(root)),companion=companion,label_companion=label_companion)
+    result=publish(receipt,body,load_runtime(root,environ=environment(root)),companion=companion,label_companion=label_companion,event_companion=event_companion)
     print(json.dumps(result))
 
 

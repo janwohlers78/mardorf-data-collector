@@ -408,10 +408,12 @@
     },
     {
       "path": ".github/workflows/wp06-single-run-daily.yml",
-      "sha256": "675f46aa1827c7beb13089275ec452395814d1458e3aad69826ab7bdfff52e24",
+      "sha256": "38215f1a33674d9ea2ad191060b8ddf6115ef0a59d91e07543c5e0bde444ce35",
       "reason": "Explicit user-authorized daily 07:35 Berlin original API capture for byte-frozen WP06; five-minute bound, B2 originals and refs-only private ingress; no production model change. Explicit D04 successor: same schedule and job, separately bound WP07 IFS original, one refs-only CAS publication. Explicit WP08 successor: bounded registered DWD cloud/solar/rain-diagnostic originals in same daily CAS; no extra cron or SVG relabeling.",
       "predecessor_sha256": "ba2c04f1d958da21f50aafd64c1dda11f647bb3dc432e3368084c0451a731a7b",
-      "wp08_predecessor_sha256": "17358329327dd72665f079219214f9c8e3927f8acabc40efcc47333be7c194c8"
+      "wp08_predecessor_sha256": "17358329327dd72665f079219214f9c8e3927f8acabc40efcc47333be7c194c8",
+      "wp09_predecessor_sha256": "675f46aa1827c7beb13089275ec452395814d1458e3aad69826ab7bdfff52e24",
+      "wp09_review": "existing shared capture adds bounded original METAR event sources; schedules/triggers/timeouts unchanged; no new negative labels"
     }
   ],
   "window_probe_validator_predecessor": {
