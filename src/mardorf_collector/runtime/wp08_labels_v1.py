@@ -40,8 +40,9 @@ def capture(*,root=ROOT,get=requests.get):
     return dict(artifact_version='wp08-native-label-receipt-v1',captured_utc=datetime.now(timezone.utc).isoformat(),
         binding_sha256=hashlib.sha256(path.read_bytes()).hexdigest(),records=records,provider_owner='public_collector',all_original_fields_retained=True),originals
 
-def publication(receipt,originals,backend):
-    prefix='weather/archive/janwohlers78/mardorf-kitevorhersage/wp08-labels/v1';value=dict(receipt,records=[])
+def publication(receipt,originals,backend,*,domain='wp08',collection='labels'):
+    if (domain,collection) not in (('wp08','labels'),('wp09','events')):raise ValueError('unregistered_native_collection')
+    prefix=f'weather/archive/janwohlers78/mardorf-kitevorhersage/{domain}-{collection}/v1';value=dict(receipt,records=[])
     for r in receipt['records']:
         raw=originals[r['quantity']]
         if hashlib.sha256(raw).hexdigest()!=r['source_sha256'] or len(raw)!=r['source_bytes']:raise ValueError('WP08_capture_integrity')
@@ -50,6 +51,6 @@ def publication(receipt,originals,backend):
         value['records'].append(dict(r,original=ref.json()))
     raw=json.dumps(value,sort_keys=True,separators=(',',':')).encode();ref=backend.put_bytes(prefix+'/receipts/'+hashlib.sha256(raw).hexdigest()+'.json',raw)
     if backend.get_bytes(ref)!=raw:raise ValueError('WP08_label_receipt_readback')
-    pointer=dict(schema_version=1,artifact_version='wp08-labels-ingress-control-v1',kind='wp08_labels',generated_at_utc=receipt['captured_utc'],snapshot=ref.json(),readback_verified=True,bundle_ready=any(r['status']=='valid' for r in receipt['records']))
+    pointer=dict(schema_version=1,artifact_version=f'{domain}-{collection}-ingress-control-v1',kind=f'{domain}_{collection}',generated_at_utc=receipt['captured_utc'],snapshot=ref.json(),readback_verified=True,bundle_ready=any(r['status']=='valid' for r in receipt['records']))
     stamp=receipt['captured_utc'].replace(':','')
-    return {'data/inbox/wp08_labels/'+stamp+'.json':raw,'data/inbox/wp08_labels/latest.json':raw},pointer
+    return {f'data/inbox/{domain}_{collection}/'+stamp+'.json':raw,f'data/inbox/{domain}_{collection}/latest.json':raw},pointer
