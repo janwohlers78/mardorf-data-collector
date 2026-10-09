@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "artifact_version": "wp08-native-label-binding-v1",
+  "station_id": "00662",
+  "sources": {
+    "cloud": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/cloudiness/recent/stundenwerte_N_00662_akt.zip",
+    "solar": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/solar/stundenwerte_ST_00662_row.zip",
+    "rain_regional_diagnostic": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/precipitation/recent/stundenwerte_RR_00662_akt.zip"
+  },
+  "maximum_original_bytes": 8388608,
+  "maximum_zip_expanded_bytes": 167772160,
+  "regional_labels_are_not_SVG_truth": true,
+  "all_original_fields_retained": true,
+  "scientific_status": "NOT_READY"
+}
