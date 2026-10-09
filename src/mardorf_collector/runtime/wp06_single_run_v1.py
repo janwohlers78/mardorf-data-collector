@@ -72,7 +72,7 @@ def capture(*,now=None,get=requests.get):
     return receipt,body
 
 
-def publish(receipt,body,runtime):
+def publish(receipt,body,runtime,*,companion=None):
     backend=runtime.backend
     source=backend.put_bytes(PREFIX+'/originals/'+receipt['source_sha256'],body)
     if backend.get_bytes(source)!=body:raise ValueError('API_original_readback')
@@ -83,16 +83,32 @@ def publish(receipt,body,runtime):
         generated_at_utc=receipt['captured_utc'],snapshot=ref.json(),receipt_sha256=ref.sha256,
         readback_verified=True,bundle_ready=receipt['status']=='valid')
     path='data/inbox/wp06_api/'+receipt['captured_utc'].replace(':','')+'.json'
+    companion_paths={}; companion_pointer=None
+    if companion is not None:
+        r,b=companion;prefix=PREFIX.replace('wp06-api','wp07-api')
+        original=backend.put_bytes(prefix+'/originals/'+r['source_sha256'],b)
+        if backend.get_bytes(original)!=b:raise ValueError('WP07_original_readback')
+        companion_raw=canonical(dict(r,original=original.json()))
+        companion_ref=backend.put_bytes(prefix+'/receipts/'+hashlib.sha256(companion_raw).hexdigest()+'.json',companion_raw)
+        if backend.get_bytes(companion_ref)!=companion_raw:raise ValueError('WP07_receipt_readback')
+        companion_pointer=dict(schema_version=1,artifact_version='wp07-api-ingress-control-v1',kind='wp07_api',
+            generated_at_utc=r['captured_utc'],snapshot=companion_ref.json(),readback_verified=True,
+            bundle_ready=r['status']=='valid',receipt_sha256=companion_ref.sha256)
+        companion_paths={'data/inbox/wp07_api/'+r['captured_utc'].replace(':','')+'.json':companion_raw,
+                         'data/inbox/wp07_api/latest.json':companion_raw}
     def merge(reader,changes):
         previous=reader.read('data/inbox/wp06_api/latest.json',required=False)
         if previous and json.loads(previous)['captured_utc']>=receipt['captured_utc']:
-            return {path:raw}
+            return {path:raw,**{p:b for p,b in companion_paths.items() if not p.endswith('/latest.json')}}
         return changes
     def refs(snapshot):
         # CAS retry may discover a newer receipt; do not rewind its Git pointer.
         previous=runtime.read('data/inbox/wp06_api/latest.json',required=False)
-        return {} if previous and json.loads(previous)['captured_utc']>receipt['captured_utc'] else {POINTER:pointer}
-    result=runtime.publish({path:raw,'data/inbox/wp06_api/latest.json':raw},
+        if previous and json.loads(previous)['captured_utc']>receipt['captured_utc']:return {}
+        pointers={POINTER:pointer}
+        if companion_pointer is not None:pointers['config/cloud_refs/wp07_api_ingress_v1.json']=companion_pointer
+        return pointers
+    result=runtime.publish({path:raw,'data/inbox/wp06_api/latest.json':raw,**companion_paths},
         metadata=dict(channel='wp06-single-run-original-capture-v1',original_generated_at_utc=receipt['captured_utc'],
             producer_repository='janwohlers78/mardorf-data-collector',payload_sha256=receipt['source_sha256'],receipt_sha256=ref.sha256),
         merge=merge,extra_refs=refs)
@@ -117,16 +133,22 @@ def latest_capture(*,now=None,get=requests.get):
 
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--capture-only',type=Path);p.add_argument('--gate',action='store_true');a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--capture-only',type=Path);p.add_argument('--gate',action='store_true');p.add_argument('--with-wp07',action='store_true');a=p.parse_args()
     if a.gate:
         print('true' if datetime.now(ZoneInfo('Europe/Berlin')).hour==7 else 'false');return
     receipt,body=latest_capture()
+    companion=None
+    if a.with_wp07:
+        from .wp07_single_run_v1 import capture as companion_capture
+        companion=companion_capture(receipt['request']['params']['run'])
     if a.capture_only:
         a.capture_only.mkdir(parents=True,exist_ok=True)
         (a.capture_only/'receipt.json').write_bytes(canonical(receipt));(a.capture_only/'response.body').write_bytes(body)
+        if companion:
+            (a.capture_only/'wp07-receipt.json').write_bytes(canonical(companion[0]));(a.capture_only/'wp07-response.body').write_bytes(companion[1])
         print(json.dumps({k:receipt[k] for k in ('status','http_status','reason','source_bytes','source_sha256')}));return
     root=Path(__file__).resolve().parents[3]
-    result=publish(receipt,body,load_runtime(root,environ=environment(root)))
+    result=publish(receipt,body,load_runtime(root,environ=environment(root)),companion=companion)
     print(json.dumps(result))
 
 
