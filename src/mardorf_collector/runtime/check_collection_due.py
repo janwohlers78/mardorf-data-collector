@@ -65,20 +65,23 @@ def fetch_latest(repo,kind,token):
     _,original_field=state_pointer(kind)
     return {**value,original_field:value.get(stamp_field)}
 
-def model_retry_due(runs, now, cooldown_minutes=120):
+def model_retry_due(runs, now, cooldown_minutes=120, *, last_verified_success=None):
     """Bound failure retries without treating failures as successful acquisition.
 
-    Explicit manual acquisition bypasses the routine due gate. The latest
-    main-branch terminal attempt controls cooldown; active jobs are handled by
+    Explicit manual acquisition bypasses the routine due gate. The latest failed
+    main-branch attempt controls cooldown; active jobs are handled by
     the watchdog concurrency guard. Unknown evidence fails open visibly.
     """
     terminal = [r for r in runs if r.get('head_branch') == 'main'
-                and r.get('status') == 'completed']
+                and r.get('status') == 'completed'
+                and r.get('conclusion') in ('failure', 'cancelled', 'timed_out')]
     if not terminal:
         return True, 'no_terminal_model_attempt'
     latest = max(terminal, key=lambda r: parse_time(r['updated_at']))
-    if latest.get('conclusion') not in ('failure', 'cancelled', 'timed_out'):
-        return True, 'latest_model_attempt_not_failed'
+    # A successful due-check-only workflow is not successful acquisition.
+    # Only the independently verified delivery timestamp can clear a failure.
+    if last_verified_success is not None and parse_time(last_verified_success) >= parse_time(latest['updated_at']):
+        return True, 'verified_delivery_after_failed_attempt'
     age = (now-parse_time(latest['updated_at'])).total_seconds()/60
     if age < 0:
         return True, 'future_retry_timestamp_fail_open'
@@ -171,7 +174,7 @@ def main():
 
     if due and args.kind == 'models' and token:
         try:
-            allowed, retry_reason = model_retry_due(fetch_model_attempts(token), now)
+            allowed, retry_reason = model_retry_due(fetch_model_attempts(token), now, last_verified_success=stamp)
             if not allowed:
                 due=False; reason=retry_reason
         except (ValueError, KeyError, TypeError, OSError):

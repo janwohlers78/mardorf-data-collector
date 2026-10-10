@@ -10,6 +10,14 @@ class RetryTests(unittest.TestCase):
         self.assertTrue(model_retry_due([row],now+timedelta(minutes=120))[0])
         row['conclusion']='success'
         self.assertTrue(model_retry_due([row],now)[0])
+    def test_successful_noop_cannot_clear_recent_failed_acquisition(self):
+        now=datetime(2026,10,10,8,tzinfo=timezone.utc)
+        failure=dict(head_branch='main',status='completed',conclusion='failure',updated_at=now.isoformat())
+        noop=dict(head_branch='main',status='completed',conclusion='success',updated_at=(now+timedelta(minutes=15)).isoformat())
+        self.assertEqual(model_retry_due([failure,noop],now+timedelta(minutes=20)),(False,'model_failure_cooldown'))
+        self.assertFalse(model_retry_due([failure,noop],now+timedelta(minutes=20),last_verified_success=(now-timedelta(days=1)).isoformat())[0])
+        self.assertTrue(model_retry_due([failure,noop],now+timedelta(minutes=20),last_verified_success=noop['updated_at'])[0])
+
     def test_other_branches_and_future_clocks_do_not_silently_block(self):
         now=datetime(2026,10,10,8,tzinfo=timezone.utc)
         row=dict(head_branch='experiment',status='completed',conclusion='failure',updated_at=now.isoformat())
