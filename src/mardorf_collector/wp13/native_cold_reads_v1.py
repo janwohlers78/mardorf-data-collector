@@ -6,6 +6,7 @@ bodies plus the consumed body; no historical scans or persistent proof cache.
 """
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
+from mardorf_collector.storage.objects import path_digest
 
 METADATA_BYTES = 16 * 1024**2
 OBJECT_BYTES = 8 * 1024**2
@@ -109,6 +110,17 @@ def publish_object(backend, local, reference, *, verified_reads=None):
                 if metadata['bytes']!=reference.bytes or metadata['sha256']!=reference.sha256:
                     raise ValueError('Immutable cached publication conflict')
                 return reference
+    if verified_reads is not None:
+        # Existing remote bytes need one cold hash-checked read, not a second
+        # identical download through put_file followed by cache priming.
+        metadata = backend.head(reference.key)
+        if metadata is not None:
+            if metadata['bytes'] != reference.bytes or metadata['sha256'] != reference.sha256:
+                raise ValueError('Immutable cached publication conflict')
+            if path_digest(local.root/reference.key, backend.max_object_bytes) != (reference.sha256, reference.bytes):
+                raise ValueError('Original model source identity mismatch')
+            verified_reads.get_bytes(reference)
+            return reference
     result = backend.put_file(reference.key,local.root/reference.key)
     if verified_reads is not None:
         verified_reads.get_bytes(reference)

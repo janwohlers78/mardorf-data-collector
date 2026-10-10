@@ -1,6 +1,6 @@
 """Publish existing model originals and qualified compact extracts to B2."""
 import argparse
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 import os
 import time
@@ -107,9 +107,14 @@ def publish(*, cloud=None, directory=WORK):
         result = publish_object(runtime.backend, local, ref, verified_reads=verified_reads)
         if result != ref:
             raise ValueError('Original model upload identity mismatch')
-    # Same bounded concurrency already qualified for historical additive imports.
-    with ThreadPoolExecutor(max_workers=8) as executor:
-        list(executor.map(upload, sorted(refs, key=lambda ref: ref.key)))
+    # Bound network concurrency to 24 objects (at most 192 MiB of 8-MiB bodies).
+    with ThreadPoolExecutor(max_workers=24) as executor:
+        pending = {executor.submit(upload, ref) for ref in sorted(refs, key=lambda ref: ref.key)}
+        for count, future in enumerate(as_completed(pending), 1):
+            future.result()
+            if count % 128 == 0 or count == len(refs):
+                print('WP15_UPLOAD_PROGRESS=' + json.dumps(dict(completed=count, total=len(refs),
+                    seconds=time.monotonic()-started, transport=dict(runtime.backend.metrics))), flush=True)
     print('WP15_OBJECTS_UPLOADED=' + json.dumps(dict(seconds=time.monotonic()-started, transport=runtime.backend.metrics)), flush=True)
     from . import model_store_v1
     with ColdModelReads(verified_reads or runtime.backend, model_store_v1, prepared['catalog']) as reads:
