@@ -43,9 +43,9 @@ class CompanionTests(unittest.TestCase):
             def publish(self,changes,*,metadata,merge,extra_refs):
                 self.calls+=1;self.changes=merge(self,changes);self.refs=extra_refs(None);return dict(status='published')
         cloud=Cloud();body=b'fixture';r=dict(captured_utc='2026-10-09T06:00:00Z',source_sha256=hashlib.sha256(body).hexdigest(),status='valid')
-        result=publish(r,body,cloud,companion=(r,body))
+        result=publish(r,body,cloud,companion=(r,body),force_daily=True)
         self.assertEqual(cloud.calls,1)
-        self.assertEqual(set(cloud.refs),{'config/cloud_refs/wp06_api_ingress_v1.json','config/cloud_refs/wp07_api_ingress_v1.json','config/cloud_refs/wp06_current_source_check_v1.json'})
+        self.assertEqual(set(cloud.refs),{'config/cloud_refs/wp06_api_ingress_v1.json','config/cloud_refs/wp07_api_ingress_v1.json','config/cloud_refs/wp06_current_source_check_v1.json','config/cloud_refs/wp06_daily_source_request_v1.json'})
         self.assertEqual(len(cloud.changes),4)
         self.assertEqual(result['status'],'valid')
 
