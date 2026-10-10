@@ -456,7 +456,8 @@ jobs:
             requirements-wp13-grib.txt
             requirements-wp15-models.txt
       - name: Install native recovery runtime
-        run: python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-runtime.txt -r requirements-cloud.txt -r requirements-wp13-grib.txt -r requirements-wp15-models.txt
+        run: |
+          python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-runtime.txt -r requirements-cloud.txt -r requirements-wp13-grib.txt -r requirements-wp15-models.txt
       - name: Recover canonical originals and complete unchanged native publication
         env:
           GITHUB_TOKEN: ${{ github.token }}
