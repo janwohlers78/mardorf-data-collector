@@ -38,3 +38,16 @@ schließt diese Lücke mit originalgebundenen Werten; sie ist kein numerischer
 Fit. Fehlende oder widersprüchliche Quellen führen zu sichtbaren Fehlern.
 Die EPS-Stufe ist auf zehn Minuten begrenzt; native Publikation weiterhin auf
 zwölf, der gesamte Job auf 45. Erst reale Läufe qualifizieren diese Grenzen.
+
+Der neue vollständige native EPS-Katalog umfasst zusätzlich rund3,5GB Originale.
+Ein begrenzter6GiB-Cache hält deshalb bei neuer EPS-Aufnahme den vollständigen
+kanonisch erstgelesenen Arbeitsbestand über beide Prüfdurchgänge; ältere kompakte
+Jobs behalten2GiB. Jede Verwendung prüft erneut Länge/SHA, der erste Read bleibt
+kanonisch. Phasenmarker trennen Upload, Roh-/Parquet- und Punktreproduktion.
+Die12-Minuten-Publikationsgrenze wird nicht erhöht.
+
+Die manuelle `publication_recovery_run_id` restauriert ausschließlich kanonisch
+hochgeladene Originale aus dem gehashten Diagnostikartefakt eines abgeschlossenen
+Quelllaufs. Mathematischer Runtimevergleich, eingefrorener Reader, Originalzeiten
+und vollständige Reproduktion sind verpflichtend. Keine Provider-Neuabrufe;
+Routine-Cadenz und Forecast-Fits bleiben unverändert.

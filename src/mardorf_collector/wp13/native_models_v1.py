@@ -129,7 +129,11 @@ def publish(*, cloud=None, directory=WORK):
     cache_root = os.environ.get('MARDORF_NATIVE_OBJECT_CACHE')
     verified_reads = None
     if cache_root:
-        verified_reads = NativeVerifiedReads(runtime.backend, cache_root, max_bytes=2*1024**3)
+        # Native EPS adds3.5GiB to a full4.8GiB catalog. Keep the complete
+        # canonical-read working set through both verification passes instead
+        # of evicting/re-fetching it. Older compact jobs retain the2GiB bound.
+        cache_bytes=(6 if prepared.get('native_eps_new_capture') else 2)*1024**3
+        verified_reads = NativeVerifiedReads(runtime.backend, cache_root, max_bytes=cache_bytes)
     print('WP15_OBJECT_INVENTORY=' + json.dumps(dict(objects=len(refs), bytes=sum(r.bytes for r in refs))), flush=True)
     def upload(ref):
         result = publish_object(runtime.backend, local, ref, verified_reads=verified_reads)
@@ -141,15 +145,19 @@ def publish(*, cloud=None, directory=WORK):
                 seconds=time.monotonic()-started, transport=dict(runtime.backend.metrics))), flush=True)
     publish_parallel(cache_balanced_references(refs), upload, workers=48, progress=progress)
     print('WP15_OBJECTS_UPLOADED=' + json.dumps(dict(seconds=time.monotonic()-started, transport=runtime.backend.metrics)), flush=True)
+    print('WP15_RAW_CANONICAL_VERIFY_BEGIN', flush=True)
     from . import model_store_v1
     with ColdModelReads(verified_reads or runtime.backend, model_store_v1, prepared['catalog']) as reads:
         proof = ModelReader(reads).verify(prepared['catalog'])
+    print('WP15_RAW_CANONICAL_VERIFY_END=' + json.dumps(dict(seconds=time.monotonic()-started)), flush=True)
     native_eps_proof=None
     if prepared.get('native_eps_source'):
         from mardorf_collector.providers.native_eps import verify_source
         source=json.loads(runtime.backend.get_bytes(ObjectRef.parse(prepared['native_eps_source'])))
         if prepared.get('native_eps_new_capture'):
+            print('WP15_EPS_POINT_VERIFY_BEGIN', flush=True)
             native_eps_proof=verify_source(source,verified_reads or runtime.backend,catalog)
+            print('WP15_EPS_POINT_VERIFY_END=' + json.dumps(dict(seconds=time.monotonic()-started)), flush=True)
         elif canonical(source)!=local.get_bytes(ObjectRef.parse(prepared['native_eps_source'])):
             raise ValueError('Carried native EPS source differs')
     if seed:
