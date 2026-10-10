@@ -95,12 +95,11 @@ def publish(*, cloud=None, directory=WORK):
         refs.update(ObjectRef.parse(value) for value in parents.manifest(item['parent'])['chunks'])
     for fragment in catalog['fragments']:
         refs.update(ObjectRef.parse(fragment[kind]) for kind in ('native', 'parquet'))
-    from .native_cold_reads_v1 import ColdModelReads, publish_object, publish_parallel
+    from .native_cold_reads_v1 import ColdModelReads, publish_object, publish_parallel, NativeVerifiedReads
     cache_root = os.environ.get('MARDORF_NATIVE_OBJECT_CACHE')
     verified_reads = None
     if cache_root:
-        from mardorf_collector.storage.verified_reads_v1 import VerifiedReads
-        verified_reads = VerifiedReads(runtime.backend, cache_root, max_bytes=2*1024**3)
+        verified_reads = NativeVerifiedReads(runtime.backend, cache_root, max_bytes=2*1024**3)
     print('WP15_OBJECT_INVENTORY=' + json.dumps(dict(objects=len(refs), bytes=sum(r.bytes for r in refs))), flush=True)
     def upload(ref):
         result = publish_object(runtime.backend, local, ref, verified_reads=verified_reads)
