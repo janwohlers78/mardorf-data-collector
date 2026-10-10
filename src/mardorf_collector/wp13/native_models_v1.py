@@ -107,8 +107,8 @@ def publish(*, cloud=None, directory=WORK):
         result = publish_object(runtime.backend, local, ref, verified_reads=verified_reads)
         if result != ref:
             raise ValueError('Original model upload identity mismatch')
-    # Bound network concurrency to 24 objects (at most 192 MiB of 8-MiB bodies).
-    with ThreadPoolExecutor(max_workers=24) as executor:
+    # Bound IO to 48 objects; native chunks are at most 8 MiB each.
+    with ThreadPoolExecutor(max_workers=48) as executor:
         pending = {executor.submit(upload, ref) for ref in sorted(refs, key=lambda ref: ref.key)}
         for count, future in enumerate(as_completed(pending), 1):
             future.result()

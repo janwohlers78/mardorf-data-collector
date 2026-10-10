@@ -3,7 +3,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 import yaml
-from mardorf_collector.storage.objects import LocalObjects
+from mardorf_collector.storage.objects import LocalObjects, B2Objects, ObjectError
+from test_cloud_objects import FakeS3
+import hashlib
 from mardorf_collector.storage.verified_reads_v1 import VerifiedReads
 from mardorf_collector.wp13.native_cold_reads_v1 import publish_object
 
@@ -22,6 +24,21 @@ class NativeRoutineIOTests(unittest.TestCase):
             empty=VerifiedReads(remote,root/'empty-cache')
             with self.assertRaisesRegex(ValueError,'source identity'):
                 publish_object(remote,local,ref,verified_reads=empty)
+
+    def test_new_b2_object_uses_three_requests_and_forces_cold_read_on_deleted_cache_hit(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);local=LocalObjects(root/'local');body=b'full original, null fields and metadata'
+            ref=local.put_bytes('weather/native/'+hashlib.sha256(body).hexdigest(),body)
+            client=FakeS3();remote=B2Objects(dict(B2_ENDPOINT_URL='https://s3.eu-central-003.backblazeb2.com',
+                B2_REGION='eu-central-003',B2_BUCKET='fixture-bucket'),client=client)
+            cached=VerifiedReads(remote,root/'cache')
+            start=remote.metrics['requests']
+            self.assertEqual(publish_object(remote,local,ref,verified_reads=cached),ref)
+            self.assertEqual(remote.metrics['requests']-start,3)
+            self.assertEqual(cached.get_bytes(ref),body)
+            del client.objects[ref.key];client.read_corrupt=True
+            with self.assertRaisesRegex(ObjectError,'Verified object download failed'):
+                publish_object(remote,local,ref,verified_reads=cached)
 
     def test_native_stages_preserve_failure_gates_and_canonical_cache_authority(self):
         root=Path(__file__).resolve().parents[1]
