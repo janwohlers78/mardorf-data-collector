@@ -120,15 +120,8 @@ def fetch_base(d,model,test):
         else:
             rows=dwd.fetch_icon_eu(leads,required_cycle_lead=None if test else 120)
     elif model=="ICON-D2-EPS":
-        from .native_eps import fetch
-        gate=d.get("provider_cycle_gate",{}).get("models",{}).get(model,{})
-        planned=gate.get("selected_run_time_utc")
-        cycle=datetime.fromisoformat(planned).strftime('%Y%m%d%H') if planned else None
-        rows,source=fetch(leads,cycle=cycle)
-        d["native_eps_source"]=source
-        # Old API captures remain immutable archives. Never associate their
-        # zero-based identities or hourly interpolation with native GRIB data.
-        d.pop("ensemble_hourly_source",None)
+        rows,hourly_source=fetch_eps_when_settled(leads)
+        d["ensemble_hourly_source"]=hourly_source
     else:
         raise ValueError(model)
     availability.stamp_rows(rows, observed_at=now(), replace_row_time=True)

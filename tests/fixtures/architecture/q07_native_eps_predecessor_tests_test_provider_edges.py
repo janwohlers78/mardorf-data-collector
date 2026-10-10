@@ -54,11 +54,10 @@ class ProviderEdgeTests(unittest.TestCase):
              patch.object(provider.time,'sleep') as sleep:
             with self.assertRaisesRegex(RuntimeError,'metadata changed'):provider.fetch_eps_when_settled([0])
             acquire.assert_called_once_with([0]);sleep.assert_not_called()
-        with patch('mardorf_collector.providers.native_eps.fetch',return_value=([],{'fixture':True})) as acquire:
+        with patch.object(provider,'fetch_eps_when_settled',return_value=([],{'fixture':True})) as acquire:
             data=provider.initial(False);provider.fetch_base(data,'ICON-D2-EPS',True)
-            acquire.assert_called_once_with([0,12,24,36,48],cycle=None)
-            self.assertEqual(data['native_eps_source'],{'fixture':True})
-            self.assertNotIn('ensemble_hourly_source',data)
+            acquire.assert_called_once_with([0,12,24,36,48])
+            self.assertEqual(data['ensemble_hourly_source'],{'fixture':True})
 
     def test_open_meteo_session_retries_transient_503_bounded(self):
         retry=dwd.S.get_adapter("https://").max_retries

@@ -40,6 +40,28 @@ def prepare(directory=WORK, *, snapshot=None):
         'catalog': ref.json(), 'proof': proof,
         'producer_release_sha256': digest(release_body),
         'producer_commits': sorted({item['metadata']['producer_commit'] for item in captures})}
+    if snapshot.get('native_eps_source'):
+        source=snapshot['native_eps_source']
+        body=canonical(source)
+        prepared['native_eps_source']=backend.put_bytes('weather/model-native/wp15/v1/native-eps/'+digest(body),body).json()
+        prepared['native_eps_new_capture']=any(x['metadata']['acquisition_model']=='ICON-D2-EPS' for x in captures)
+        if prepared['native_eps_new_capture']:
+            prepared['native_eps_grid_original']=source['grid_original']
+            prepared['native_eps_grid_prefix']=source['grid_prefix']
+    integrity_path=directory.parent/'model_integrity.json'
+    if integrity_path.is_file():
+        from mardorf_collector.runtime.native_source_seed import create
+        prior=None
+        try:
+            from mardorf_collector.runtime.private_state import cloud
+            from mardorf_collector.runtime.native_source_seed import PATH
+            prior_raw=cloud().read(PATH,required=False)
+            prior=json.loads(prior_raw) if prior_raw else None
+        except (OSError,ValueError):
+            # No prior scopes can be claimed from unavailable evidence.
+            pass
+        prepared['acquisition_seed']=create(backend,snapshot,json.loads(integrity_path.read_bytes()),ref.json(),
+            ModelReader(backend).catalog(ref),proof,prior=prior,native_point_source=prepared.get('native_eps_source'))
     (directory / 'prepared.json').write_bytes(canonical(prepared))
     print('WP15_PREPARE_END=' + json.dumps(dict(seconds=time.monotonic()-started, proof=proof)), flush=True)
     return prepared
@@ -95,11 +117,23 @@ def publish(*, cloud=None, directory=WORK):
         refs.update(ObjectRef.parse(value) for value in parents.manifest(item['parent'])['chunks'])
     for fragment in catalog['fragments']:
         refs.update(ObjectRef.parse(fragment[kind]) for kind in ('native', 'parquet'))
+    if prepared.get('native_eps_source'):
+        refs.add(ObjectRef.parse(prepared['native_eps_source']))
+        if prepared.get('native_eps_new_capture'):
+            refs.update(ObjectRef.parse(prepared[key]) for key in ('native_eps_grid_original','native_eps_grid_prefix'))
+            refs.update(ObjectRef.parse(value) for value in parents.manifest(prepared['native_eps_grid_original'])['chunks'])
+    seed=prepared.get('acquisition_seed')
+    if seed:
+        refs.update(ObjectRef.parse(seed[key]) for key in ('payload','integrity'))
     from .native_cold_reads_v1 import ColdModelReads, publish_object, publish_parallel, NativeVerifiedReads, cache_balanced_references
     cache_root = os.environ.get('MARDORF_NATIVE_OBJECT_CACHE')
     verified_reads = None
     if cache_root:
-        verified_reads = NativeVerifiedReads(runtime.backend, cache_root, max_bytes=2*1024**3)
+        # Native EPS adds3.5GiB to a full4.8GiB catalog. Keep the complete
+        # canonical-read working set through both verification passes instead
+        # of evicting/re-fetching it. Older compact jobs retain the2GiB bound.
+        cache_bytes=(6 if prepared.get('native_eps_new_capture') else 2)*1024**3
+        verified_reads = NativeVerifiedReads(runtime.backend, cache_root, max_bytes=cache_bytes)
     print('WP15_OBJECT_INVENTORY=' + json.dumps(dict(objects=len(refs), bytes=sum(r.bytes for r in refs))), flush=True)
     def upload(ref):
         result = publish_object(runtime.backend, local, ref, verified_reads=verified_reads)
@@ -111,29 +145,68 @@ def publish(*, cloud=None, directory=WORK):
                 seconds=time.monotonic()-started, transport=dict(runtime.backend.metrics))), flush=True)
     publish_parallel(cache_balanced_references(refs), upload, workers=48, progress=progress)
     print('WP15_OBJECTS_UPLOADED=' + json.dumps(dict(seconds=time.monotonic()-started, transport=runtime.backend.metrics)), flush=True)
+    print('WP15_RAW_CANONICAL_VERIFY_BEGIN', flush=True)
     from . import model_store_v1
     with ColdModelReads(verified_reads or runtime.backend, model_store_v1, prepared['catalog']) as reads:
         proof = ModelReader(reads).verify(prepared['catalog'])
+    print('WP15_RAW_CANONICAL_VERIFY_END=' + json.dumps(dict(seconds=time.monotonic()-started)), flush=True)
+    native_eps_proof=None
+    if prepared.get('native_eps_source'):
+        from mardorf_collector.providers.native_eps import verify_source
+        source=json.loads(runtime.backend.get_bytes(ObjectRef.parse(prepared['native_eps_source'])))
+        if prepared.get('native_eps_new_capture'):
+            print('WP15_EPS_POINT_VERIFY_BEGIN', flush=True)
+            native_eps_proof=verify_source(source,verified_reads or runtime.backend,catalog)
+            print('WP15_EPS_POINT_VERIFY_END=' + json.dumps(dict(seconds=time.monotonic()-started)), flush=True)
+        elif canonical(source)!=local.get_bytes(ObjectRef.parse(prepared['native_eps_source'])):
+            raise ValueError('Carried native EPS source differs')
+    if seed:
+        for key in ('payload','integrity'):
+            ref=ObjectRef.parse(seed[key])
+            if runtime.backend.get_bytes(ref)!=local.get_bytes(ref):raise ValueError('Acquisition seed cold readback differs')
     print('WP15_CANONICAL_VERIFIED=' + json.dumps(dict(seconds=time.monotonic()-started, proof=proof)), flush=True)
     packed = projection_pack(runtime.backend, local, prepared['catalog'], catalog)
     marker = dict(prepared, artifact_version='wp15-native-model-ingress-v1', cold_readback=proof,
         projection_pack=packed.json())
+    if native_eps_proof:marker['native_eps_cold_readback']=native_eps_proof
     if verified_reads is not None:
         marker['canonical_readback_mode'] = 'first_seen_canonical_cold_then_full_sha_verified_immutable_cache'
     identity = digest(canonical(marker))
     name = INGRESS + identity + '.json'
     body = canonical(marker)
+    promote_control={'value':True}
     def merge(current, incoming):
         previous = current.read(name, required=False)
         if previous is not None and previous != body:
             raise ValueError('Immutable model ingress collision')
-        return {} if previous == body else incoming
-    publication = runtime.publish({name: body}, metadata={'channel': 'wp15-native-model-producer'}, merge=merge)
+        selected={path:value for path,value in incoming.items() if current.read(path,required=False)!=value}
+        if seed:
+            from mardorf_collector.runtime.native_source_seed import PATH
+            prior=current.read(PATH,required=False)
+            if prior:
+                old=json.loads(prior)
+                older=old['source_generated_at_utc']>seed['source_generated_at_utc'] or any(
+                    old.get('source_catalogs',{}).get(model,{}).get('run_time_utc','')>scope['run_time_utc']
+                    for model,scope in seed['source_catalogs'].items())
+                if older:
+                    selected.pop(PATH,None);promote_control['value']=False
+        return selected
+    changes={name:body}
+    if seed:
+        from mardorf_collector.runtime.native_source_seed import PATH
+        changes[PATH]=canonical(seed)
+    extra=None
+    if seed:
+        from mardorf_collector.runtime.native_source_seed import CONTROL,control
+        extra=lambda snapshot:{CONTROL:control(seed,snapshot.json(),event_id=os.getenv('GITHUB_RUN_ID','local'),
+            repository=runtime.config['public_repository'])} if promote_control['value'] else {}
+    publication = runtime.publish(changes, metadata={'channel': 'wp15-native-model-producer'}, merge=merge,extra_refs=extra)
     result = {'status': 'PASS', 'receipt_id': identity, 'catalog': prepared['catalog'],
         'cold_readback': proof, 'publication': publication, 'objects': len(refs),
         'provider_requests_added': 0, 'weather_git_bytes_written': 0}
     result['elapsed_seconds'] = time.monotonic()-started
     result['projection_pack'] = packed.json()
+    if native_eps_proof:result['native_eps_cold_readback']=native_eps_proof
     result['canonical_readback_mode'] = marker.get('canonical_readback_mode', 'independent_canonical_cold')
     if verified_reads is not None:
         result['canonical_cache_metrics'] = dict(verified_reads.cache.metrics)

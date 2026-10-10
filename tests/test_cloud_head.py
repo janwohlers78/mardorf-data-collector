@@ -45,6 +45,33 @@ class HeadTests(unittest.TestCase):
         with self.assertRaises(ObjectError) as context:head.read()
         self.assertNotIn('secret',str(context.exception))
 
+    def test_native_acquisition_control_roundtrips_existing_thin_reference_contract(self):
+        from mardorf_collector.runtime.native_source_seed import control,CONTROL
+        head=self.head();blobs={};paths={}
+        marker=dict(source_generated_at_utc='2026-10-10T13:40:00Z',all_native_sources_ready=True)
+        document=control(marker,REF,event_id=123,repository='fixture/repository')
+        def call(method,path,**kw):
+            if path=='/git/commits/'+'b'*40:return {'tree':{'sha':'c'*40}}
+            if path=='/git/blobs':
+                raw=base64.b64decode(kw['json']['content'])
+                sha=hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()
+                blobs[sha]=raw;return {'sha':sha}
+            if path.startswith('/git/blobs/'):
+                return {'encoding':'base64','content':base64.b64encode(blobs[path.rsplit('/',1)[1]]).decode()}
+            if path=='/git/trees':
+                paths.update({x['path']:x['sha'] for x in kw['json']['tree']});return {'sha':'d'*40}
+            if path=='/git/commits':return {'sha':'e'*40}
+            if path=='/git/commits/'+'e'*40:return {'tree':{'sha':'d'*40},'parents':[{'sha':'b'*40}]}
+            if path.startswith('/contents/'):return {'sha':paths[path[len('/contents/'):]]}
+            if path.startswith('/git/refs/'):
+                self.assertFalse(kw['json']['force']);return {'object':{'sha':'e'*40}}
+            raise AssertionError(path)
+        head.call=call
+        self.assertTrue(head.advance('b'*40,REF,metadata={},extra_refs={CONTROL:document}))
+        saved=json.loads(blobs[paths[CONTROL]])
+        self.assertEqual(saved['generated_at_utc'],marker['source_generated_at_utc'])
+        self.assertEqual(saved['metadata']['channel'],'native-acquisition-only')
+
     def test_nested_weather_values_and_unknown_clocks_are_not_git_metadata(self):
         for value in ({'channel':{'temperature':20}}, {'producer_commit':'unknown'},
                       {'changed_path_count':True},{'original_generated_at_utc':'2000-01-01T00:00:00'},

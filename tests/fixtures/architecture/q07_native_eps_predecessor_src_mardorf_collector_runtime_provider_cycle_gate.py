@@ -263,8 +263,15 @@ def discover(model,full_validation=True):
             cycle=dwd.discover_cycle("icon-eu",48)
         return utc(datetime.strptime(cycle,"%Y%m%d%H").replace(tzinfo=timezone.utc))
     if model=="ICON-D2-EPS":
-        cycle=dwd.discover_cycle('icon-d2-eps',48)
-        return utc(datetime.strptime(cycle,'%Y%m%d%H').replace(tzinfo=timezone.utc))
+        meta=dwd.fetch_eps_metadata()
+        run=utc(meta["last_run_initialisation_time_utc"])
+        available=utc(meta["last_run_availability_time_utc"])
+        age=(datetime.now(timezone.utc)-available).total_seconds()
+        if age < dwd.EPS_SETTLING_SECONDS:
+            raise RuntimeError(
+                f"ICON-D2-EPS newest run is not settled: run={run.isoformat()} age_seconds={age:.1f}")
+        dwd.find_dwd_file("icon-d2-eps",run.strftime("%Y%m%d%H"),48,"u_10m")
+        return run
     if model=="ECMWF-IFS":
         return _ecmwf_cycle(full_validation)
     raise ValueError(model)
@@ -320,9 +327,6 @@ def load_seed(repo,token):
     if private_state.enabled(repo):
         from mardorf_collector.storage.delivery import verified_collector_delivery
         reader=private_state.cloud()
-        from .native_source_seed import load as native_seed
-        acquisition=native_seed(reader)
-        if acquisition is not None:return acquisition
         raw,latest,_health,_invocation=verified_collector_delivery(
             lambda path: private_bytes(repo,path,token),'models',
             public_repository=reader.config['public_repository'])
@@ -354,9 +358,6 @@ def build_plan(repo,token,full_validation=True,discover_fn=discover,discover_gef
         try:
             run=discover_fn(model,full_validation)
             archived=exact_archived_cycle(repo,token,model,run)
-            native_scope=latest.get('_native_acquisition_cycles',{}).get(model,{})
-            if native_scope.get('run_time_utc')==run.isoformat():
-                archived=native_scope
             source_ok=source_matches_cycle(latest,model,run)
             rows_ok=rows_match_cycle(seed,model,run)
             entry.update(
@@ -504,11 +505,7 @@ def prepare_seed(seed,plan,path):
     out["retrieved_at_utc"]=plan["checked_at_utc"]
     out["provider_attempts"]=[]
     out["provider_cycle_gate"]=plan
-    prior_errors=out.setdefault("quality",{}).get("errors",[])
-    if prior_errors:
-        out['prior_acquisition_diagnostics']={'seed_payload_sha256':plan['seed_payload_sha256'],
-            'quality_errors':prior_errors,'role':'historical_attempt_not_current_attempt'}
-    out['quality']['errors']=[]
+    out.setdefault("quality",{}).setdefault("errors",[])
     Path(path).parent.mkdir(parents=True,exist_ok=True)
     Path(path).write_text(json.dumps(out,separators=(",",":"),allow_nan=False)+"\n",encoding="utf-8")
 
