@@ -21,18 +21,15 @@ HEADERS = ('centre','subCentre','shortName','paramId','units','dataDate','dataTi
 
 
 def step_hours(value, unit):
-    # ecCodes 2.49 returns e.g. '0m' at h0. Preserve original headers and
-    # interpret the explicit native unit only for the identity check.
+    # ecCodes may return '0m', '195m' or '3h15m'. Header bytes stay native.
     scales={0:1/60,1:1,2:24,10:3,11:6,12:12,13:1/3600}
-    if isinstance(value,str):
-        match=re.fullmatch(r'([+-]?[0-9]+(?:\.[0-9]+)?)([mhs])?',value)
-        if not match:raise ValueError('Unrecognized native step')
-        suffix=match[2]
-        scale={'m':1/60,'h':1,'s':1/3600}.get(suffix,scales.get(unit))
-        number=float(match[1])
-    else:number=value;scale=scales.get(unit)
-    if type(number)not in (int,float) or scale is None or not math.isfinite(number):
-        raise ValueError('Explicit native step unit required')
+    if isinstance(value,str) and re.fullmatch(r'(?:[+-]?[0-9]+(?:\.[0-9]+)?[dhms])+',value):
+        return sum(float(n)*{'d':24,'h':1,'m':1/60,'s':1/3600}[u]
+                   for n,u in re.findall(r'([+-]?[0-9]+(?:\.[0-9]+)?)([dhms])',value))
+    try:number=float(value)
+    except (TypeError,ValueError):raise ValueError('Unrecognized native step') from None
+    scale=scales.get(unit)
+    if scale is None or not math.isfinite(number):raise ValueError('Explicit native step unit required')
     return number*scale
 
 
@@ -67,10 +64,10 @@ def native_point(prefix, identity, requested):
 
 
 def project_original(body, original_ref, prefix, prefix_ref, requested, *, expected_run_utc,
-                     expected_member_ids, expected_parameter, geometry_cache=None):
+                     expected_member_ids, expected_parameter, geometry_cache=None, native_hour_block=False):
     """One original field, all explicitly expected members, direct embedded clocks."""
     import eccodes as ec
-    verified(body,original_ref,MAX_BYTES);verified(prefix,prefix_ref,MAX_BYTES)
+    verified(body,original_ref,128*1024**2 if native_hour_block else MAX_BYTES);verified(prefix,prefix_ref,MAX_BYTES)
     capture=datetime.fromisoformat(original_ref['retrieved_at_utc'].replace('Z','+00:00'))
     if capture.tzinfo is None or capture.utcoffset().total_seconds()!=0:
         raise ValueError('Explicit original capture UTC required')
@@ -83,16 +80,17 @@ def project_original(body, original_ref, prefix, prefix_ref, requested, *, expec
     if (type(expected_member_ids) is not list or expected_member_ids!=sorted(set(expected_member_ids))
         or len(expected_member_ids)!=20 or any(type(x)is not int for x in expected_member_ids)):
         raise ValueError('Explicit full twenty-member native identity required')
-    decoder=bz2.BZ2Decompressor();decoded=decoder.decompress(body,max_length=64*1024**2+1)
-    if len(decoded)>64*1024**2 or not decoder.eof or decoder.unused_data:
+    decoded_limit=(256 if native_hour_block else 64)*1024**2
+    decoder=bz2.BZ2Decompressor();decoded=decoder.decompress(body,max_length=decoded_limit+1)
+    if len(decoded)>decoded_limit or not decoder.eof or decoder.unused_data:
         raise ValueError('Native decoded budget or compression framing mismatch')
-    records=[];identities=set();geometry=None;first=None
+    records=[];identities=set();geometry=None;first=None;groups={}
     import tempfile
     with tempfile.TemporaryFile() as f:
         f.write(decoded);f.seek(0)
         while (handle:=ec.codes_grib_new_from_file(f)) is not None:
             try:
-                if len(records)>=20:raise ValueError('Extra native member/message')
+                if len(records)>=(80 if native_hour_block else 20):raise ValueError('Extra native member/message')
                 h={k:ec.codes_get(handle,k) for k in HEADERS if ec.codes_is_defined(handle,k) and not ec.codes_is_missing(handle,k)}
                 if any(k not in h for k in HEADERS):raise ValueError('Missing direct native source header')
                 run,valid=clock(h['dataDate'],h['dataTime']),clock(h['validityDate'],h['validityTime'])
@@ -100,15 +98,20 @@ def project_original(body, original_ref, prefix, prefix_ref, requested, *, expec
                     or h['numberOfGridUsed']!=47 or run!=expected_run_utc or h['shortName']!=expected_parameter
                     or h['numberOfForecastsInEnsemble']!=20 or h['perturbationNumber'] not in expected_member_ids):
                     raise ValueError('Direct native provider/run/field/grid/member mismatch')
-                if (datetime.fromisoformat(valid)!=datetime.fromisoformat(run)+timedelta(hours=int(name[2]))
-                    or step_hours(h['endStep'],h['stepUnits'])!=int(name[2])):
+                valid_lead=(datetime.fromisoformat(valid)-datetime.fromisoformat(run)).total_seconds()/3600
+                allowed=(valid_lead in {int(name[2])+x/4 for x in range(4)}) if native_hour_block else valid_lead==int(name[2])
+                if not allowed or step_hours(h['endStep'],h['stepUnits'])!=valid_lead:
                     raise ValueError('Direct native lead/validity mismatch')
                 common={k:v for k,v in h.items() if k!='perturbationNumber'}
-                if first is not None and common!=first:raise ValueError('Mixed native member field supports')
-                first=common
+                if not native_hour_block and first is not None and common!=first:raise ValueError('Mixed native member field supports')
+                if first is not None and any(common[k]!=first[k] for k in common if k not in ('validityDate','validityTime','startStep','endStep','stepUnits')):
+                    raise ValueError('Mixed native grid/process/parameter identity')
+                first=common if first is None else first
+                group=tuple(sorted(common.items()))
+                members=groups.setdefault(group,set())
                 member=h['perturbationNumber']
-                if member in identities:raise ValueError('Duplicate native member')
-                identities.add(member)
+                if member in members:raise ValueError('Duplicate native member')
+                members.add(member);identities.add(member)
                 identity=dict(number_of_grid_used=h['numberOfGridUsed'],uuid_of_horizontal_grid=h['uuidOfHGrid'],number_of_data_points=h['numberOfDataPoints'])
                 if geometry is None:
                     key=(prefix_ref['sha256'],tuple(sorted(identity.items())),tuple(sorted(requested.items())))
@@ -126,12 +129,15 @@ def project_original(body, original_ref, prefix, prefix_ref, requested, *, expec
                     run_time_utc=run,valid_time_utc=valid,member_id_native=member,value_native=value,unit_native=h['units'],
                     prospective_feature_eligible_at_capture=datetime.fromisoformat(valid)>capture))
             finally:ec.codes_release(handle)
-    if identities!=set(expected_member_ids):raise ValueError('Incomplete native member population')
+    if identities!=set(expected_member_ids) or any(group!=set(expected_member_ids) for group in groups.values()):
+        raise ValueError('Incomplete native member population')
+    if not any(r['valid_time_utc']==(datetime.fromisoformat(expected_run_utc)+timedelta(hours=int(name[2]))).isoformat() for r in records):
+        raise ValueError('Native filename-hour support missing')
     process={k:first[k] for k in ('centre','subCentre','typeOfGeneratingProcess','generatingProcessIdentifier',
         'tablesVersion','localTablesVersion','productionStatusOfProcessedData','significanceOfReferenceTime','uuidOfHGrid')}
     return dict(artifact_version='direct-native-point-development-proof-v2',original_ref=original_ref,
         grid_prefix_ref=prefix_ref,decoded_sha256=hashlib.sha256(decoded).hexdigest(),geometry=geometry,
-        native_member_ids=sorted(identities),api_member_mapping='unverified_no_offset_or_control_assignment',
+        native_member_ids=sorted(identities),native_hour_block=native_hour_block,api_member_mapping='unverified_no_offset_or_control_assignment',
         process_headers=process,vendor_software_generation='unreported_process_id_is_not_software_version',
         records=records,initialization_evidence='embedded_in_each_original_GRIB_message',
         captured_at_utc=capture.isoformat(),private_first_reception_utc=None,

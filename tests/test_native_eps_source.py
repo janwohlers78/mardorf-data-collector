@@ -30,6 +30,26 @@ class NativeEpsSourceTests(unittest.TestCase):
         self.assertEqual(step_hours('180m',0),3)
         with self.assertRaises(ValueError):step_hours(3,255)
 
+    def test_quarter_hour_originals_keep_all_members_and_supports(self):
+        messages=[]
+        for minute in (0,15,30,45):
+            with tempfile.TemporaryFile() as stream:
+                stream.write(bz2.decompress(native()));stream.seek(0)
+                while (h:=ec.codes_grib_new_from_file(stream)) is not None:
+                    try:
+                        ec.codes_set(h,'stepUnits',0);ec.codes_set(h,'step',minute)
+                        messages.append(ec.codes_get_message(h))
+                    finally:ec.codes_release(h)
+        body=bz2.compress(b''.join(messages));grid=prefix()
+        original=dict(ref(body),url='https://opendata.dwd.de/weather/nwp/icon-d2-eps/grib/00/u_10m/icon-d2-eps_germany_icosahedral_single-level_2026100700_000_2d_u_10m.grib2.bz2',retrieved_at_utc='2026-10-07T00:30:00+00:00')
+        args=dict(expected_run_utc='2026-10-07T00:00:00+00:00',expected_member_ids=eps.MEMBERS,expected_parameter='10u')
+        out=project_original(body,original,grid,ref(grid),{'latitude':52.502699112,'longitude':9.327636527},native_hour_block=True,**args)
+        self.assertEqual(len(out['records']),80)
+        self.assertEqual(len({r['valid_time_utc'] for r in out['records']}),4)
+        self.assertEqual(step_hours('3h15m',0),3.25)
+        with self.assertRaises(ValueError):
+            project_original(body,original,grid,ref(grid),{'latitude':52.502699112,'longitude':9.327636527},**args)
+
     def test_all_former_api_quantities_and_additional_convection_fields_are_registered(self):
         for name in ('t_2m','td_2m','relhum_2m','pmsl','ps','tot_prec','clct','aswdir_s','aswdifd_s','cape_ml','cin_ml','lpi'):
             self.assertIn(name,eps.PARAMETERS)

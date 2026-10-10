@@ -40,6 +40,13 @@ def load(runtime):
         ref=ObjectRef.parse(scope['catalog'])
         catalog=json.loads(runtime.backend.get_bytes(ref))
         proof=scope.get('cold_readback',{})
+        for extra in scope.get('additional_catalogs',[]):
+            older=json.loads(runtime.backend.get_bytes(ObjectRef.parse(extra['catalog'])))
+            checked=extra.get('cold_readback',{})
+            if (checked.get('status')!='PASS' or checked.get('originals_fully_read')is not True
+                or checked.get('parquet_exact_native_match')is not True
+                or not any(x.get('metadata',{}).get('acquisition_model')==model for x in older.get('parents',[]))):
+                raise ValueError('Native source additional catalog contradiction')
         if (source.get('provider_cycle_complete')is not True
             or scope.get('run_time_utc')!=source.get('selected_run_time_utc')
             or proof.get('status')!='PASS' or proof.get('originals_fully_read')is not True
@@ -69,6 +76,11 @@ def create(local, snapshot, integrity, catalog_ref, catalog, proof, *, prior=Non
         run=source.get('selected_run_time_utc')
         if model in captured:
             scopes[model]=dict(run_time_utc=run,catalog=catalog_ref,cold_readback=proof)
+            previous=(prior or {}).get('source_catalogs',{}).get(model,{})
+            if previous.get('run_time_utc')==run:
+                extras=[dict(catalog=previous['catalog'],cold_readback=previous['cold_readback'])]+previous.get('additional_catalogs',[])
+                unique={item['catalog']['sha256']:item for item in extras if item['catalog']['sha256']!=catalog_ref['sha256']}
+                if unique:scopes[model]['additional_catalogs']=list(unique.values())
             if model=='ICON-D2-EPS' and native_point_source:scopes[model]['native_point_source']=native_point_source
         elif prior and prior.get('source_catalogs',{}).get(model,{}).get('run_time_utc')==run:
             scopes[model]=prior['source_catalogs'][model]

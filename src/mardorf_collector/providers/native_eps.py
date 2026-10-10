@@ -36,8 +36,9 @@ def utc(value):
 
 def first_header(body):
     import eccodes as ec
-    decoder=bz2.BZ2Decompressor();decoded=decoder.decompress(body,max_length=64*1024**2+1)
-    if len(decoded)>64*1024**2 or not decoder.eof or decoder.unused_data:raise ValueError('Native EPS decode bound')
+    decoder=bz2.BZ2Decompressor();decoded=decoder.decompress(body,max_length=16*1024**2)
+    # Header probe reads only a bounded decoded prefix; full framing is checked
+    # by project_original against the complete retained original.
     with tempfile.TemporaryFile() as stream:
         stream.write(decoded);stream.seek(0);handle=ec.codes_grib_new_from_file(stream)
         if handle is None:raise ValueError('Native EPS GRIB required')
@@ -72,7 +73,10 @@ def fetch(leads, *, cycle=None, directory=WORK, workers=4):
     first=response.content;header=first_header(first)
     identity=dict(number_of_grid_used=header['numberOfGridUsed'],uuid_of_horizontal_grid=header['uuidOfHGrid'],number_of_data_points=header['numberOfDataPoints'])
     if identity['number_of_grid_used']!=47:raise ValueError('Registered EPS grid required')
-    grid_response=dwd.S.get(URLS[47],timeout=90);grid_response.raise_for_status()
+    # Coordinate netCDF is retained as its own full original, not misclassified
+    # as a model GRIB by the model-response hook. Normal proxy/CA still apply.
+    import requests
+    grid_response=requests.get(URLS[47],headers={'Accept-Encoding':'identity'},timeout=90);grid_response.raise_for_status()
     if not 0<len(grid_response.content)<=512*1024**2:raise ValueError('Native grid original bound')
     directory=Path(directory);backend=LocalObjects(directory/'objects');parents=ParentStore(backend,prefix=PREFIX)
     with tempfile.NamedTemporaryFile() as stream:
@@ -93,7 +97,7 @@ def fetch(leads, *, cycle=None, directory=WORK, workers=4):
         # Calculate geometry once before parallel decoding; immutable lookup thereafter.
         try:
             proof=project_original(body,ref,prefix,prefix_ref.json(),requested,expected_run_utc=run.isoformat(),
-                 expected_member_ids=MEMBERS,expected_parameter=name,geometry_cache=geometry_cache)
+                 expected_member_ids=MEMBERS,expected_parameter=name,geometry_cache=geometry_cache,native_hour_block=True)
         except ValueError as exc:
             raise ValueError(f'Native EPS {parameter} h{lead}: {exc}') from exc
         return dict(parameter_native=parameter,lead_hours=lead,proof=proof)
@@ -116,7 +120,7 @@ def fetch(leads, *, cycle=None, directory=WORK, workers=4):
     rows=[]
     for lead in leads:
         selected={item['parameter_native']:item for item in results if item['lead_hours']==lead}
-        values={p:{r['member_id_native']:r['value_native'] for r in item['proof']['records']} for p,item in selected.items()}
+        values={p:{r['member_id_native']:r['value_native'] for r in item['proof']['records'] if r['valid_time_utc']==(run+timedelta(hours=lead)).isoformat()} for p,item in selected.items()}
         members=[]
         for member in MEMBERS:
             value=dwd.derived(values['u_10m'][member],values['v_10m'][member],values['vmax_10m'][member]);value['member']=member;members.append(value)
@@ -145,15 +149,22 @@ def audit_source(source, run, leads):
         key=(field.get('parameter_native'),field.get('lead_hours'));proof=field.get('proof',{});records=proof.get('records',[])
         if key in seen:failures.append({'reason':'native_eps_duplicate_field'})
         seen.add(key)
-        if sorted(r.get('member_id_native') for r in records)!=MEMBERS:failures.append({'reason':'native_eps_member_population'})
-        if any(r.get('run_time_utc')!=run.isoformat() or step_hours(r.get('header',{}).get('endStep'),r.get('header',{}).get('stepUnits'))!=field.get('lead_hours') for r in records):
-            failures.append({'reason':'native_eps_embedded_clock_contradiction'})
+        supports={}
+        for r in records:
+            h=r.get('header',{})
+            key=(r.get('valid_time_utc'),str(h.get('startStep')),str(h.get('endStep')),h.get('stepType'))
+            supports.setdefault(key,[]).append(r.get('member_id_native'))
+            actual=(utc(r['valid_time_utc'])-run).total_seconds()/3600
+            if (r.get('run_time_utc')!=run.isoformat() or actual not in {field['lead_hours']+x/4 for x in range(4)}
+                or step_hours(h.get('endStep'),h.get('stepUnits'))!=actual):
+                failures.append({'reason':'native_eps_embedded_clock_contradiction'})
+        if not supports or any(sorted(ids)!=MEMBERS for ids in supports.values()):
+            failures.append({'reason':'native_eps_member_population'})
         if proof.get('geometry')!=source.get('geometry'):failures.append({'reason':'native_eps_geometry_contradiction'})
         original=proof.get('original_ref',{})
         if not original.get('url','').endswith(f"_{run:%Y%m%d%H}_{field.get('lead_hours'):03d}_2d_{field.get('parameter_native')}.grib2.bz2"):
             failures.append({'reason':'native_eps_original_field_binding'})
-        if any(r.get('original_sha256')!=original.get('sha256') or not math.isfinite(r.get('value_native',float('nan')))
-            or r.get('valid_time_utc')!=(run+timedelta(hours=field['lead_hours'])).isoformat() for r in records):
+        if any(r.get('original_sha256')!=original.get('sha256') or not math.isfinite(r.get('value_native',float('nan'))) for r in records):
             failures.append({'reason':'native_eps_original_values_or_clock_contradiction'})
     if seen!={(p,h) for p in PARAMETERS for h in leads}:failures.append({'reason':'native_eps_field_lead_coverage'})
     return failures,dict(artifact_version=VERSION,source_product=source.get('provider_product'),native_member_ids=MEMBERS,
@@ -171,14 +182,19 @@ def verify_source(source, backend, catalog):
     if grid_bytes(body,dict(number_of_grid_used=47,uuid_of_horizontal_grid=source['geometry']['grid_uuid'],
                            number_of_data_points=source['fields'][0]['proof']['records'][0]['header']['numberOfDataPoints']))!=prefix:
         raise ValueError('Native grid original/prefix cold reproduction differs')
-    for item in source['fields']:
+    def reproduce(item):
         prior=item['proof'];original=original_by_sha.get(prior['original_ref']['sha256'])
         if original is None:raise ValueError('Native EPS original absent from verified catalog')
         with tempfile.TemporaryDirectory() as folder:
             body=parents.restore(original['parent'],Path(folder)/'raw').read_bytes()
         now=project_original(body,prior['original_ref'],prefix,source['grid_prefix'],source['requested_coordinate'],
              expected_run_utc=source['run_time_utc'],expected_member_ids=MEMBERS,
-             expected_parameter=prior['records'][0]['header']['shortName'],geometry_cache=cache)
+             expected_parameter=prior['records'][0]['header']['shortName'],geometry_cache=cache,native_hour_block=True)
         if now!=prior:raise ValueError('Native EPS cold point reproduction differs')
-    return dict(status='PASS',original_fields=len(source['fields'])*20,point_values_reproduced=True,
+    fields=source['fields'];reproduce(fields[0])
+    # Prime the immutable geometry cache, then bound cold restore/decode work.
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        for start in range(1,len(fields),4):
+            list(pool.map(reproduce,fields[start:start+4]))
+    return dict(status='PASS',original_fields=sum(len(x['proof']['records']) for x in source['fields']),point_values_reproduced=True,
                 full_original_SHA_verified=True,native_member_ids=MEMBERS,scientific_status='NOT_READY')

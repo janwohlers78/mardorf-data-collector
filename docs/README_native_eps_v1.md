@@ -10,7 +10,10 @@ Dreistundenstützen 0–48 h auf, einschließlich aller 20 originalen Member 1�
 U/V/Böen, Temperatur/Taupunkt/Feuchte, Druck, Niederschlag, Wolken, direkte
 und diffuse Strahlung, CAPE, CIN und LPI bleiben mit sämtlichen Headern,
 Einheiten und Akkumulations-/Maximalintervallen erhalten. Alle im jeweiligen
-Original enthaltenen Felder werden archiviert. Die Auswahl ist eine explizite
+Original enthaltenen Felder werden archiviert, einschließlich vier Viertelstunden-
+stützen je Member, wenn der Stundenblock diese enthält. Nur die abgeleiteten
+Dreistunden-Zentralwerte wählen die exakte nominale Stütze; die zusätzlichen
+Originalmeldungen bleiben unverändert erhalten. Die Auswahl ist eine explizite
 Aufnahmematrix; sie behauptet weder alle angebotenen DWD-Parameter noch eine
 stündliche native Vollaufnahme. Historische API-Felder werden nicht gelöscht.
 Keine Zuordnung zu den alten API-IDs 0–19 und keine Interpolation.
