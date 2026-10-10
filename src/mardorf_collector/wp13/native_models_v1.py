@@ -3,6 +3,7 @@ import argparse
 from concurrent.futures import ThreadPoolExecutor
 import json
 import os
+import time
 from pathlib import Path
 
 from mardorf_collector.storage.archive import canonical
@@ -17,6 +18,8 @@ READINESS = 'data/weather_native/model_consumer_readiness_v1.json'
 def prepare(directory=WORK, *, snapshot=None):
     directory = Path(directory)
     snapshot = snapshot or json.loads(Path(os.environ.get('COLLECTOR_MODEL_FILE', 'work/model_snapshot.json')).read_bytes())
+    started = time.monotonic()
+    print('WP15_PREPARE_BEGIN', flush=True)
     captures = [json.loads(p.read_bytes()) for p in sorted(directory.glob('*.capture.json'))]
     if not captures:
         raise ValueError('No original model responses captured')
@@ -30,13 +33,16 @@ def prepare(directory=WORK, *, snapshot=None):
     for name, expected in release['artifact_sha256'].items():
         if digest((root / name).read_bytes()) != expected:
             raise ValueError('Model qualification runtime release drift')
+    print('WP15_CAPTURE_INVENTORY=' + json.dumps(dict(parents=len(captures), original_bytes=sum(c['bytes'] for c in captures))), flush=True)
     ref = write_catalog(backend, captures, snapshot['spot'], ensemble=snapshot.get('ensemble_hourly_source'))
+    print('WP15_CATALOG_WRITTEN', flush=True)
     proof = ModelReader(backend).verify(ref)
     prepared = {'schema_version': 1, 'artifact_version': 'wp15-native-model-prepared-v1',
         'catalog': ref.json(), 'proof': proof,
         'producer_release_sha256': digest(release_body),
         'producer_commits': sorted({item['metadata']['producer_commit'] for item in captures})}
     (directory / 'prepared.json').write_bytes(canonical(prepared))
+    print('WP15_PREPARE_END=' + json.dumps(dict(seconds=time.monotonic()-started, proof=proof)), flush=True)
     return prepared
 
 
@@ -66,6 +72,8 @@ def publish(*, cloud=None, directory=WORK):
     from mardorf_collector.storage.runtime import load_runtime
     from mardorf_collector.runtime.cloud_environment import environment
     runtime = cloud or load_runtime(Path.cwd(), environ=environment(Path.cwd()))
+    started = time.monotonic()
+    print('WP15_NATIVE_PUBLISH_BEGIN', flush=True)
     ready = json.loads(runtime.read(READINESS))
     if ready.get('artifact_version') != READINESS_VERSION or ready.get('available') is not True:
         raise ValueError('Deployed versioned native model consumer required')
@@ -94,16 +102,19 @@ def publish(*, cloud=None, directory=WORK):
     if cache_root:
         from mardorf_collector.storage.verified_reads_v1 import VerifiedReads
         verified_reads = VerifiedReads(runtime.backend, cache_root, max_bytes=2*1024**3)
+    print('WP15_OBJECT_INVENTORY=' + json.dumps(dict(objects=len(refs), bytes=sum(r.bytes for r in refs))), flush=True)
     def upload(ref):
         result = publish_object(runtime.backend, local, ref, verified_reads=verified_reads)
         if result != ref:
             raise ValueError('Original model upload identity mismatch')
     # Same bounded concurrency already qualified for historical additive imports.
-    with ThreadPoolExecutor(max_workers=4) as executor:
+    with ThreadPoolExecutor(max_workers=8) as executor:
         list(executor.map(upload, sorted(refs, key=lambda ref: ref.key)))
+    print('WP15_OBJECTS_UPLOADED=' + json.dumps(dict(seconds=time.monotonic()-started, transport=runtime.backend.metrics)), flush=True)
     from . import model_store_v1
     with ColdModelReads(verified_reads or runtime.backend, model_store_v1, prepared['catalog']) as reads:
         proof = ModelReader(reads).verify(prepared['catalog'])
+    print('WP15_CANONICAL_VERIFIED=' + json.dumps(dict(seconds=time.monotonic()-started, proof=proof)), flush=True)
     packed = projection_pack(runtime.backend, local, prepared['catalog'], catalog)
     marker = dict(prepared, artifact_version='wp15-native-model-ingress-v1', cold_readback=proof,
         projection_pack=packed.json())
@@ -121,6 +132,7 @@ def publish(*, cloud=None, directory=WORK):
     result = {'status': 'PASS', 'receipt_id': identity, 'catalog': prepared['catalog'],
         'cold_readback': proof, 'publication': publication, 'objects': len(refs),
         'provider_requests_added': 0, 'weather_git_bytes_written': 0}
+    result['elapsed_seconds'] = time.monotonic()-started
     result['projection_pack'] = packed.json()
     result['canonical_readback_mode'] = marker.get('canonical_readback_mode', 'independent_canonical_cold')
     if verified_reads is not None:
