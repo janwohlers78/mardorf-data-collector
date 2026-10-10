@@ -86,7 +86,7 @@ def recover(directory, run_id):
         recovered_by_head=os.getenv('GITHUB_SHA'),original_source_clocks_preserved=True,
         provider_requests_added=0,all_staged_bytes_from_canonical=True)
     (directory/'prepared.json').write_bytes(canonical(prepared))
-    return publish(runtime,directory)
+    return publish(cloud=runtime,directory=directory)
 
 
 def main():
