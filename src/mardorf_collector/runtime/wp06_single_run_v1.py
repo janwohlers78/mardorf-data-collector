@@ -140,6 +140,11 @@ def publish(receipt,body,runtime,*,companion=None,label_companion=None,event_com
         # all originals are unchanged or a provider run is still unavailable.
         pointers['config/cloud_refs/wp06_current_source_check_v1.json']=dict(pointer,
             artifact_version='wp06-source-check-control-v1',kind='wp06_source_check')
+        if force_daily:
+            # Daily delivery still needs an issuance when the morning00 attempt
+            # is older than an already retained current run. Never rewind it.
+            pointers['config/cloud_refs/wp06_daily_source_request_v1.json']=dict(pointer,
+                artifact_version='wp06-daily-source-request-control-v1',kind='wp06_daily_source_request')
         if labels_pointer is not None:pointers['config/cloud_refs/wp08_labels_ingress_v1.json']=labels_pointer
         if event_pointer is not None:pointers['config/cloud_refs/wp09_events_ingress_v1.json']=event_pointer
         return pointers
