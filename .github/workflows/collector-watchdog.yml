@@ -55,7 +55,7 @@ jobs:
             local threshold="$5"
 
             if [ "$due" != "true" ]; then
-              echo "$workflow: fresh; skip (age=$age min threshold=$threshold min reason=$reason)"
+              echo "$workflow: no dispatch (age=$age min threshold=$threshold min reason=$reason)"
               return 0
             fi
 
