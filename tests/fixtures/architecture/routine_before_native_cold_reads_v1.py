@@ -109,7 +109,4 @@ def publish_object(backend, local, reference, *, verified_reads=None):
                 if metadata['bytes']!=reference.bytes or metadata['sha256']!=reference.sha256:
                     raise ValueError('Immutable cached publication conflict')
                 return reference
-    result = backend.put_file(reference.key,local.root/reference.key)
-    if verified_reads is not None:
-        verified_reads.get_bytes(reference)
-    return result
+    return backend.put_file(reference.key,local.root/reference.key)

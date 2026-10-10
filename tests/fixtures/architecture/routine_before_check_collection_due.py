@@ -65,37 +65,6 @@ def fetch_latest(repo,kind,token):
     _,original_field=state_pointer(kind)
     return {**value,original_field:value.get(stamp_field)}
 
-def model_retry_due(runs, now, cooldown_minutes=120):
-    """Bound failure retries without treating failures as successful acquisition.
-
-    Explicit manual acquisition bypasses the routine due gate. The latest
-    main-branch terminal attempt controls cooldown; active jobs are handled by
-    the watchdog concurrency guard. Unknown evidence fails open visibly.
-    """
-    terminal = [r for r in runs if r.get('head_branch') == 'main'
-                and r.get('status') == 'completed']
-    if not terminal:
-        return True, 'no_terminal_model_attempt'
-    latest = max(terminal, key=lambda r: parse_time(r['updated_at']))
-    if latest.get('conclusion') not in ('failure', 'cancelled', 'timed_out'):
-        return True, 'latest_model_attempt_not_failed'
-    age = (now-parse_time(latest['updated_at'])).total_seconds()/60
-    if age < 0:
-        return True, 'future_retry_timestamp_fail_open'
-    return age >= cooldown_minutes, ('model_failure_cooldown' if age < cooldown_minutes
-                                    else 'model_failure_cooldown_elapsed')
-
-
-def fetch_model_attempts(token):
-    repository = 'janwohlers78/mardorf-data-collector'
-    url = f'{API}/repos/{repository}/actions/workflows/collect-models.yml/runs?branch=main&per_page=20'
-    request = urllib.request.Request(url, headers={
-        'Authorization': f'Bearer {token}', 'Accept': 'application/vnd.github+json',
-        'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'mardorf-routine-retry/1.0'})
-    with urllib.request.urlopen(request, timeout=20) as response:
-        return json.loads(response.read())['workflow_runs']
-
-
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument("--kind",required=True,choices=("svg","models","wunstorf","etnw","secondary"))
@@ -122,13 +91,6 @@ def main():
         except Exception as e:
             reason=f"private_latest_success_read_{type(e).__name__}_fail_open"
 
-    if due and args.kind == 'models' and token:
-        try:
-            allowed, retry_reason = model_retry_due(fetch_model_attempts(token), now)
-            if not allowed:
-                due=False; reason=retry_reason
-        except (ValueError, KeyError, TypeError, OSError):
-            reason += '_retry_state_unavailable_fail_open'
     output("due","true" if due else "false")
     output("reason",reason)
     output("last_success_generated_at_utc",stamp or "none")

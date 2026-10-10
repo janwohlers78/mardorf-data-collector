@@ -34,7 +34,7 @@ jobs:
   collect:
     if: github.repository == 'janwohlers78/mardorf-data-collector'
     runs-on: ubuntu-latest
-    timeout-minutes: 65
+    timeout-minutes: 45
     env:
       COLLECTOR_MODEL_FILE: work/model_snapshot.json
       FULL_VALIDATION: ${{ inputs.test_mode != true && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.watchdog == true || inputs.full_validation == true))) }}
@@ -355,11 +355,25 @@ jobs:
           args=(--kind models --integrity-json work/model_integrity.json --integrity-md work/model_integrity.md)
           if [ -f work/model_snapshot.json ]; then args+=(--file work/model_snapshot.json); fi
           args+=(--result-json work/model_transfer_result.json --receipt-copy work/model_transfer_receipt.json)
-          PYTHONPATH=src python -m mardorf_collector.transfer.dispatch publish --cloud-canary "${{ inputs.cloud_canary && 'true' || 'false' }}" "${args[@]}"
+          PYTHONPATH=src timeout --signal=TERM --kill-after=15s 3m python -u -m mardorf_collector.transfer.dispatch publish --cloud-canary "${{ inputs.cloud_canary && 'true' || 'false' }}" "${args[@]}"
           if [ "${{ inputs.cloud_canary }}" != "true" ] && [ "${{ inputs.test_mode }}" != "true" ]; then
-            PYTHONPATH=src python -m mardorf_collector.wp13.native_models_v1 prepare
-            PYTHONPATH=src python -m mardorf_collector.wp13.native_models_v1 publish
+            PYTHONPATH=src timeout --signal=TERM --kill-after=15s 10m python -u -m mardorf_collector.wp13.native_models_v1 prepare
+            PYTHONPATH=src timeout --signal=TERM --kill-after=15s 12m python -u -m mardorf_collector.wp13.native_models_v1 publish
           fi
+
+      - name: Retain acquisition and publication diagnostics
+        if: always() && steps.storage_gate.outcome == 'success' && (steps.due.outputs.due == 'true' || github.event_name == 'workflow_dispatch')
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-model-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            work/model_integrity.json
+            work/model_integrity.md
+            work/model_transfer_result.json
+            work/model_originals_v1/prepared.json
+            work/model_originals_v1/published.json
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Qualify reusable canonical native cache
         id: native_cache_proof
