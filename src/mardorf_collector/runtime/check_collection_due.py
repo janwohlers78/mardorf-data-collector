@@ -52,10 +52,13 @@ def fetch_latest(repo,kind,token):
     raw=base64.b64decode(meta["content"].replace("\n",""))
     value=json.loads(raw.decode("utf-8"))
     if path.startswith('config/cloud_refs/'):
-        if (value.get('schema_version')!=1 or value.get('artifact_version')!='cloud-collector-ref-v1' or
+        expected_version='native-acquisition-control-v1' if kind=='models' else 'cloud-collector-ref-v1'
+        if (value.get('schema_version')!=1 or value.get('artifact_version')!=expected_version or
                 value.get('kind')!=kind or value.get('bundle_ready') is not True or
                 value.get('readback_verified') is not True):
             raise ValueError('Cloud acquisition control is not verified')
+        if kind=='models' and (value.get('acquisition_only')is not True or value.get('operational_promotion')is not False):
+            raise ValueError('Explicit native acquisition scope required')
         from mardorf_collector.storage.objects import ObjectRef
         ObjectRef.parse(value['snapshot'])
         when=datetime.fromisoformat(value['generated_at_utc'].replace('Z','+00:00'))

@@ -195,11 +195,11 @@ jobs:
           args=()
           if [ "${{ inputs.test_mode }}" = "true" ]; then args+=(--test); fi
           set +e
-          PYTHONPATH=src timeout --signal=TERM --kill-after=15s 5m python -m mardorf_collector.wp13.model_capture_v2 provider --model ICON-D2-EPS --stage base "${args[@]}"
+          PYTHONPATH=src timeout --signal=TERM --kill-after=15s 10m python -m mardorf_collector.wp13.model_capture_v2 provider --model ICON-D2-EPS --stage base "${args[@]}"
           rc=$?
           set -e
           if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
-            python src/record_provider_failure.py --model ICON-D2-EPS --stage base --exit-code "$rc" --reason "hard_timeout_5m"
+            python src/record_provider_failure.py --model ICON-D2-EPS --stage base --exit-code "$rc" --reason "hard_timeout_10m"
           fi
           exit "$rc"
 

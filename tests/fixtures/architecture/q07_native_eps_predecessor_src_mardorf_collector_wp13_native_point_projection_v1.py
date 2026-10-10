@@ -16,24 +16,8 @@ HEADERS = ('centre','subCentre','shortName','paramId','units','dataDate','dataTi
     'validityDate','validityTime','gridType','uuidOfHGrid','numberOfGridUsed','numberOfDataPoints',
     'perturbationNumber','typeOfEnsembleForecast','numberOfForecastsInEnsemble',
     'typeOfGeneratingProcess','generatingProcessIdentifier','tablesVersion','localTablesVersion',
-    'productionStatusOfProcessedData','significanceOfReferenceTime','stepType','startStep','endStep','stepUnits',
+    'productionStatusOfProcessedData','significanceOfReferenceTime','stepType','startStep','endStep',
     'typeOfLevel','level')
-
-
-def step_hours(value, unit):
-    # ecCodes 2.49 returns e.g. '0m' at h0. Preserve original headers and
-    # interpret the explicit native unit only for the identity check.
-    scales={0:1/60,1:1,2:24,10:3,11:6,12:12,13:1/3600}
-    if isinstance(value,str):
-        match=re.fullmatch(r'([+-]?[0-9]+(?:\.[0-9]+)?)([mhs])?',value)
-        if not match:raise ValueError('Unrecognized native step')
-        suffix=match[2]
-        scale={'m':1/60,'h':1,'s':1/3600}.get(suffix,scales.get(unit))
-        number=float(match[1])
-    else:number=value;scale=scales.get(unit)
-    if type(number)not in (int,float) or scale is None or not math.isfinite(number):
-        raise ValueError('Explicit native step unit required')
-    return number*scale
 
 
 def verified(body, reference, limit):
@@ -67,7 +51,7 @@ def native_point(prefix, identity, requested):
 
 
 def project_original(body, original_ref, prefix, prefix_ref, requested, *, expected_run_utc,
-                     expected_member_ids, expected_parameter, geometry_cache=None):
+                     expected_member_ids, expected_parameter):
     """One original field, all explicitly expected members, direct embedded clocks."""
     import eccodes as ec
     verified(body,original_ref,MAX_BYTES);verified(prefix,prefix_ref,MAX_BYTES)
@@ -101,7 +85,7 @@ def project_original(body, original_ref, prefix, prefix_ref, requested, *, expec
                     or h['numberOfForecastsInEnsemble']!=20 or h['perturbationNumber'] not in expected_member_ids):
                     raise ValueError('Direct native provider/run/field/grid/member mismatch')
                 if (datetime.fromisoformat(valid)!=datetime.fromisoformat(run)+timedelta(hours=int(name[2]))
-                    or step_hours(h['endStep'],h['stepUnits'])!=int(name[2])):
+                    or h['endStep']!=int(name[2])):
                     raise ValueError('Direct native lead/validity mismatch')
                 common={k:v for k,v in h.items() if k!='perturbationNumber'}
                 if first is not None and common!=first:raise ValueError('Mixed native member field supports')
@@ -110,15 +94,7 @@ def project_original(body, original_ref, prefix, prefix_ref, requested, *, expec
                 if member in identities:raise ValueError('Duplicate native member')
                 identities.add(member)
                 identity=dict(number_of_grid_used=h['numberOfGridUsed'],uuid_of_horizontal_grid=h['uuidOfHGrid'],number_of_data_points=h['numberOfDataPoints'])
-                if geometry is None:
-                    key=(prefix_ref['sha256'],tuple(sorted(identity.items())),tuple(sorted(requested.items())))
-                    if geometry_cache is None:
-                        geometry=native_point(prefix,identity,requested)
-                    else:
-                        # Caller-owned, scoped to verified bytes/grid/request; no
-                        # persistent or global provider/currentness authority.
-                        if key not in geometry_cache:geometry_cache[key]=native_point(prefix,identity,requested)
-                        geometry=geometry_cache[key]
+                if geometry is None:geometry=native_point(prefix,identity,requested)
                 value=float(ec.codes_get_double_element(handle,'values',geometry['native_cell_index']))
                 if not math.isfinite(value) or value==ec.codes_get(handle,'missingValue'):
                     raise ValueError('Missing/nonfinite original native point value')
@@ -129,7 +105,7 @@ def project_original(body, original_ref, prefix, prefix_ref, requested, *, expec
     if identities!=set(expected_member_ids):raise ValueError('Incomplete native member population')
     process={k:first[k] for k in ('centre','subCentre','typeOfGeneratingProcess','generatingProcessIdentifier',
         'tablesVersion','localTablesVersion','productionStatusOfProcessedData','significanceOfReferenceTime','uuidOfHGrid')}
-    return dict(artifact_version='direct-native-point-development-proof-v2',original_ref=original_ref,
+    return dict(artifact_version='direct-native-point-development-proof-v1',original_ref=original_ref,
         grid_prefix_ref=prefix_ref,decoded_sha256=hashlib.sha256(decoded).hexdigest(),geometry=geometry,
         native_member_ids=sorted(identities),api_member_mapping='unverified_no_offset_or_control_assignment',
         process_headers=process,vendor_software_generation='unreported_process_id_is_not_software_version',

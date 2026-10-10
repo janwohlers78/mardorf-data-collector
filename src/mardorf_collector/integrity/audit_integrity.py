@@ -729,7 +729,18 @@ def audit_models(path,cfg,now):
             if len(coordinate_points)==1 else None)
         identity_failures=[];member_failures=[];identity_summary=None;member_count_by_lead={}
         hourly_source_failures=[];hourly_source_summary=None
-        if model=="ICON-D2-EPS" and recs:
+        native_eps = model=="ICON-D2-EPS" and bool(recs) and all(
+            r.get('native_source_version')=='dwd-native-eps-source-v1' for r in recs)
+        if native_eps:
+            from mardorf_collector.providers.native_eps import audit_source
+            identity_failures,identity_summary=audit_source(d.get('native_eps_source'),run,expected)
+            for lead,record in lead_rows.items():
+                members=record.get('members',[])
+                if sorted(m.get('member') for m in members)!=list(range(1,21)):
+                    member_failures.append({'lead_hours':lead,'reason':'original_native_member_ids_required'})
+            hourly_source_summary={'status':'native_3h_source_separate_from_legacy_API_hourly',
+                'legacy_v15_compatible':False,'frozen_candidate_applied':False}
+        if model=="ICON-D2-EPS" and recs and not native_eps:
             ecfg=(cfg["model_policy"].get("ensemble_identity") or {}).get("ICON-D2-EPS") or {}
             expected_members=int(ecfg.get("expected_member_count",20))
             required_status=str(ecfg.get("required_verification_status","verified_stable_metadata_and_dwd_cycle"))
@@ -1002,7 +1013,10 @@ def audit_models(path,cfg,now):
             issues.append(issue("FULL_HORIZON_ARCHIVE_INVALID", "ERROR", "archive", "integrity",
                 "Archive identities failed revalidation.", reason=str(exc)))
             usable = False
-    return make_report("models",now,sources,issues,usable,{
+    # Native EPS source admission is independent of the retired API/v15 route.
+    # A source-complete native archive may not silently promote that old runtime.
+    native_only=bool(d.get('native_eps_source'))
+    report=make_report("models",now,sources,issues,usable,{
         "input_file_present":True,"collector_mode":mode,"full_horizon_archive":archive_summary,
         "gefs_full_member_source":gefs_full_summary,
         "gefs_full_member_attempt":gefs_full_attempt,
@@ -1011,6 +1025,11 @@ def audit_models(path,cfg,now):
         "minimum_two_complete_current_independent_families_met":usable,
         **input_meta,
     })
+    if native_only:
+        report['native_acquisition_ready']=report['error_count']==0 and usable
+        report['legacy_v15_compatible']=False
+        report['bundle_ready_for_private_revalidation']=False
+    return report
 
 def audit_svg(path,cfg,now):
     issues=[];sources={}

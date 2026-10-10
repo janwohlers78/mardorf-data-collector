@@ -51,8 +51,6 @@ def due_pointer(repository, kind):
     if enabled(repository):
         # Small Git control documents contain source clocks and immutable B2
         # references only. The cheap watchdog needs no SDK or weather download.
-        if kind=='models':
-            return 'config/cloud_refs/collector_models_acquisition_v1.json', 'generated_at_utc'
         return f'config/cloud_refs/collector_{kind}_v1.json', 'generated_at_utc'
     if kind == 'secondary':
         return ('data/inbox/public_collector/transfer_receipts/secondary/latest.json',
