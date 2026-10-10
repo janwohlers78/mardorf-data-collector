@@ -57,7 +57,7 @@ jobs:
           {
             echo "## Model collector schedule check"
             echo
-            echo "- Provider fetch skipped: latest successful private transfer is still within the target interval."
+            echo "- Provider fetch skipped: ${{ steps.due.outputs.reason }}."
             echo "- Previous success: ${{ steps.due.outputs.last_success_generated_at_utc }}"
             echo "- Age: ${{ steps.due.outputs.age_minutes }} min"
             echo "- Threshold: ${{ steps.due.outputs.threshold_minutes }} min"
