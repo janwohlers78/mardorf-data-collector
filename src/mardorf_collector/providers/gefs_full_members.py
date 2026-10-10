@@ -252,8 +252,20 @@ def _rate_wait():
     if delay>0:
         time.sleep(delay)
 
+class GefsDownloadError(RuntimeError):
+    """An unsuccessful request with the actually observed transport attempts."""
+
+    def __init__(self, message, *, attempt_count, elapsed_seconds):
+        super().__init__(message)
+        self.attempt_count = attempt_count
+        self.elapsed_seconds = elapsed_seconds
+
+
 def _download(url,attempts=MAX_ATTEMPTS):
+    if attempts < 1:
+        raise ValueError("GEFS attempts must be positive")
     last=None
+    total_elapsed=0.0
     for attempt in range(1,attempts+1):
         _rate_wait()
         started=time.monotonic()
@@ -261,8 +273,9 @@ def _download(url,attempts=MAX_ATTEMPTS):
         try:
             r=_session().get(url,timeout=(10,90))
             elapsed=time.monotonic()-started
+            total_elapsed+=elapsed
             if r.status_code==200 and r.content[:4]==b"GRIB":
-                return r.content,elapsed,attempt
+                return r.content,total_elapsed,attempt
             retry_after=r.headers.get("Retry-After")
             last=RuntimeError(
                 f"HTTP {r.status_code}, bytes={len(r.content)}, retry_after={retry_after!r}")
@@ -271,6 +284,7 @@ def _download(url,attempts=MAX_ATTEMPTS):
                 break
         except Exception as exc:
             elapsed=time.monotonic()-started
+            total_elapsed+=elapsed
             last=exc
         if attempt<attempts:
             delay=min(15.0,1.5*(2**(attempt-1)))+random.uniform(0.0,0.35)
@@ -280,7 +294,9 @@ def _download(url,attempts=MAX_ATTEMPTS):
                 except (TypeError,ValueError):
                     pass
             time.sleep(delay)
-    raise RuntimeError(f"GEFS request failed after {attempts} attempts: {last}")
+    raise GefsDownloadError(
+        f"GEFS request failed after {attempt} attempts: {last}",
+        attempt_count=attempt, elapsed_seconds=total_elapsed)
 
 def _field_key(item,product):
     identity={
@@ -296,6 +312,8 @@ def _field_key(item,product):
 
 def _fetch_unit(run,unit):
     started=datetime.now(timezone.utc)
+    attempt_count=0
+    elapsed=0.0
     try:
         raw,elapsed,attempt_count=_download(unit["url"])
         sha=hashlib.sha256(raw).hexdigest()
@@ -351,7 +369,8 @@ def _fetch_unit(run,unit):
             "request_status":"fetch_error",
             "retrieved_at_utc":started.isoformat(),
             "response_bytes":0,
-            "attempt_count":MAX_ATTEMPTS,
+            "attempt_count":getattr(exc,"attempt_count",attempt_count),
+            "elapsed_seconds":round(getattr(exc,"elapsed_seconds",elapsed),6),
             "exception_type":type(exc).__name__,
             "exception_message":str(exc)[:1000],
             "fields":[],
