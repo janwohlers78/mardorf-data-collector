@@ -451,11 +451,12 @@ jobs:
           python-version: '3.12'
           cache: pip
           cache-dependency-path: |
-            requirements.txt
+            requirements-runtime.txt
             requirements-cloud.txt
             requirements-wp13-grib.txt
+            requirements-wp15-models.txt
       - name: Install native recovery runtime
-        run: pip install -r requirements.txt -r requirements-cloud.txt -r requirements-wp13-grib.txt
+        run: python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r requirements-runtime.txt -r requirements-cloud.txt -r requirements-wp13-grib.txt -r requirements-wp15-models.txt
       - name: Recover canonical originals and complete unchanged native publication
         env:
           GITHUB_TOKEN: ${{ github.token }}
