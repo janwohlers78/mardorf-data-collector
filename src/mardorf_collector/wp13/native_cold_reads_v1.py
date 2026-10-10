@@ -232,3 +232,13 @@ class NativeVerifiedReads:
     def get_bytes(self, reference): return self._shard(reference).get_bytes(reference)
     def get_range(self, reference, start, end): return self._shard(reference).get_range(reference, start, end)
     def get_file(self, reference, destination): return self.backend.get_file(reference, destination)
+
+
+def cache_balanced_references(references):
+    """Deterministic round robin avoids sorting every active object into one shard."""
+    groups = [deque() for _ in range(16)]
+    for reference in sorted(references, key=lambda ref: ref.key):
+        groups[int(reference.sha256[0], 16)].append(reference)
+    while any(groups):
+        for group in groups:
+            if group: yield group.popleft()
