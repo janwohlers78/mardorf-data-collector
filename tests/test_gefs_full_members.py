@@ -1,6 +1,6 @@
 import json
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 from datetime import datetime, timezone
 from urllib.parse import parse_qs, urlparse
 
@@ -198,6 +198,63 @@ class SparseGefsPolicyTests(unittest.TestCase):
         self.assertEqual(p["provider_summary_qa_request_count"],4)
         self.assertEqual(p["request_count_per_full_cycle"],748)
         self.assertLessEqual(p["request_count_per_full_cycle"],p["max_requests_per_day"])
+
+    def test_permanent_http_error_records_one_observed_attempt(self):
+        response=Mock(status_code=404,content=b"missing",headers={})
+        session=Mock()
+        session.get.return_value=response
+        unit=g.request_plan(self.run)[0]
+        with patch.object(g,"_session",return_value=session), \
+             patch.object(g,"_rate_wait"), patch.object(g.time,"sleep") as sleep, \
+             patch.object(g.time,"monotonic",side_effect=[10.0,10.25]):
+            row=g._fetch_unit(self.run,unit)
+        self.assertEqual(session.get.call_count,1)
+        sleep.assert_not_called()
+        self.assertEqual(row["attempt_count"],1)
+        self.assertEqual(row["elapsed_seconds"],0.25)
+        self.assertIn("after 1 attempts",row["exception_message"])
+        self.assertEqual(row["request_status"],"fetch_error")
+
+    def test_success_after_retry_sums_observed_http_durations(self):
+        session=Mock()
+        session.get.side_effect=[
+            Mock(status_code=503,content=b"busy",headers={}),
+            Mock(status_code=200,content=b"GRIBoriginal",headers={}),
+        ]
+        with patch.object(g,"_session",return_value=session), \
+             patch.object(g,"_rate_wait"), patch.object(g.time,"sleep"), \
+             patch.object(g.time,"monotonic",side_effect=[10.0,10.25,20.0,20.5]):
+            raw,elapsed,attempts=g._download("test")
+        self.assertEqual(raw,b"GRIBoriginal")
+        self.assertEqual(attempts,2)
+        self.assertEqual(elapsed,0.75)
+
+    def test_exhausted_transport_reports_actual_configured_attempts(self):
+        session=Mock()
+        session.get.side_effect=ConnectionError("unreachable")
+        with patch.object(g,"_session",return_value=session), \
+             patch.object(g,"_rate_wait"), patch.object(g.time,"sleep"), \
+             patch.object(g.time,"monotonic",side_effect=[10.0,10.25,20.0,20.5]):
+            with self.assertRaises(g.GefsDownloadError) as error:
+                g._download("test",attempts=2)
+        self.assertEqual(error.exception.attempt_count,2)
+        self.assertEqual(error.exception.elapsed_seconds,0.75)
+        self.assertEqual(session.get.call_count,2)
+
+    def test_decode_failure_keeps_successful_download_attempt_count(self):
+        unit=g.request_plan(self.run)[0]
+        with patch.object(g,"_download",return_value=(b"GRIBoriginal",0.1,1)), \
+             patch.object(g.noaa,"extract_native_values",side_effect=ValueError("bad field")):
+            row=g._fetch_unit(self.run,unit)
+        self.assertEqual(row["request_status"],"fetch_error")
+        self.assertEqual(row["attempt_count"],1)
+        self.assertEqual(row["elapsed_seconds"],0.1)
+
+    def test_invalid_attempt_limit_fails_before_network(self):
+        with patch.object(g,"_session") as session:
+            with self.assertRaises(ValueError):
+                g._download("test",attempts=0)
+        session.assert_not_called()
 
 
 if __name__=="__main__":
