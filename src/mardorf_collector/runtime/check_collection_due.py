@@ -96,15 +96,62 @@ def fetch_model_attempts(token):
         return json.loads(response.read())['workflow_runs']
 
 
+def daily_weather_due(value, now):
+    """A narrow Berlin recovery slot; no late forecast masquerades as on-time."""
+    from zoneinfo import ZoneInfo
+    local=now.astimezone(ZoneInfo('Europe/Berlin'))
+    if not (7,35) <= (local.hour,local.minute) < (7,50):
+        return False, 'outside_daily_recovery_slot'
+    if value is not None:
+        from mardorf_collector.storage.objects import ObjectRef
+        try:
+            ref=ObjectRef.parse(value['snapshot'])
+            generated=parse_time(value['generated_at_utc'])
+            valid=(value['artifact_version']=='integrated-daily-report-control-v1'
+                   and value['readback_verified'] is True and value['bundle_ready'] is True
+                   and value['metadata']['payload_sha256']==ref.sha256
+                   and generated <= now and generated.astimezone(local.tzinfo).date()==local.date()
+                   and (generated.astimezone(local.tzinfo).hour,generated.astimezone(local.tzinfo).minute)>=(7,35))
+            if valid: return False, 'today_integrated_report_available'
+        except (ValueError,KeyError,TypeError):
+            pass
+    return True, 'today_integrated_report_missing_or_unverified'
+
+
+def fetch_daily_report(repo, token):
+    url=f'{API}/repos/{repo}/contents/config/cloud_refs/integrated_daily_report_v1.json?ref=main'
+    request=urllib.request.Request(url,headers={
+        'Authorization':f'Bearer {token}', 'Accept':'application/vnd.github+json',
+        'X-GitHub-Api-Version':'2022-11-28', 'User-Agent':'mardorf-daily-recovery/1.0'})
+    try:
+        with urllib.request.urlopen(request,timeout=20) as response:
+            result=json.loads(response.read())
+        return json.loads(base64.b64decode(result['content']))
+    except urllib.error.HTTPError as exc:
+        if exc.code==404:return None
+        raise
+
+
 def main():
     ap=argparse.ArgumentParser()
-    ap.add_argument("--kind",required=True,choices=("svg","models","wunstorf","etnw","secondary"))
+    ap.add_argument("--kind",required=True,choices=("svg","models","wunstorf","etnw","secondary","daily_weather"))
     ap.add_argument("--max-age-minutes",required=True,type=float)
     args=ap.parse_args()
     token=os.getenv("PRIVATE_REPO_TOKEN","")
     repo=os.getenv("PRIVATE_REPO",DEFAULT_REPO)
     now=datetime.now(timezone.utc)
 
+    if args.kind == 'daily_weather':
+        value=None
+        # Avoid network calls outside the only useful recovery window.
+        active,_=daily_weather_due(None,now)
+        if active and token:
+            try:value=fetch_daily_report(repo,token)
+            except (ValueError,KeyError,TypeError,OSError):pass
+        due,reason=daily_weather_due(value,now)
+        output('due','true' if due else 'false');output('reason',reason)
+        output('age_minutes','not_applicable');output('threshold_minutes','Berlin0735_to0750')
+        return
     due=True;reason="unknown";age=None;stamp=None
     if not token:
         reason="private_repo_token_not_configured_fail_open"

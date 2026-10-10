@@ -38,6 +38,10 @@ jobs:
         id: secondary
         run: PYTHONPATH=src python3 -m mardorf_collector check-collection-due --kind secondary --max-age-minutes 240
 
+      - name: Check integrated daily report recovery slot
+        id: daily_weather
+        run: PYTHONPATH=src python3 -m mardorf_collector check-collection-due --kind daily_weather --max-age-minutes 0
+
       - name: Dispatch only due idle collectors
         shell: bash
         run: |
@@ -71,6 +75,8 @@ jobs:
           dispatch_if_due             collect-models.yml             "${{ steps.models.outputs.due }}"             "${{ steps.models.outputs.reason }}"             "${{ steps.models.outputs.age_minutes }}"             "${{ steps.models.outputs.threshold_minutes }}"
 
           dispatch_if_due             collect-secondary.yml             "${{ steps.secondary.outputs.due }}"             "${{ steps.secondary.outputs.reason }}"             "${{ steps.secondary.outputs.age_minutes }}"             "${{ steps.secondary.outputs.threshold_minutes }}"
+
+          dispatch_if_due             wp06-single-run-daily.yml             "${{ steps.daily_weather.outputs.due }}"             "${{ steps.daily_weather.outputs.reason }}"             "${{ steps.daily_weather.outputs.age_minutes }}"             "${{ steps.daily_weather.outputs.threshold_minutes }}"
 
       - name: Publish watchdog decision summary
         if: always()
