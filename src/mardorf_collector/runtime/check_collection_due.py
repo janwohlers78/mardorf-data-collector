@@ -167,15 +167,54 @@ def daily_recovery_decision(value, runs, now):
     return due,reason
 
 
+def current_source_due(value,now,*,cooldown_minutes=180):
+    if value is None:return True,'current_source_probe_missing'
+    try:
+        from mardorf_collector.storage.objects import ObjectRef
+        ObjectRef.parse(value['snapshot'])
+        if value['artifact_version']!='wp06-source-check-control-v1' or value['readback_verified'] is not True:
+            raise ValueError('unverified_source_check')
+        age=(now-parse_time(value['generated_at_utc'])).total_seconds()/60
+        if age<0:raise ValueError('future_source_check')
+        return age>=cooldown_minutes,('current_source_probe_due' if age>=cooldown_minutes else 'current_source_probe_cooldown')
+    except (KeyError,TypeError,ValueError):return True,'current_source_probe_unverified'
+
+
+def fetch_source_check(repo,token):
+    url=f'{API}/repos/{repo}/contents/config/cloud_refs/wp06_current_source_check_v1.json?ref=main'
+    request=urllib.request.Request(url,headers={'Authorization':f'Bearer {token}',
+        'Accept':'application/vnd.github+json','User-Agent':'mardorf-current-source/1.0'})
+    try:
+        with urllib.request.urlopen(request,timeout=20) as response:meta=json.loads(response.read())
+        return json.loads(base64.b64decode(meta['content']))
+    except urllib.error.HTTPError as exc:
+        if exc.code==404:return None
+        raise
+
+
 def main():
     ap=argparse.ArgumentParser()
-    ap.add_argument("--kind",required=True,choices=("svg","models","wunstorf","etnw","secondary","daily_weather"))
+    ap.add_argument("--kind",required=True,choices=("svg","models","wunstorf","etnw","secondary","daily_weather","current_weather"))
     ap.add_argument("--max-age-minutes",required=True,type=float)
     args=ap.parse_args()
     token=os.getenv("PRIVATE_REPO_TOKEN","")
     repo=os.getenv("PRIVATE_REPO",DEFAULT_REPO)
     now=datetime.now(timezone.utc)
 
+    if args.kind == 'current_weather':
+        try:value=fetch_source_check(repo,token) if token else None
+        except (ValueError,KeyError,TypeError,OSError):value=None
+        due,reason=current_source_due(value,now)
+        if due:
+            try:
+                runs=fetch_daily_forecast_attempts(repo,token)
+                if any(r.get('head_branch')=='main' and r.get('status') in {'queued','in_progress','waiting','pending','requested'} for r in runs):
+                    due=False;reason='private_daily_forecast_queued_or_running'
+            except (ValueError,KeyError,TypeError,OSError):
+                reason+='__job_state_unknown'
+        output('due','true' if due else 'false');output('reason',reason)
+        output('age_minutes','source_probe_clock');output('threshold_minutes','180')
+        return
     if args.kind == 'daily_weather':
         value=None; runs=None
         # Avoid network calls outside the only useful recovery window.
