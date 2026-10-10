@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import math
 import requests
+from .wp06_single_run_v1 import forecast_content_digest
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -36,11 +37,11 @@ def validate(body, request, root=ROOT):
     return x
 
 
-def capture(run, *, get=requests.get, root=ROOT):
+def capture(run, *, get=requests.get, root=ROOT, timeout=(8,35)):
     request = spec(run, root); b = binding(root); began = datetime.now(timezone.utc).isoformat()
     body = b''; status = 0; reason = None
     try:
-        response = get(request['endpoint'], params=request['params'], timeout=(8,35))
+        response = get(request['endpoint'], params=request['params'], timeout=timeout)
         body, status = response.content, response.status_code
         if len(body) > 1024**2: raise ValueError('WP07_response_budget')
         if status != 200: raise ValueError('WP07_HTTP_'+str(status))
@@ -50,7 +51,8 @@ def capture(run, *, get=requests.get, root=ROOT):
     captured = datetime.now(timezone.utc).isoformat()
     receipt = dict(artifact_version='wp07-single-run-receipt-v1', request=request, started_utc=began,
         captured_utc=captured, available_utc=captured, http_status=status, status='valid' if reason is None else 'invalid',
-        reason=reason, source_sha256=hashlib.sha256(body).hexdigest(), source_bytes=len(body),
+        reason=reason, source_sha256=hashlib.sha256(body).hexdigest(), source_bytes=len(body),forecast_content_sha256=forecast_content_digest(body),
+        forecast_comparison_ignored_metadata=['generationtime_ms'],
         availability_evidence='actual_source_receipt', generation=b['generation'],
         generation_evidence=b['generation_evidence'], source_binding_sha256=hashlib.sha256((Path(root)/'config/wp07_single_run_v1.json').read_bytes()).hexdigest())
     return receipt, body

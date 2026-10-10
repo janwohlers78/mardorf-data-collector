@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       watchdog:
-        description: 'Bounded morning recovery for the integrated daily report'
+        description: 'Bounded current-source refresh or morning recovery'
         type: boolean
         default: false
 permissions:
@@ -31,7 +31,12 @@ jobs:
         id: recovery
         env:
           PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
-        run: PYTHONPATH=src python -m mardorf_collector.runtime.check_collection_due --kind daily_weather --max-age-minutes 0
+        run: |
+          if [ "${{ steps.slot.outputs.due }}" = "true" ]; then
+            PYTHONPATH=src python -m mardorf_collector.runtime.check_collection_due --kind daily_weather --max-age-minutes 0
+          else
+            PYTHONPATH=src python -m mardorf_collector.runtime.check_collection_due --kind current_weather --max-age-minutes 180
+          fi
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         if: (github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || (github.event_name == 'schedule' && steps.slot.outputs.due == 'true') || steps.recovery.outputs.due == 'true'
         with:
@@ -50,4 +55,7 @@ jobs:
           PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
           B2_APPLICATION_KEY_ID: ${{ secrets.B2_APPLICATION_KEY_ID }}
           B2_APPLICATION_KEY: ${{ secrets.B2_APPLICATION_KEY }}
-        run: PYTHONPATH=src python -m mardorf_collector.runtime.wp06_single_run_v1 --with-wp07 --with-wp08-labels --with-wp09-events
+        run: |
+          args=()
+          if [ "${{ steps.slot.outputs.due }}" = "true" ]; then args+=(--registered-daily-00 --with-wp08-labels); fi
+          PYTHONPATH=src python -m mardorf_collector.runtime.wp06_single_run_v1 --with-wp07 --with-wp09-events "${args[@]}"

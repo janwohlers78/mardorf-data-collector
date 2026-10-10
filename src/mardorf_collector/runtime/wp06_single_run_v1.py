@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 from zoneinfo import ZoneInfo
 import requests
+import time
 
 from mardorf_collector.storage.archive import canonical
 from mardorf_collector.storage.runtime import load_runtime
@@ -21,6 +22,17 @@ ALIASES=('icon_d2','icon_eu','gfs_global','ecmwf_ifs025')
 COORDINATE=dict(latitude=52.47371,longitude=9.37979)
 POINTER='config/cloud_refs/wp06_api_ingress_v1.json'
 PREFIX='weather/archive/janwohlers78/mardorf-kitevorhersage/wp06-api/v1'
+
+
+def forecast_content_digest(body):
+    # Keep the exact original intact. Only provider execution timing is ignored
+    # for duplicate dispatch; every weather field, coordinate and unit is bound.
+    try:
+        document=json.loads(body)
+        if not isinstance(document,dict):return hashlib.sha256(body).hexdigest()
+        document.pop('generationtime_ms',None)
+        return hashlib.sha256(canonical(document)).hexdigest()
+    except (ValueError,TypeError):return hashlib.sha256(body).hexdigest()
 
 
 def spec(now):
@@ -52,11 +64,12 @@ def validate(body,request):
     return x
 
 
-def capture(*,now=None,get=requests.get):
+def capture(*,now=None,get=requests.get,run=None,timeout=(8,35)):
     now=now or datetime.now(timezone.utc);request=spec(now)
+    if run is not None:request['params']['run']=run
     began=datetime.now(timezone.utc).isoformat();body=b'';status=0;reason=None
     try:
-        response=get(request['endpoint'],params=request['params'],timeout=(8,35))
+        response=get(request['endpoint'],params=request['params'],timeout=timeout)
         body=response.content;status=response.status_code
         if len(body)>1024**2:raise ValueError('API_response_budget')
         if status!=200:raise ValueError('API_HTTP_'+str(status))
@@ -68,11 +81,12 @@ def capture(*,now=None,get=requests.get):
     receipt=dict(artifact_version='wp06-single-run-receipt-v1',request=request,started_utc=began,
         captured_utc=captured,available_utc=captured,status='valid' if reason is None else 'invalid',
         http_status=status,reason=reason,source_sha256=hashlib.sha256(body).hexdigest(),source_bytes=len(body),
+        forecast_content_sha256=forecast_content_digest(body),forecast_comparison_ignored_metadata=['generationtime_ms'],
         original_issue='unknown; retained explicit initialization request',availability_evidence='actual_source_receipt')
     return receipt,body
 
 
-def publish(receipt,body,runtime,*,companion=None,label_companion=None,event_companion=None):
+def publish(receipt,body,runtime,*,companion=None,label_companion=None,event_companion=None,force_daily=False):
     backend=runtime.backend
     source=backend.put_bytes(PREFIX+'/originals/'+receipt['source_sha256'],body)
     if backend.get_bytes(source)!=body:raise ValueError('API_original_readback')
@@ -106,17 +120,26 @@ def publish(receipt,body,runtime,*,companion=None,label_companion=None,event_com
         from .wp09_events_v1 import publication as event_publication
         paths,event_pointer=event_publication(*event_companion,backend)
         companion_paths.update(paths)
+    profiles=[('data/inbox/wp06_api/latest.json',path,raw,pointer,POINTER)]
+    if companion is not None:
+        stamp=companion[0]['captured_utc'].replace(':','')
+        profiles.append(('data/inbox/wp07_api/latest.json','data/inbox/wp07_api/'+stamp+'.json',
+            companion_paths['data/inbox/wp07_api/'+stamp+'.json'],companion_pointer,
+            'config/cloud_refs/wp07_api_ingress_v1.json'))
+    def selected(reader,latest,new_raw):
+        old=reader.read(latest,required=False)
+        return promote_receipt(json.loads(old) if old else None,json.loads(new_raw),force_daily=force_daily)
     def merge(reader,changes):
-        previous=reader.read('data/inbox/wp06_api/latest.json',required=False)
-        if previous and json.loads(previous)['captured_utc']>=receipt['captured_utc']:
-            return {path:raw,**{p:b for p,b in companion_paths.items() if not p.endswith('/latest.json')}}
-        return changes
+        result=dict(changes)
+        for latest,_,new_raw,_,_ in profiles:
+            if not selected(reader,latest,new_raw):result.pop(latest,None)
+        return result
     def refs(snapshot):
-        # CAS retry may discover a newer receipt; do not rewind its Git pointer.
-        previous=runtime.read('data/inbox/wp06_api/latest.json',required=False)
-        if previous and json.loads(previous)['captured_utc']>receipt['captured_utc']:return {}
-        pointers={POINTER:pointer}
-        if companion_pointer is not None:pointers['config/cloud_refs/wp07_api_ingress_v1.json']=companion_pointer
+        pointers={control:ptr for latest,_,new_raw,ptr,control in profiles if selected(runtime,latest,new_raw)}
+        # A small independently verified probe clock limits retries even when
+        # all originals are unchanged or a provider run is still unavailable.
+        pointers['config/cloud_refs/wp06_current_source_check_v1.json']=dict(pointer,
+            artifact_version='wp06-source-check-control-v1',kind='wp06_source_check')
         if labels_pointer is not None:pointers['config/cloud_refs/wp08_labels_ingress_v1.json']=labels_pointer
         if event_pointer is not None:pointers['config/cloud_refs/wp09_events_ingress_v1.json']=event_pointer
         return pointers
@@ -127,13 +150,47 @@ def publish(receipt,body,runtime,*,companion=None,label_companion=None,event_com
     return dict(result,receipt=ref.json(),status=receipt['status'])
 
 
-def latest_capture(*,now=None,get=requests.get):
-    """A missing current 00 UTC run permits one explicitly aged prior 00 run.
+def promote_receipt(previous,incoming,*,force_daily=False):
+    """Source initialization outranks recapture time; failures cannot hide usable data."""
+    if incoming.get('status')!='valid':return False
+    if previous is None or previous.get('status')!='valid':return True
+    previous_run=previous.get('request',{}).get('params',{}).get('run','')
+    incoming_run=incoming.get('request',{}).get('params',{}).get('run','')
+    if incoming_run<previous_run:return False
+    if incoming_run==previous_run and incoming.get('forecast_content_sha256',incoming.get('source_sha256'))==previous.get('forecast_content_sha256',previous.get('source_sha256')):
+        elapsed=(datetime.fromisoformat(incoming['captured_utc'].replace('Z','+00:00'))-datetime.fromisoformat(previous['captured_utc'].replace('Z','+00:00'))).total_seconds()
+        return elapsed>0 and (force_daily or elapsed>=10*3600)
+    return incoming_run>previous_run or incoming['captured_utc']>previous['captured_utc']
 
-    Never switch endpoint/product or invent a run. The failed original request
-    is preserved; the consumer reports initialization age and actual lead.
-    """
+
+def cycle_candidates(now):
+    now=now.astimezone(timezone.utc)
+    start=now.replace(hour=(now.hour//6)*6,minute=0,second=0,microsecond=0)
+    return [(start-timedelta(hours=6*i)).strftime('%Y-%m-%dT%H:%M') for i in range(5)]
+
+
+def latest_profile_capture(capture_run,*,now):
+    """At most five explicit runs of the same product; no latest/blended endpoint."""
+    import base64
+    failures=[];began=time.monotonic()
+    for run in cycle_candidates(now):
+        if failures and time.monotonic()-began>=70:
+            receipt['selection_blocker']='newer_run_probe_time_budget'
+            break
+        receipt,body=capture_run(run)
+        if receipt['status']=='valid' or not (receipt['http_status']==400 and b'The requested model run is not available' in body):
+            if failures:receipt['unavailable_newer_runs']=failures
+            return receipt,body
+        failures.append(dict(receipt,response_base64=base64.b64encode(body).decode()))
+    receipt['unavailable_newer_runs']=failures[:-1]
+    return receipt,body
+
+
+def latest_capture(*,now=None,get=requests.get,current_cycles=False):
     now=now or datetime.now(timezone.utc)
+    if current_cycles:
+        return latest_profile_capture(lambda run:capture(now=now,get=get,run=run,timeout=(5,15)),now=now)
+    # Preserve the registered daily 00 UTC cohort and its one-day fallback.
     first,body=capture(now=now,get=get)
     if first['http_status']==400 and b'The requested model run is not available' in body:
         older,older_body=capture(now=now-timedelta(days=1),get=get)
@@ -145,14 +202,16 @@ def latest_capture(*,now=None,get=requests.get):
 
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--capture-only',type=Path);p.add_argument('--gate',action='store_true');p.add_argument('--with-wp07',action='store_true');p.add_argument('--with-wp08-labels',action='store_true');p.add_argument('--with-wp09-events',action='store_true');a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--registered-daily-00',action='store_true');p.add_argument('--capture-only',type=Path);p.add_argument('--gate',action='store_true');p.add_argument('--with-wp07',action='store_true');p.add_argument('--with-wp08-labels',action='store_true');p.add_argument('--with-wp09-events',action='store_true');a=p.parse_args()
     if a.gate:
         print('true' if datetime.now(ZoneInfo('Europe/Berlin')).hour==7 else 'false');return
-    receipt,body=latest_capture()
+    now=datetime.now(timezone.utc)
+    receipt,body=latest_capture(now=now,current_cycles=not a.registered_daily_00)
     companion=None
     if a.with_wp07:
         from .wp07_single_run_v1 import capture as companion_capture
-        companion=companion_capture(receipt['request']['params']['run'])
+        companion=(companion_capture(receipt['request']['params']['run']) if a.registered_daily_00 else
+            latest_profile_capture(lambda run:companion_capture(run,timeout=(5,15)),now=now))
     label_companion=None
     if a.with_wp08_labels:
         from .wp08_labels_v1 import capture as label_capture
@@ -174,7 +233,7 @@ def main():
             for name,raw in event_companion[1].items():(a.capture_only/('wp09-'+name+'.json')).write_bytes(raw)
         print(json.dumps({k:receipt[k] for k in ('status','http_status','reason','source_bytes','source_sha256')}));return
     root=Path(__file__).resolve().parents[3]
-    result=publish(receipt,body,load_runtime(root,environ=environment(root)),companion=companion,label_companion=label_companion,event_companion=event_companion)
+    result=publish(receipt,body,load_runtime(root,environ=environment(root)),companion=companion,label_companion=label_companion,event_companion=event_companion,force_daily=a.registered_daily_00)
     print(json.dumps(result))
 
 
