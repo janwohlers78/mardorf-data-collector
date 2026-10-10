@@ -17,8 +17,7 @@ def control(marker, snapshot, *, event_id, repository):
     return dict(schema_version=1,artifact_version='native-acquisition-control-v1',kind='models',
         generated_at_utc=marker['source_generated_at_utc'],snapshot=snapshot,
         bundle_ready=marker['all_native_sources_ready'],readback_verified=True,
-        acquisition_only=True,operational_promotion=False,
-        metadata=dict(event_id=str(event_id),producer_repository=repository))
+        metadata=dict(channel='native-acquisition-only',event_id=str(event_id),producer_repository=repository))
 
 
 def load(runtime):

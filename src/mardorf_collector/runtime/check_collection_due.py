@@ -57,7 +57,7 @@ def fetch_latest(repo,kind,token):
                 value.get('kind')!=kind or value.get('bundle_ready') is not True or
                 value.get('readback_verified') is not True):
             raise ValueError('Cloud acquisition control is not verified')
-        if kind=='models' and (value.get('acquisition_only')is not True or value.get('operational_promotion')is not False):
+        if kind=='models' and value.get('metadata',{}).get('channel')!='native-acquisition-only':
             raise ValueError('Explicit native acquisition scope required')
         from mardorf_collector.storage.objects import ObjectRef
         ObjectRef.parse(value['snapshot'])
