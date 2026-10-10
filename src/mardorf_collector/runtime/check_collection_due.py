@@ -135,6 +135,35 @@ def fetch_daily_report(repo, token):
         raise
 
 
+
+def fetch_daily_forecast_attempts(repo, token):
+    url=f'{API}/repos/{repo}/actions/workflows/wp06-prospective-daily.yml/runs?branch=main&per_page=20'
+    request=urllib.request.Request(url,headers={
+        'Authorization':f'Bearer {token}', 'Accept':'application/vnd.github+json',
+        'X-GitHub-Api-Version':'2022-11-28', 'User-Agent':'mardorf-daily-recovery/1.0'})
+    with urllib.request.urlopen(request,timeout=20) as response:
+        return json.loads(response.read())['workflow_runs']
+
+
+def daily_recovery_decision(value, runs, now):
+    due,reason=daily_weather_due(value,now)
+    if reason=='outside_daily_recovery_slot':return due,reason
+    if runs is None:
+        return True,'daily_report_job_state_unavailable_fail_open'
+    busy={'queued','in_progress','waiting','pending','requested'}
+    main_runs=[r for r in runs if r.get('head_branch')=='main']
+    if any(r.get('status') in busy for r in main_runs):
+        return False,'private_daily_forecast_queued_or_running'
+    if not due:
+        event_id=str(value.get('metadata',{}).get('event_id',''))
+        report_run=next((r for r in main_runs if str(r.get('id'))==event_id),None)
+        if report_run is None:
+            return True,'daily_report_run_not_verified_fail_open'
+        if report_run.get('status')!='completed' or report_run.get('conclusion')!='success':
+            return True,'daily_report_run_not_successful'
+    return due,reason
+
+
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument("--kind",required=True,choices=("svg","models","wunstorf","etnw","secondary","daily_weather"))
@@ -145,13 +174,15 @@ def main():
     now=datetime.now(timezone.utc)
 
     if args.kind == 'daily_weather':
-        value=None
+        value=None; runs=None
         # Avoid network calls outside the only useful recovery window.
         active,_=daily_weather_due(None,now)
         if active and token:
             try:value=fetch_daily_report(repo,token)
             except (ValueError,KeyError,TypeError,OSError):pass
-        due,reason=daily_weather_due(value,now)
+            try:runs=fetch_daily_forecast_attempts(repo,token)
+            except (ValueError,KeyError,TypeError,OSError):pass
+        due,reason=daily_recovery_decision(value,runs,now)
         output('due','true' if due else 'false');output('reason',reason)
         output('age_minutes','not_applicable');output('threshold_minutes','Berlin0735_to0750')
         return
