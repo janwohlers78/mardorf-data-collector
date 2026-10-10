@@ -6,7 +6,9 @@ bodies plus the consumed body; no historical scans or persistent proof cache.
 """
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
-from mardorf_collector.storage.objects import path_digest
+from mardorf_collector.storage.objects import path_digest, B2Objects, safe_key
+import base64
+import hashlib
 
 METADATA_BYTES = 16 * 1024**2
 OBJECT_BYTES = 8 * 1024**2
@@ -121,6 +123,31 @@ def publish_object(backend, local, reference, *, verified_reads=None):
                 raise ValueError('Original model source identity mismatch')
             verified_reads.get_bytes(reference)
             return reference
+    if verified_reads is not None and isinstance(backend, B2Objects) and reference.bytes <= backend.part_bytes:
+        # Bounded immutable single-part upload: one live HEAD, one PUT and one
+        # independent canonical GET. General/multipart transports are unchanged.
+        backend._bound(reference)
+        key = safe_key(reference.key)
+        if reference.sha256 not in key.split('/') and not any(p.startswith(reference.sha256+'.') for p in key.split('/')):
+            raise ValueError('Native publication requires digest-bound immutable key')
+        body = local.get_bytes(reference)
+        backend.metrics['put_attempted_bytes'] += len(body)
+        backend._call('put_object', Key=key, Body=body, ContentLength=len(body),
+            ContentMD5=base64.b64encode(hashlib.md5(body).digest()).decode(),
+            Metadata={'sha256':reference.sha256}, ServerSideEncryption='AES256')
+        backend.metrics['put_bytes'] += len(body)
+        # Force the fresh remote read even when restoring a deleted cached object.
+        canonical_body = backend.get_bytes(reference)
+        if len(canonical_body) != reference.bytes or hashlib.sha256(canonical_body).hexdigest() != reference.sha256:
+            raise ValueError('Native canonical write readback identity mismatch')
+        class CanonicalRead:
+            def _bound(self, ref): backend._bound(ref)
+            def get_file(self, ref, destination):
+                if ref != reference: raise ValueError('Native canonical read binding')
+                from pathlib import Path
+                Path(destination).write_bytes(canonical_body)
+        verified_reads.cache.read(CanonicalRead(), reference)
+        return reference
     result = backend.put_file(reference.key,local.root/reference.key)
     if verified_reads is not None:
         verified_reads.get_bytes(reference)
