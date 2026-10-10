@@ -331,8 +331,8 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ${{ runner.temp }}/native-canonical-objects
-          key: native-canonical-v1-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: native-canonical-v1-${{ runner.os }}-
+          key: native-canonical-sharded-v2-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: native-canonical-sharded-v2-${{ runner.os }}-
 
       - name: Transfer payload and integrity history to private repository
         id: legacy_transfer
@@ -416,7 +416,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: ${{ runner.temp }}/native-canonical-objects
-          key: native-canonical-v1-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: native-canonical-sharded-v2-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Fail workflow when granular integrity audit found errors
         if: (steps.storage_gate.outcome == 'success' || (inputs.test_mode == true && inputs.cloud_canary != true)) && (always() && ((github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || (steps.due.outputs.due == 'true' && steps.cycle_gate.outputs.any_work == 'true')))

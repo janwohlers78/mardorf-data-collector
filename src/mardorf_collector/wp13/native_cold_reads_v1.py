@@ -195,3 +195,40 @@ def publish_parallel(references, upload, *, workers=48, progress=None):
     else:
         executor.shutdown(wait=True)
     return completed
+
+
+class NativeVerifiedReads:
+    """Sixteen independent disposable caches, bounded to one total disk quota.
+
+    A single lock and a full directory scan per insertion serialize thousands
+    of objects. SHA-prefix sharding bounds contention and reduces scan work;
+    the unchanged VerifiedReads performs every byte/hash/quota check. The
+    sharded cache has no new write or canonical-publication authority.
+    """
+    def __init__(self, backend, root, *, max_bytes=2*1024**3):
+        from pathlib import Path
+        from mardorf_collector.storage.verified_reads_v1 import VerifiedReads
+        from mardorf_collector.storage.objects import positive, safe_root
+        max_bytes = positive(max_bytes, 'native cache budget')
+        if max_bytes < 16: raise ValueError('Native cache quota must cover sixteen shards')
+        self.backend = backend
+        self.root = safe_root(root)
+        self.shards = tuple(VerifiedReads(backend, self.root / format(i, 'x'),
+            max_bytes=max_bytes//16) for i in range(16))
+        self.cache = self
+
+    def _shard(self, reference):
+        self.backend._bound(reference)
+        return self.shards[int(reference.sha256[0], 16)]
+
+    @property
+    def metrics(self):
+        keys = self.shards[0].cache.metrics
+        return {key: sum(shard.cache.metrics[key] for shard in self.shards) for key in keys}
+
+    def __getattr__(self, name): return getattr(self.backend, name)
+    def existing(self, backend, reference): return self._shard(reference).cache.existing(backend, reference)
+    def read(self, backend, reference): return self._shard(reference).cache.read(backend, reference)
+    def get_bytes(self, reference): return self._shard(reference).get_bytes(reference)
+    def get_range(self, reference, start, end): return self._shard(reference).get_range(reference, start, end)
+    def get_file(self, reference, destination): return self.backend.get_file(reference, destination)
