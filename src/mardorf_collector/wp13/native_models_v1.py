@@ -1,6 +1,5 @@
 """Publish existing model originals and qualified compact extracts to B2."""
 import argparse
-from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 import os
 import time
@@ -96,7 +95,7 @@ def publish(*, cloud=None, directory=WORK):
         refs.update(ObjectRef.parse(value) for value in parents.manifest(item['parent'])['chunks'])
     for fragment in catalog['fragments']:
         refs.update(ObjectRef.parse(fragment[kind]) for kind in ('native', 'parquet'))
-    from .native_cold_reads_v1 import ColdModelReads, publish_object
+    from .native_cold_reads_v1 import ColdModelReads, publish_object, publish_parallel
     cache_root = os.environ.get('MARDORF_NATIVE_OBJECT_CACHE')
     verified_reads = None
     if cache_root:
@@ -107,14 +106,11 @@ def publish(*, cloud=None, directory=WORK):
         result = publish_object(runtime.backend, local, ref, verified_reads=verified_reads)
         if result != ref:
             raise ValueError('Original model upload identity mismatch')
-    # Bound IO to 48 objects; native chunks are at most 8 MiB each.
-    with ThreadPoolExecutor(max_workers=48) as executor:
-        pending = {executor.submit(upload, ref) for ref in sorted(refs, key=lambda ref: ref.key)}
-        for count, future in enumerate(as_completed(pending), 1):
-            future.result()
-            if count % 128 == 0 or count == len(refs):
-                print('WP15_UPLOAD_PROGRESS=' + json.dumps(dict(completed=count, total=len(refs),
-                    seconds=time.monotonic()-started, transport=dict(runtime.backend.metrics))), flush=True)
+    def progress(count):
+        if count == 1 or count % 128 == 0 or count == len(refs):
+            print('WP15_UPLOAD_PROGRESS=' + json.dumps(dict(completed=count, total=len(refs),
+                seconds=time.monotonic()-started, transport=dict(runtime.backend.metrics))), flush=True)
+    publish_parallel(sorted(refs, key=lambda ref: ref.key), upload, workers=48, progress=progress)
     print('WP15_OBJECTS_UPLOADED=' + json.dumps(dict(seconds=time.monotonic()-started, transport=runtime.backend.metrics)), flush=True)
     from . import model_store_v1
     with ColdModelReads(verified_reads or runtime.backend, model_store_v1, prepared['catalog']) as reads:

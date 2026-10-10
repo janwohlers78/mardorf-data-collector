@@ -5,7 +5,7 @@ hashed by the pinned reader. Metadata16MiB, four workers, three queued8MiB
 bodies plus the consumed body; no historical scans or persistent proof cache.
 """
 from collections import deque
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
 from mardorf_collector.storage.objects import path_digest, B2Objects, safe_key
 import base64
 import hashlib
@@ -152,3 +152,46 @@ def publish_object(backend, local, reference, *, verified_reads=None):
     if verified_reads is not None:
         verified_reads.get_bytes(reference)
     return result
+
+
+def publish_parallel(references, upload, *, workers=48, progress=None):
+    """Keep only a bounded window active and cancel pending work on first error.
+
+    Waiting for thousands of queued objects during executor context exit hid the
+    initial failure behind the workflow timeout. Running IO remains bounded by
+    the transport timeout; no new object is submitted after an observed error.
+    """
+    references = iter(references)
+    executor = ThreadPoolExecutor(max_workers=workers)
+    pending = {}
+    completed = 0
+    def fill():
+        while len(pending) < workers:
+            reference = next(references, None)
+            if reference is None: break
+            pending[executor.submit(upload, reference)] = reference
+    try:
+        fill()
+        while pending:
+            done, _ = wait(pending, return_when=FIRST_COMPLETED)
+            # Surface any failure before replenishing the active window.
+            for future in done:
+                try:
+                    future.result()
+                except BaseException as error:
+                    import json
+                    print('WP15_UPLOAD_FAILED=' + json.dumps(dict(
+                        completed=completed, reference=pending[future].json(),
+                        error_type=type(error).__name__)), flush=True)
+                    raise
+            for future in done:
+                del pending[future]
+                completed += 1
+                if progress is not None: progress(completed)
+            fill()
+    except BaseException:
+        executor.shutdown(wait=False, cancel_futures=True)
+        raise
+    else:
+        executor.shutdown(wait=True)
+    return completed
