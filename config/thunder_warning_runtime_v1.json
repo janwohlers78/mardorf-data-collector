@@ -2,9 +2,9 @@
   "schema_version": 1,
   "artifact_version": "thunder-warning-runtime-v1",
   "capsule": {
-    "key": "weather/archive/janwohlers78/mardorf-kitevorhersage/thunder-warning/v1/capsules/e6e748c70725be9d804b846060be56ba296b4692c6301f7c998c335d0b9af45d",
-    "sha256": "e6e748c70725be9d804b846060be56ba296b4692c6301f7c998c335d0b9af45d",
-    "bytes": 4225037,
+    "key": "weather/archive/janwohlers78/mardorf-kitevorhersage/thunder-warning/v1/capsules/209712d09438435aed93523339a41860aedfbb959f786f03e53d3f6d7f3fbeae",
+    "sha256": "209712d09438435aed93523339a41860aedfbb959f786f03e53d3f6d7f3fbeae",
+    "bytes": 4225286,
     "schema_version": 1
   },
   "analysis_owner": "private_repository",
