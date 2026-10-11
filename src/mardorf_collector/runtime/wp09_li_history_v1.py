@@ -51,14 +51,14 @@ def save(backend,value):
     return ref.json()
 
 
-def response(url,headers,deadline,*,params=None,maximum=32*1024**2,backend=None):
+def response_attempt(url,headers,deadline,*,params=None,maximum=32*1024**2,backend=None):
     p=urlsplit(url)
     if p.scheme!='https' or p.netloc!='api.eumetsat.int' or p.query:raise ValueError('LI_history_untrusted_url')
     if time.monotonic()>=deadline:raise ValueError('LI_history_time_budget')
     started=datetime.now(timezone.utc).isoformat();body=bytearray()
     status=None;complete=False
     try:
-        with requests.get(url,headers=headers,params=params,stream=True,allow_redirects=False,timeout=(5,20)) as r:
+        with requests.get(url,headers=headers,params=params,stream=True,allow_redirects=False,timeout=(5,45)) as r:
             status=r.status_code
             for chunk in r.iter_content(65536):
                 if len(body)+len(chunk)>maximum or time.monotonic()>deadline:raise ValueError('LI_history_response_budget')
@@ -72,6 +72,17 @@ def response(url,headers,deadline,*,params=None,maximum=32*1024**2,backend=None)
                 captured_utc=datetime.now(timezone.utc).isoformat(),original_prefix=save(backend,bytes(body))))
         raise
     return raw,started,datetime.now(timezone.utc).isoformat()
+
+
+def response(url,headers,deadline,*,params=None,maximum=32*1024**2,backend=None):
+    # A failed historical stream is retained, then retried within the original
+    # deadline. Identity/integrity/budget failures never trigger blind retries.
+    for attempt in range(3):
+        try:
+            return response_attempt(url,headers,deadline,params=params,maximum=maximum,backend=backend)
+        except (requests.Timeout,requests.ConnectionError):
+            if attempt==2 or time.monotonic()>=deadline:raise
+    raise AssertionError('unreachable')
 
 
 def product(f,backend,headers,deadline):
