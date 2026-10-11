@@ -13,7 +13,7 @@ from unittest.mock import Mock, patch
 
 import yaml
 from mardorf_collector.runtime.thunder_warning_due_v1 import decision
-from mardorf_collector.runtime.thunder_warning_v1 import capsule, main, publish, POINTER, PREFIX, ROOT
+from mardorf_collector.runtime.thunder_warning_v1 import capsule, main, publish, recent_metar, POINTER, PREFIX, ROOT
 from test_wp09_eumetsat_probe_v1 import Backend
 
 
@@ -84,6 +84,17 @@ class ThunderTransportTests(unittest.TestCase):
         control['receipt_sha256'] = 'b'*64; self.assertEqual(decision(control, now)[1], 'unverified_warning_control')
         control['receipt_sha256'] = 'a'*64; control['generated_at_utc'] = '2026-10-11T02:17:00Z'
         self.assertEqual(decision(control, now)[1], 'unverified_warning_control')
+
+    def test_warning_METAR_profile_preserves_all_fields_and_legacy_48hour_query(self):
+        before = (ROOT/'config/wp09_events_v1.json').read_bytes()
+        def capture(*, root, get):
+            profile = json.loads((Path(root)/'config/wp09_events_v1.json').read_bytes())
+            for url in profile['sources'].values(): self.assertIn('hours=2', url); self.assertNotIn('hours=48', url)
+            self.assertTrue(profile['all_original_fields_retained'])
+            return {'records': [], 'profile': profile}, {}
+        with patch('mardorf_collector.runtime.thunder_warning_v1.metar_capture', side_effect=capture): receipt, originals = recent_metar()
+        self.assertEqual((ROOT/'config/wp09_events_v1.json').read_bytes(), before)
+        self.assertIn(b'hours=48', before); self.assertEqual(originals, {})
 
     def test_public_single_job_30min_route_excludes_normal_source_and_private_jobs(self):
         w = yaml.safe_load((ROOT/'.github/workflows/wp06-single-run-daily.yml').read_bytes()); on = w.get('on', w.get(True))

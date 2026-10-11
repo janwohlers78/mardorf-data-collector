@@ -14,6 +14,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 from pathlib import Path
+from urllib.parse import urlsplit, parse_qsl, urlencode, urlunsplit
 
 import requests
 
@@ -88,11 +89,30 @@ def bounded_metar_get(*args, **kwargs):
     return requests.get(*args, **kwargs)
 
 
+def recent_metar(*, root=ROOT):
+    """Warnings need the latest received report; legacy 48h capture is unchanged.
+
+    Explicit two-hour query profile retains every returned row and field, reduces
+    repeated old bytes and avoids rejecting busy 48h SPECI windows at 512 rows.
+    """
+    profile = json.loads((Path(root)/'config/wp09_events_v1.json').read_bytes())
+    profile['artifact_version'] = 'wp09-warning-reported-thunder-binding-v1'
+    for station, url in profile['sources'].items():
+        parts = urlsplit(url); params = dict(parse_qsl(parts.query)); params['hours'] = '2'
+        profile['sources'][station] = urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(params), ''))
+    with tempfile.TemporaryDirectory(prefix='metar-warning-profile-') as directory:
+        path = Path(directory)/'config'; path.mkdir()
+        (path/'wp09_events_v1.json').write_bytes(canonical(profile))
+        receipt, originals = metar_capture(root=directory, get=bounded_metar_get)
+    receipt['warning_capture_profile'] = profile
+    return receipt, originals
+
+
 def capture_all(*, root=ROOT, environ=None):
     with ThreadPoolExecutor(max_workers=3) as pool:
         tasks = {'li': pool.submit(recent_li, root=root, environ=environ),
                  'dwd': pool.submit(dwd_capture, root=root),
-                 'metar': pool.submit(metar_capture, root=root, get=bounded_metar_get)}
+                 'metar': pool.submit(recent_metar, root=root)}
         receipts = {}; originals = {}
         for name, task in tasks.items():
             try: receipts[name], originals[name] = task.result()
