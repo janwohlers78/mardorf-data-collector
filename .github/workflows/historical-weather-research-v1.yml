@@ -6,7 +6,7 @@ on:
       operation:
         description: Registered CDC refresh or ten-year GFS access probes
         type: choice
-        options: [dwd-recent, dwd-wind-clock-probe, gfs-archive-probe, gfs-subset-probe, gfs-temporal-probe, gfs-archive-range]
+        options: [dwd-recent, dwd-wind-clock-probe, gfs-archive-probe, gfs-subset-probe, gfs-temporal-probe, gfs-archive-range, li-history-range]
         default: dwd-recent
       start:
         description: Explicit completed UTC range start for bounded GFS archive
@@ -20,7 +20,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: historical-weather-research-v1
+  group: ${{ inputs.operation == 'li-history-range' && format('li-history-{0}', inputs.start) || 'historical-weather-research-v1' }}
   cancel-in-progress: false
 jobs:
   acquire:
@@ -41,6 +41,8 @@ jobs:
         env:
           B2_APPLICATION_KEY_ID: ${{ secrets.B2_APPLICATION_KEY_ID }}
           B2_APPLICATION_KEY: ${{ secrets.B2_APPLICATION_KEY }}
+          EUMETSAT_CONSUMER_KEY: ${{ secrets.EUMETSAT_CONSUMER_KEY }}
+          EUMETSAT_CONSUMER_SECRET: ${{ secrets.EUMETSAT_CONSUMER_SECRET }}
           B2_ENDPOINT_URL: ${{ vars.B2_ENDPOINT_URL }}
           B2_REGION: ${{ vars.B2_REGION }}
           B2_BUCKET: ${{ vars.B2_BUCKET }}

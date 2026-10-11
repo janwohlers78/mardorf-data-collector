@@ -156,7 +156,7 @@ def run(operation, output, backend, root=ROOT):
 
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('operation',choices=['dwd-recent','dwd-wind-clock-probe','gfs-archive-probe','gfs-subset-probe','gfs-temporal-probe','gfs-archive-range'])
+    p=argparse.ArgumentParser();p.add_argument('operation',choices=['dwd-recent','dwd-wind-clock-probe','gfs-archive-probe','gfs-subset-probe','gfs-temporal-probe','gfs-archive-range','li-history-range'])
     p.add_argument('--start',default=os.getenv('RESEARCH_START'))
     p.add_argument('--end-exclusive',default=os.getenv('RESEARCH_END_EXCLUSIVE'))
     p.add_argument('--output',type=Path,default=Path('work/historical-weather-research'));a=p.parse_args()
@@ -165,6 +165,11 @@ def main():
     for name,value in defaults.items():
         if not env.get(name):env[name]=value
     backend=B2Objects(resolve_b2_bucket(b2_settings(env)))
+    if a.operation=='li-history-range':
+        from ..runtime.wp09_li_history_v1 import run as archive
+        result=archive(a.start,a.end_exclusive,backend,environ=env)
+        if result['status']!='COMPLETE':raise SystemExit(1)
+        return
     if a.operation=='gfs-archive-range':
         if not a.start or not a.end_exclusive:raise ValueError('Explicit registered GFS range required')
         from .gfs_archive_research_v1 import run as archive
