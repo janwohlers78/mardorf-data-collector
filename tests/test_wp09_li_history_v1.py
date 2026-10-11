@@ -58,6 +58,17 @@ class HistoryTests(unittest.TestCase):
             with self.assertRaises(ValueError):response('https://api.eumetsat.int/path',{},time.monotonic()+10)
             self.assertEqual(call.call_count,1)
 
+    def test_only_transient_http_statuses_retry_inside_deadline(self):
+        import time
+        from mardorf_collector.runtime.wp09_li_history_v1 import response,ProviderHTTPFailure
+        with patch('mardorf_collector.runtime.wp09_li_history_v1.response_attempt',side_effect=[ProviderHTTPFailure(503),(b'ok','a','b')]) as call,patch('mardorf_collector.runtime.wp09_li_history_v1.time.sleep'):
+            self.assertEqual(response('https://api.eumetsat.int/path',{},time.monotonic()+10)[0],b'ok')
+            self.assertEqual(call.call_count,2)
+        for status in (401,403,404):
+            with patch('mardorf_collector.runtime.wp09_li_history_v1.response_attempt',side_effect=ProviderHTTPFailure(status)) as call:
+                with self.assertRaisesRegex(ValueError,str(status)):response('https://api.eumetsat.int/path',{},time.monotonic()+10)
+                self.assertEqual(call.call_count,1)
+
     def test_packs_preserve_each_whole_zip_hash_and_resume_without_network(self):
         import time,tempfile
         from pathlib import Path
@@ -67,12 +78,42 @@ class HistoryTests(unittest.TestCase):
         features=[feature(i) for i in range(17)]
         with tempfile.TemporaryDirectory() as tmp:
             backend=LocalObjects(Path(tmp));day=datetime(2025,7,1,tzinfo=timezone.utc)
-            with patch('mardorf_collector.runtime.wp09_li_history_v1.response',return_value=(b'PKwhole_native_fields','a','b')) as call:
+            with patch('mardorf_collector.runtime.wp09_li_history_v1.response',return_value=(b'PKwhole_native_fields','a','b')) as call,patch('mardorf_collector.runtime.wp09_li_history_v1.requests.Session') as session:
                 records=packed_products(features,day,backend,{},time.monotonic()+10)
                 self.assertEqual(call.call_count,17)
+                self.assertLessEqual(session.call_count,4)
+                self.assertTrue(all(c.kwargs['client'] is session.return_value for c in call.call_args_list))
+                self.assertEqual(session.return_value.close.call_count,session.call_count)
             for record in records:
                 r=record['original'];pack=backend.get_bytes(ObjectRef.parse(r['pack']));raw=pack[r['offset']:r['offset']+r['bytes']]
                 self.assertEqual(raw,b'PKwhole_native_fields');self.assertEqual(hashlib.sha256(raw).hexdigest(),r['sha256'])
+            with patch('mardorf_collector.runtime.wp09_li_history_v1.response') as call:
+                self.assertEqual(packed_products(features,day,backend,{},time.monotonic()+10),records);call.assert_not_called()
+
+    def test_partial_group_preserves_successes_and_only_retries_missing_products(self):
+        import time,tempfile,requests
+        from pathlib import Path
+        from mardorf_collector.storage.objects import LocalObjects
+        from mardorf_collector.runtime.wp09_li_history_v1 import packed_products
+        features=[dict(id=str(i),properties=dict(date='2025-07-01T00:00:00Z/2025-07-01T00:10:00Z',
+            parentIdentifier='EO:EUM:DAT:0691',productInformation=dict(productType='MTILI2LFL'),
+            acquisitionInformation=[dict(platform=dict(platformShortName='MTI1'))],
+            links=dict(data=[dict(mediaType='application/zip',href='https://api.eumetsat.int/'+str(i))]))) for i in range(16)]
+        with tempfile.TemporaryDirectory() as tmp:
+            backend=LocalObjects(Path(tmp));day=datetime(2025,7,1,tzinfo=timezone.utc)
+            def initial(url,*args,**kwargs):
+                if url.endswith('/3'):raise requests.ReadTimeout()
+                return b'PK'+url.encode(),'first_start','first_capture'
+            with patch('mardorf_collector.runtime.wp09_li_history_v1.response',side_effect=initial):
+                with self.assertRaises(requests.ReadTimeout):packed_products(features,day,backend,{},time.monotonic()+10)
+            self.assertFalse(backend.list_page(PREFIX+'/pieces/')['keys'])
+            self.assertEqual(len(backend.list_page(PREFIX+'/partialpieces/')['keys']),1)
+            with patch('mardorf_collector.runtime.wp09_li_history_v1.response',return_value=(b'PKmissing','second_start','second_capture')) as call:
+                records=packed_products(features,day,backend,{},time.monotonic()+10)
+                self.assertEqual(call.call_count,1);self.assertTrue(call.call_args.args[0].endswith('/3'))
+            self.assertEqual(len(records),16)
+            self.assertTrue(all(r['captured_utc']=='first_capture' for r in records if r['product_id']!='3'))
+            self.assertEqual(records[3]['captured_utc'],'second_capture')
             with patch('mardorf_collector.runtime.wp09_li_history_v1.response') as call:
                 self.assertEqual(packed_products(features,day,backend,{},time.monotonic()+10),records);call.assert_not_called()
 
