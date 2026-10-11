@@ -1,0 +1,17 @@
+{
+  "schema_version": 2,
+  "artifact_version": "wp09-lightning-archive-policy-v2",
+  "source_id": "DWD_KONRAD3D",
+  "lookback_seconds": 14400,
+  "cadence_seconds": 300,
+  "maximum_history_requests": 48,
+  "maximum_history_bytes": 67108864,
+  "maximum_original_bytes": 8388608,
+  "maximum_history_seconds": 45,
+  "workers": 4,
+  "request_connect_seconds": 3,
+  "request_read_seconds": 8,
+  "negative_detector_coverage": false,
+  "target_role": "cell_associated_positive_evidence_not_individual_flash_truth",
+  "full_native_originals_retained": true
+}

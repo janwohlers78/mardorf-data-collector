@@ -233,7 +233,7 @@ def main():
         event_companion=event_capture()
     lightning_companion=None
     if a.with_wp09_events:
-        from .wp09_lightning_context_v1 import capture as lightning_capture
+        from .wp09_lightning_archive_v2 import capture as lightning_capture
         lightning_companion=lightning_capture()
     if a.capture_only:
         a.capture_only.mkdir(parents=True,exist_ok=True)
