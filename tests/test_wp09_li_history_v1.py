@@ -58,6 +58,17 @@ class HistoryTests(unittest.TestCase):
             with self.assertRaises(ValueError):response('https://api.eumetsat.int/path',{},time.monotonic()+10)
             self.assertEqual(call.call_count,1)
 
+    def test_only_transient_http_statuses_retry_inside_deadline(self):
+        import time
+        from mardorf_collector.runtime.wp09_li_history_v1 import response,ProviderHTTPFailure
+        with patch('mardorf_collector.runtime.wp09_li_history_v1.response_attempt',side_effect=[ProviderHTTPFailure(503),(b'ok','a','b')]) as call,patch('mardorf_collector.runtime.wp09_li_history_v1.time.sleep'):
+            self.assertEqual(response('https://api.eumetsat.int/path',{},time.monotonic()+10)[0],b'ok')
+            self.assertEqual(call.call_count,2)
+        for status in (401,403,404):
+            with patch('mardorf_collector.runtime.wp09_li_history_v1.response_attempt',side_effect=ProviderHTTPFailure(status)) as call:
+                with self.assertRaisesRegex(ValueError,str(status)):response('https://api.eumetsat.int/path',{},time.monotonic()+10)
+                self.assertEqual(call.call_count,1)
+
     def test_packs_preserve_each_whole_zip_hash_and_resume_without_network(self):
         import time,tempfile
         from pathlib import Path
@@ -67,9 +78,12 @@ class HistoryTests(unittest.TestCase):
         features=[feature(i) for i in range(17)]
         with tempfile.TemporaryDirectory() as tmp:
             backend=LocalObjects(Path(tmp));day=datetime(2025,7,1,tzinfo=timezone.utc)
-            with patch('mardorf_collector.runtime.wp09_li_history_v1.response',return_value=(b'PKwhole_native_fields','a','b')) as call:
+            with patch('mardorf_collector.runtime.wp09_li_history_v1.response',return_value=(b'PKwhole_native_fields','a','b')) as call,patch('mardorf_collector.runtime.wp09_li_history_v1.requests.Session') as session:
                 records=packed_products(features,day,backend,{},time.monotonic()+10)
                 self.assertEqual(call.call_count,17)
+                self.assertLessEqual(session.call_count,4)
+                self.assertTrue(all(c.kwargs['client'] is session.return_value for c in call.call_args_list))
+                self.assertEqual(session.return_value.close.call_count,session.call_count)
             for record in records:
                 r=record['original'];pack=backend.get_bytes(ObjectRef.parse(r['pack']));raw=pack[r['offset']:r['offset']+r['bytes']]
                 self.assertEqual(raw,b'PKwhole_native_fields');self.assertEqual(hashlib.sha256(raw).hexdigest(),r['sha256'])
