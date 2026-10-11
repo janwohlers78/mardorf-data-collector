@@ -48,4 +48,14 @@ class HistoryTests(unittest.TestCase):
             self.assertEqual(lookup(backend,PREFIX+'/days/2025-07-01.json'),value)
             self.assertFalse(value['detector_coverage'])
 
+    def test_transient_stream_retry_and_integrity_failure_are_distinct(self):
+        import requests,time
+        from mardorf_collector.runtime.wp09_li_history_v1 import response
+        with patch('mardorf_collector.runtime.wp09_li_history_v1.response_attempt',side_effect=[requests.ReadTimeout(),(b'ok','a','b')]) as call:
+            self.assertEqual(response('https://api.eumetsat.int/path',{},time.monotonic()+10)[0],b'ok')
+            self.assertEqual(call.call_count,2)
+        with patch('mardorf_collector.runtime.wp09_li_history_v1.response_attempt',side_effect=ValueError('LI_history_native_identity')) as call:
+            with self.assertRaises(ValueError):response('https://api.eumetsat.int/path',{},time.monotonic()+10)
+            self.assertEqual(call.call_count,1)
+
 if __name__=='__main__':unittest.main()
