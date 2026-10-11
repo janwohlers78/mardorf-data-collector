@@ -52,7 +52,8 @@ def validate(root):
         if name.endswith('/wp06-single-run-daily.yml'):
             if (sha(path) != item['sha256'] or not item.get('reason')
                     or set(data['on']) != {'schedule', 'workflow_dispatch'}
-                    or data['on']['schedule'] != [{'cron': '35 5,6 * * *'}]
+                    or data['on']['schedule'] != [{'cron': '35 5,6 * * *'}, {'cron': '17,47 * * * *'}]
+                    or data['on']['workflow_dispatch']['inputs']['li_warning'].get('default') != 'false'
                     or data['permissions'] != {'contents': 'read'}
                     or data['concurrency'] != {'group': 'wp06-single-run-daily', 'cancel-in-progress': 'false'}
                     or set(data['jobs']) != {'capture'}

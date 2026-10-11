@@ -1,0 +1,5 @@
+# Private decoder execution carrier; CPython 3.12 standard public Linux only.
+numpy==2.3.4 \
+    --hash=sha256:4121c5beb58a7f9e6dfdee612cb24f4df5cd4db6e8261d7f4d7450a997a65d6a
+h5py==3.15.1 \
+    --hash=sha256:25c8843fec43b2cc368aa15afa1cdf83fc5e17b1c4e10cd3771ef6c39b72e5ce
