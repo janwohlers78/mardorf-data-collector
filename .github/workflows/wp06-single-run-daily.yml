@@ -94,7 +94,7 @@ jobs:
         run: |
           args=()
           if [ "${{ steps.slot.outputs.due }}" = "true" ]; then args+=(--registered-daily-00 --with-wp08-labels); fi
-          PYTHONPATH=src python -m mardorf_collector.runtime.wp06_single_run_v1 --with-wp07 --with-wp09-events "${args[@]}"
+          PYTHONPATH=src python -m mardorf_collector.runtime.wp06_single_run_v1 --with-wp07 --with-wp09-events --with-wp17 "${args[@]}"
       - name: Test native EUMETSAT LI access and publish private originals
         if: github.event_name == 'workflow_dispatch' && inputs.li_probe == true
         env:
