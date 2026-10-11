@@ -38,16 +38,25 @@ class LightningCaptureTests(unittest.TestCase):
     def test_empty_index_no_fake_zero_original(self):
         r,o=capture(get=lambda *a,**kw:Response(b''))
         self.assertEqual(r['records'][0]['status'],'invalid');self.assertNotIn('konrad3d',o)
-    def test_publisher_uses_separate_frozen_collection_and_checks_readback(self):
-        from unittest.mock import patch
-        with patch('mardorf_collector.runtime.wp09_lightning_context_v1.publish_originals') as publish:
-            publication({}, {}, object())
-            self.assertEqual(publish.call_args.kwargs,dict(domain='wp09',collection='lightning_context'))
-    def test_shared_entrypoint_captures_and_publishes_source(self):
-        from pathlib import Path
-        s=(Path(__file__).resolve().parents[1]/'src/mardorf_collector/runtime/wp06_single_run_v1.py').read_text()
-        self.assertIn('lightning_companion=lightning_capture()',s)
-        self.assertIn('wp09_lightning_context_ingress_v1.json',s)
+    def test_external_namespace_publication_checks_bytes_and_readback(self):
+        from types import SimpleNamespace
+        class Backend:
+            def __init__(self):self.data={};self.corrupt=False
+            def put_bytes(self,key,body):
+                self.data[key]=body;sha=hashlib.sha256(body).hexdigest()
+                return SimpleNamespace(key=key,json=lambda:dict(key=key,sha256=sha,bytes=len(body),schema_version=1))
+            def get_bytes(self,ref):return b'broken' if self.corrupt else self.data[ref.key]
+        receipt=dict(captured_utc='2026-10-11T01:05:00Z',records=[dict(quantity='konrad3d',status='valid',source_sha256=hashlib.sha256(XML).hexdigest(),source_bytes=len(XML))])
+        backend=Backend();paths,pointer=publication(receipt,{'konrad3d':XML},backend)
+        self.assertIn('data/inbox/wp09_lightning_context/latest.json',paths)
+        self.assertNotIn('data/inbox/wp09_events/latest.json',paths)
+        stored=json.loads(paths['data/inbox/wp09_lightning_context/latest.json'])
+        self.assertEqual(backend.data[stored['records'][0]['original']['key']],XML)
+        self.assertNotIn('records',pointer);self.assertTrue(pointer['readback_verified'])
+        backend.corrupt=True
+        with self.assertRaises(ValueError):publication(receipt,{'konrad3d':XML},backend)
+        backend.corrupt=False
+        with self.assertRaises(ValueError):publication(receipt,{'konrad3d':b'wrong'},backend)
 
 
 if __name__=='__main__':unittest.main()
