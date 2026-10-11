@@ -43,12 +43,20 @@ def capture(*,root=ROOT,get=requests.get):
 def publication(receipt,originals,backend,*,domain='wp08',collection='labels'):
     if (domain,collection) not in (('wp08','labels'),('wp09','events'),('wp09','lightning_context')):raise ValueError('unregistered_native_collection')
     prefix=f'weather/archive/janwohlers78/mardorf-kitevorhersage/{domain}-{collection}/v1';value=dict(receipt,records=[])
-    for r in receipt['records']:
+    def write(r):
         raw=originals[r['quantity']]
         if hashlib.sha256(raw).hexdigest()!=r['source_sha256'] or len(raw)!=r['source_bytes']:raise ValueError('WP08_capture_integrity')
         ref=backend.put_bytes(prefix+'/originals/'+r['source_sha256'],raw)
         if backend.get_bytes(ref)!=raw:raise ValueError('WP08_label_original_readback')
-        value['records'].append(dict(r,original=ref.json()))
+        return dict(r,original=ref.json())
+    if (domain,collection)==('wp09','lightning_context'):
+        # Independent immutable keys; all original readbacks precede the one
+        # receipt/CAS publication. Worker-sized batches bound resident bytes.
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            for offset in range(0,len(receipt['records']),4):
+                value['records'].extend(pool.map(write,receipt['records'][offset:offset+4]))
+    else:value['records']=[write(r) for r in receipt['records']]
     raw=json.dumps(value,sort_keys=True,separators=(',',':')).encode();ref=backend.put_bytes(prefix+'/receipts/'+hashlib.sha256(raw).hexdigest()+'.json',raw)
     if backend.get_bytes(ref)!=raw:raise ValueError('WP08_label_receipt_readback')
     pointer=dict(schema_version=1,artifact_version=f'{domain}-{collection}-ingress-control-v1',kind=f'{domain}_{collection}',generated_at_utc=receipt['captured_utc'],snapshot=ref.json(),readback_verified=True,bundle_ready=any(r['status']=='valid' for r in receipt['records']))
