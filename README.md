@@ -64,6 +64,29 @@ permissions.
 
 ## Safety boundary
 
+### Manual EUMETSAT LI access qualification
+
+Store `EUMETSAT_CONSUMER_KEY` and `EUMETSAT_CONSUMER_SECRET` as encrypted
+Actions repository secrets in this public collector. They are exposed only to
+the explicitly selected manual LI step, never to receipts or public artifacts.
+The existing source workflow supports an isolated, past-UTC probe of at most
+one hour:
+
+```bash
+gh workflow run wp06-single-run-daily.yml -R janwohlers78/mardorf-data-collector \
+  --ref main -f li_probe=true \
+  -f li_start_utc=2026-10-10T00:00:00Z -f li_end_utc=2026-10-10T01:00:00Z
+```
+
+This mode skips ordinary weather capture and recovery, stores entire native ZIP
+originals plus catalog and receipt in private B2, verifies every readback and
+publishes only a thin private reference at
+`config/cloud_refs/wp09_li_lfl_ingress_v2.json`. The log markers
+`WP09_LI_ACCESS_BEGIN/END` contain safe receipt identity and access status.
+A blocked download is a failed job with its diagnostic receipt retained.
+No regular LI schedule, detector coverage, local calibration label or forecast
+promotion is enabled by a successful access probe.
+
 A successful acquisition does **not** imply that data are operationally usable.
 The private repository must independently verify timestamps, model identity,
 family independence, completeness, freshness and observation semantics before
