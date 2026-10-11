@@ -53,6 +53,12 @@ class LightningCaptureTests(unittest.TestCase):
         stored=json.loads(paths['data/inbox/wp09_lightning_context/latest.json'])
         self.assertEqual(backend.data[stored['records'][0]['original']['key']],XML)
         self.assertNotIn('records',pointer);self.assertTrue(pointer['readback_verified'])
+        failed=dict(receipt,records=[dict(receipt['records'][0],status='invalid')])
+        _,bad_pointer=publication(failed,{'konrad3d':XML},backend)
+        self.assertFalse(bad_pointer['bundle_ready'])
+        only_index=dict(receipt,records=[dict(receipt['records'][0],quantity='index')])
+        _,index_pointer=publication(only_index,{'index':XML},backend)
+        self.assertFalse(index_pointer['bundle_ready'])
         backend.corrupt=True
         with self.assertRaises(ValueError):publication(receipt,{'konrad3d':XML},backend)
         backend.corrupt=False

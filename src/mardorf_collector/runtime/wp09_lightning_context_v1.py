@@ -79,4 +79,7 @@ def capture(*, root=ROOT, get=requests.get, now=None):
 
 
 def publication(receipt, originals, backend):
-    return publish_originals(receipt, originals, backend, domain='wp09', collection='lightning_context')
+    paths, pointer = publish_originals(receipt, originals, backend, domain='wp09', collection='lightning_context')
+    # A valid directory listing alone is not a usable lightning observation.
+    pointer['bundle_ready'] = any(r['quantity']=='konrad3d' and r['status']=='valid' for r in receipt['records'])
+    return paths, pointer
