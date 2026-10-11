@@ -39,9 +39,13 @@ def lookup(backend,key):
     for name in page['keys']:
         meta=backend.head(name);values.append(json.loads(backend.get_bytes(ObjectRef(name,meta['sha256'],meta['bytes']))))
     if not values:return None
-    if any(v.get('original')!=values[0].get('original') or v.get('product_id')!=values[0].get('product_id') for v in values):
+    def identity(v):
+        if 'records' in v:
+            return [(r['product_id'],r['source_sha256'],r['native_start_utc'],r['native_end_utc'],r['original']) for r in v['records']]
+        return (v.get('product_id'),v.get('native_start_utc'),v.get('native_end_utc'),v.get('original'))
+    if any(identity(v)!=identity(values[0]) for v in values):
         raise ValueError('LI_history_conflicting_original_versions')
-    return min(values,key=lambda v:v.get('captured_utc',''))
+    return min(values,key=lambda v:v.get('captured_utc') or min((r['captured_utc'] for r in v.get('records',[])),default=''))
 
 
 def save(backend,value):
@@ -115,6 +119,57 @@ def product(f,backend,headers,deadline):
     return value
 
 
+def packed_products(features,day,backend,headers,deadline):
+    """Whole unchanged ZIPs in <=32MiB verified packs, 16-product checkpoints.
+
+    Avoid hundreds of separate object/index round trips per day. Each ZIP keeps
+    its own digest, byte interval and actual first capture; there is no native
+    field extraction or lossy spatial subset on this public transport route.
+    """
+    records=[]
+    for offset in range(0,len(features),16):
+        group=features[offset:offset+16]
+        signature=hashlib.sha256(canonical([f['id'] for f in group])).hexdigest()
+        key=PREFIX+'/pieces/'+day.strftime('%Y-%m-%d')+'/'+signature
+        old=lookup(backend,key)
+        if old is not None:
+            if [r['product_id'] for r in old['records']]!=[f['id'] for f in group]:raise ValueError('LI_history_piece_identity')
+            for ref in old['packs']:backend.get_bytes(ObjectRef.parse(ref))
+            records.extend(old['records']);continue
+        def fetch(f):
+            prop=f['properties'];a,b=prop['date'].split('/')
+            if (prop['parentIdentifier']!=COLLECTION or prop['productInformation']['productType']!='MTILI2LFL'
+                    or not any(x.get('platform',{}).get('platformShortName')=='MTI1' for x in prop['acquisitionInformation'])):
+                raise ValueError('LI_history_foreign_identity')
+            links=[x['href'] for x in prop['links']['data'] if x['mediaType']=='application/zip']
+            if len(links)!=1:raise ValueError('LI_history_download_identity')
+            raw,started,captured=response(links[0],headers,deadline,backend=backend)
+            if not raw.startswith(b'PK'):raise ValueError('LI_history_native_ZIP_required')
+            return raw,dict(quantity='LFL_'+hashlib.sha256(f['id'].encode()).hexdigest(),product_id=f['id'],
+                native_start_utc=a,native_end_utc=b,status='valid',source_sha256=hashlib.sha256(raw).hexdigest(),
+                source_bytes=len(raw),started_utc=started,captured_utc=captured,available_utc=captured,
+                url=links[0],all_original_fields_retained=True)
+        with ThreadPoolExecutor(max_workers=4) as executor:captured=list(executor.map(fetch,group))
+        buffer=bytearray();pending=[];packs=[];items=[]
+        def flush():
+            if not pending:return
+            ref=save(backend,bytes(buffer));packs.append(ref)
+            for record,start in pending:
+                record['original']=dict(kind='native_zip_in_verified_pack_v1',pack=ref,offset=start,
+                    bytes=record['source_bytes'],sha256=record['source_sha256'])
+                items.append(record)
+            buffer.clear();pending.clear()
+        for raw,record in captured:
+            if len(buffer)+len(raw)>32*1024**2:flush()
+            pending.append((record,len(buffer)));buffer.extend(raw)
+        flush()
+        value=dict(artifact_version='wp09-li-history-piece-v2',records=items,packs=packs)
+        encoded=canonical(value);ref=backend.put_bytes(key+'/'+hashlib.sha256(encoded).hexdigest()+'.json',encoded)
+        if backend.get_bytes(ref)!=encoded:raise ValueError('LI_history_piece_readback')
+        records.extend(items)
+    return records
+
+
 def capture_day(day,backend,headers,deadline):
     key=PREFIX+'/days/'+day.strftime('%Y-%m-%d')+'.json'
     previous=lookup(backend,key)
@@ -132,10 +187,9 @@ def capture_day(day,backend,headers,deadline):
     # Reject catalogues whose worst-case bounded downloads exceed the day cap.
     # This bound is checked before any product download.
     if total*32*1024**2>5*1024**3:raise ValueError('LI_history_day_byte_budget')
-    with ThreadPoolExecutor(max_workers=4) as executor:
-        records=list(executor.map(lambda f:product(f,backend,headers,deadline),sorted(features,key=lambda f:f['id'])))
+    records=packed_products(sorted(features,key=lambda f:f['id']),day,backend,headers,deadline)
     if sum(x['source_bytes'] for x in records)>5*1024**3:raise ValueError('LI_history_day_byte_budget')
-    value=dict(artifact_version='wp09-li-history-day-v1',day_utc=day.strftime('%Y-%m-%d'),
+    value=dict(artifact_version='wp09-li-history-day-v2',day_utc=day.strftime('%Y-%m-%d'),
         requested_start_utc=day.isoformat(),requested_end_utc=end.isoformat(),boundary_guard_seconds=1200,records=records,
         catalog=dict(original=catalog_ref,started_utc=started,captured_utc=captured,params=params),
         status='ORIGINALS_COMPLETE_QC_PENDING',detector_coverage=False,optimizer_calls=0,
