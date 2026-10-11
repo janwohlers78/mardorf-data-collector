@@ -86,7 +86,7 @@ def capture(*,now=None,get=requests.get,run=None,timeout=(8,35)):
     return receipt,body
 
 
-def publish(receipt,body,runtime,*,companion=None,label_companion=None,event_companion=None,force_daily=False):
+def publish(receipt,body,runtime,*,companion=None,label_companion=None,event_companion=None,lightning_companion=None,force_daily=False):
     backend=runtime.backend
     source=backend.put_bytes(PREFIX+'/originals/'+receipt['source_sha256'],body)
     if backend.get_bytes(source)!=body:raise ValueError('API_original_readback')
@@ -120,6 +120,11 @@ def publish(receipt,body,runtime,*,companion=None,label_companion=None,event_com
         from .wp09_events_v1 import publication as event_publication
         paths,event_pointer=event_publication(*event_companion,backend)
         companion_paths.update(paths)
+    lightning_pointer=None
+    if lightning_companion is not None:
+        from .wp09_lightning_context_v1 import publication as lightning_publication
+        paths,lightning_pointer=lightning_publication(*lightning_companion,backend)
+        companion_paths.update(paths)
     profiles=[('data/inbox/wp06_api/latest.json',path,raw,pointer,POINTER)]
     if companion is not None:
         stamp=companion[0]['captured_utc'].replace(':','')
@@ -147,6 +152,7 @@ def publish(receipt,body,runtime,*,companion=None,label_companion=None,event_com
                 artifact_version='wp06-daily-source-request-control-v1',kind='wp06_daily_source_request')
         if labels_pointer is not None:pointers['config/cloud_refs/wp08_labels_ingress_v1.json']=labels_pointer
         if event_pointer is not None:pointers['config/cloud_refs/wp09_events_ingress_v1.json']=event_pointer
+        if lightning_pointer is not None:pointers['config/cloud_refs/wp09_lightning_context_ingress_v1.json']=lightning_pointer
         return pointers
     result=runtime.publish({path:raw,'data/inbox/wp06_api/latest.json':raw,**companion_paths},
         metadata=dict(channel='wp06-single-run-original-capture-v1',original_generated_at_utc=receipt['captured_utc'],
@@ -225,6 +231,10 @@ def main():
     if a.with_wp09_events:
         from .wp09_events_v1 import capture as event_capture
         event_companion=event_capture()
+    lightning_companion=None
+    if a.with_wp09_events:
+        from .wp09_lightning_context_v1 import capture as lightning_capture
+        lightning_companion=lightning_capture()
     if a.capture_only:
         a.capture_only.mkdir(parents=True,exist_ok=True)
         (a.capture_only/'receipt.json').write_bytes(canonical(receipt));(a.capture_only/'response.body').write_bytes(body)
@@ -236,9 +246,12 @@ def main():
         if event_companion:
             (a.capture_only/'wp09-event-receipt.json').write_bytes(canonical(event_companion[0]))
             for name,raw in event_companion[1].items():(a.capture_only/('wp09-'+name+'.json')).write_bytes(raw)
+        if lightning_companion:
+            (a.capture_only/'wp09-lightning-context-receipt.json').write_bytes(canonical(lightning_companion[0]))
+            for name,raw in lightning_companion[1].items():(a.capture_only/('lightning-'+name+'.original')).write_bytes(raw)
         print(json.dumps({k:receipt[k] for k in ('status','http_status','reason','source_bytes','source_sha256')}));return
     root=Path(__file__).resolve().parents[3]
-    result=publish(receipt,body,load_runtime(root,environ=environment(root)),companion=companion,label_companion=label_companion,event_companion=event_companion,force_daily=a.registered_daily_00)
+    result=publish(receipt,body,load_runtime(root,environ=environment(root)),companion=companion,label_companion=label_companion,event_companion=event_companion,lightning_companion=lightning_companion,force_daily=a.registered_daily_00)
     print(json.dumps(result))
 
 
