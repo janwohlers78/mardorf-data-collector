@@ -34,6 +34,7 @@ def capture(start_utc, end_utc, *, root=ROOT, environ=None, session=None):
     try:
         response=client.post(policy['token_url'],data={'grant_type':'client_credentials'},
             auth=(key,secret),timeout=(5,15),allow_redirects=False)
+        result['authentication_http_status']=getattr(response,'status_code',None)
         response.raise_for_status();token=response.json()['access_token']
         if not isinstance(token,str) or not token:raise ValueError('invalid_token')
     except (requests.RequestException,ValueError,KeyError,TypeError):
