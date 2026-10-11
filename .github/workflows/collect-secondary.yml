@@ -155,3 +155,15 @@ jobs:
           PYTHONPATH=src python -m mardorf_collector.transfer.dispatch secondary --cloud-canary "${{ inputs.cloud_canary == true && 'true' || 'false' }}" \
             --wunstorf-integrity work/wunstorf_integrity.json \
             --etnw-integrity work/etnw_integrity.json
+
+      - name: Retain Volmerdingsen observations in the shared secondary batch
+        if: steps.storage_gate.outcome == 'success' && inputs.cloud_canary != true && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || steps.due.outputs.due == 'true')
+        continue-on-error: true
+        env:
+          PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
+          B2_APPLICATION_KEY_ID: ${{ secrets.B2_APPLICATION_KEY_ID }}
+          B2_APPLICATION_KEY: ${{ secrets.B2_APPLICATION_KEY }}
+          B2_ENDPOINT_URL: ${{ vars.B2_ENDPOINT_URL }}
+          B2_REGION: ${{ vars.B2_REGION }}
+          B2_BUCKET: ${{ vars.B2_BUCKET }}
+        run: PYTHONPATH=src python -m mardorf_collector.providers.volmerdingsen_v1 --mode recent --publish-control
