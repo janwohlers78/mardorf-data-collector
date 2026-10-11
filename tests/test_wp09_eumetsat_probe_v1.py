@@ -104,11 +104,11 @@ class ProbeTests(unittest.TestCase):
     def test_workflow_secrets_only_on_manual_native_route(self):
         workflow = yaml.safe_load((ROOT/'.github/workflows/wp06-single-run-daily.yml').read_text())
         trigger = workflow.get('on', workflow.get(True))
-        self.assertEqual(trigger['schedule'], [{'cron': '35 5,6 * * *'}])
+        self.assertEqual(trigger['schedule'], [{'cron': '35 5,6 * * *'}, {'cron': '17,47 * * * *'}])
         self.assertFalse(trigger['workflow_dispatch']['inputs']['li_probe']['default'])
         self.assertEqual(len(workflow['jobs']), 1)
         steps = workflow['jobs']['capture']['steps']
-        li = [s for s in steps if 'EUMETSAT_CONSUMER_KEY' in s.get('env', {})]
+        li = [s for s in steps if s.get('name') == 'Test native EUMETSAT LI access and publish private originals']
         self.assertEqual(len(li), 1)
         self.assertIn("github.event_name == 'workflow_dispatch'", li[0]['if'])
         self.assertIn('inputs.li_probe == true', li[0]['if'])

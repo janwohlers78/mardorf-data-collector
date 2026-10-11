@@ -46,6 +46,10 @@ jobs:
         id: current_weather
         run: PYTHONPATH=src python3 -m mardorf_collector check-collection-due --kind current_weather --max-age-minutes 180
 
+      - name: Check experimental thunder warning slot
+        id: thunder_warning
+        run: PYTHONPATH=src python3 -m mardorf_collector.runtime.thunder_warning_due_v1 --recovery
+
       - name: Dispatch only due idle collectors
         shell: bash
         run: |
@@ -57,6 +61,7 @@ jobs:
             local reason="$3"
             local age="$4"
             local threshold="$5"
+            local mode="${6:-watchdog}"
 
             if [ "$due" != "true" ]; then
               echo "$workflow: no dispatch (age=$age min threshold=$threshold min reason=$reason)"
@@ -70,8 +75,12 @@ jobs:
               return 0
             fi
 
-            echo "$workflow: due; dispatching watchdog=true (age=$age min threshold=$threshold min reason=$reason)"
-            gh workflow run "$workflow" --repo "$GH_REPO" --ref main -f watchdog=true
+            echo "$workflow: due; dispatching $mode=true (age=$age min threshold=$threshold min reason=$reason)"
+            if [ "$mode" = "li_warning" ]; then
+              gh workflow run "$workflow" --repo "$GH_REPO" --ref main -f li_warning=true
+            else
+              gh workflow run "$workflow" --repo "$GH_REPO" --ref main -f watchdog=true
+            fi
           }
 
           dispatch_if_due             collect-svg.yml             "${{ steps.svg.outputs.due }}"             "${{ steps.svg.outputs.reason }}"             "${{ steps.svg.outputs.age_minutes }}"             "${{ steps.svg.outputs.threshold_minutes }}"
@@ -79,6 +88,8 @@ jobs:
           dispatch_if_due             collect-models.yml             "${{ steps.models.outputs.due }}"             "${{ steps.models.outputs.reason }}"             "${{ steps.models.outputs.age_minutes }}"             "${{ steps.models.outputs.threshold_minutes }}"
 
           dispatch_if_due             collect-secondary.yml             "${{ steps.secondary.outputs.due }}"             "${{ steps.secondary.outputs.reason }}"             "${{ steps.secondary.outputs.age_minutes }}"             "${{ steps.secondary.outputs.threshold_minutes }}"
+
+          dispatch_if_due wp06-single-run-daily.yml "${{ steps.thunder_warning.outputs.due }}" "${{ steps.thunder_warning.outputs.reason }}" "${{ steps.thunder_warning.outputs.age_minutes }}" "${{ steps.thunder_warning.outputs.threshold_minutes }}" li_warning
 
           if [ "${{ steps.daily_weather.outputs.due }}" = "true" ]; then
           dispatch_if_due             wp06-single-run-daily.yml             "${{ steps.daily_weather.outputs.due }}"             "${{ steps.daily_weather.outputs.reason }}"             "${{ steps.daily_weather.outputs.age_minutes }}"             "${{ steps.daily_weather.outputs.threshold_minutes }}"
