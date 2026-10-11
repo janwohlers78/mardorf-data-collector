@@ -105,17 +105,20 @@ def capture_day(day,backend,headers,deadline):
         # The consumer checks every original; this shortcut is acquisition resume.
         return previous
     end=day+timedelta(days=1)
-    params=dict(pi=COLLECTION,format='json',c=200,dtstart=day.isoformat(),dtend=end.isoformat())
+    params=dict(pi=COLLECTION,format='json',c=200,dtstart=(day-timedelta(minutes=20)).isoformat(),dtend=(end+timedelta(minutes=20)).isoformat())
     raw,started,captured=response(SEARCH,headers,deadline,params=params,maximum=4*1024**2,backend=backend)
     catalog=json.loads(raw);features=catalog['features'];total=int(catalog['totalResults'])
     catalog_ref=save(backend,raw)
     if total!=len(features) or total>200 or len({x['id'] for x in features})!=len(features):
         raise ValueError('LI_history_incomplete_or_duplicate_catalog_page')
+    # Reject catalogues whose worst-case bounded downloads exceed the day cap.
+    # This bound is checked before any product download.
+    if total*32*1024**2>5*1024**3:raise ValueError('LI_history_day_byte_budget')
     with ThreadPoolExecutor(max_workers=4) as executor:
         records=list(executor.map(lambda f:product(f,backend,headers,deadline),sorted(features,key=lambda f:f['id'])))
-    if sum(x['source_bytes'] for x in records)>2*1024**3:raise ValueError('LI_history_day_byte_budget')
+    if sum(x['source_bytes'] for x in records)>5*1024**3:raise ValueError('LI_history_day_byte_budget')
     value=dict(artifact_version='wp09-li-history-day-v1',day_utc=day.strftime('%Y-%m-%d'),
-        requested_start_utc=day.isoformat(),requested_end_utc=end.isoformat(),records=records,
+        requested_start_utc=day.isoformat(),requested_end_utc=end.isoformat(),boundary_guard_seconds=1200,records=records,
         catalog=dict(original=catalog_ref,started_utc=started,captured_utc=captured,params=params),
         status='ORIGINALS_COMPLETE_QC_PENDING',detector_coverage=False,optimizer_calls=0,
         all_original_fields_retained=True,provider_product_count=total)

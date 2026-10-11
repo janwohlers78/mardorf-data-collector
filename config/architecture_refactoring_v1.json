@@ -73,7 +73,7 @@
       "current_sha256": "54e6317e3134950eccc2d8de359e948aae6900ac3512af192ee656d76af63aca"
     }
   ],
-  "current_validator_sha256": "d6fa9cd9087c5cb3e0486e4372524aa7f4225aa5d586765accc2aa8eb7b22b78",
+  "current_validator_sha256": "7255072dcb96aa1c20fa7905eb6c5d256a82144e26e541751250c5181f6c069c",
   "artifact_successors": [
     {
       "path": "src/mardorf_collector/wp13/model_store_v1.py",
@@ -354,8 +354,8 @@
     },
     {
       "path": ".github/workflows/historical-weather-research-v1.yml",
-      "sha256": "4727cf3c18513d93025bc9c21ac50cc42f089c7e3471f1facca4947d900d719e",
-      "reason": "Manual bounded CDC/GFS research plus explicit max90day GFS archive, native3h knots, fourworkers and23minute softbudget; exact retries cold-verified; no production changes; reviewed successor adds the bounded manual CDC wind-clock probe for the same four registered stations, without schedules or production publication"
+      "sha256": "9f55f01047206d2b1bca4e477195e8223325dc8ff98871f073598e469a5640a2",
+      "reason": "Explicit manual LI history successor: disjoint bounded date ranges, immutable original readback; existing research routes retain their serial group. No new cron or private forecast dispatch."
     },
     {
       "path": ".github/workflows/gfs-archive-program-v1.yml",

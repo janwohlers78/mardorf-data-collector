@@ -76,7 +76,7 @@ def validate(root):
             added.add(name)
             continue
         expected_group = ("${{ inputs.block_probe && 'svg-history-window-probe' || 'svg-historical-research-v1' }}"
-                          if name.endswith('/svg-historical-research-v1.yml') else 'historical-weather-research-v1')
+                          if name.endswith('/svg-historical-research-v1.yml') else "${{ inputs.operation == 'li-history-range' && format('li-history-{0}', inputs.start) || 'historical-weather-research-v1' }}")
         timeout = '60' if name.endswith('/svg-historical-research-v1.yml') else '30'
         if (sha(path) != item['sha256'] or not item.get('reason')
                 or set(data['on']) != {'workflow_dispatch'}
