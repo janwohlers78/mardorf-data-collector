@@ -76,4 +76,31 @@ class HistoryTests(unittest.TestCase):
             with patch('mardorf_collector.runtime.wp09_li_history_v1.response') as call:
                 self.assertEqual(packed_products(features,day,backend,{},time.monotonic()+10),records);call.assert_not_called()
 
+    def test_partial_group_preserves_successes_and_only_retries_missing_products(self):
+        import time,tempfile,requests
+        from pathlib import Path
+        from mardorf_collector.storage.objects import LocalObjects
+        from mardorf_collector.runtime.wp09_li_history_v1 import packed_products
+        features=[dict(id=str(i),properties=dict(date='2025-07-01T00:00:00Z/2025-07-01T00:10:00Z',
+            parentIdentifier='EO:EUM:DAT:0691',productInformation=dict(productType='MTILI2LFL'),
+            acquisitionInformation=[dict(platform=dict(platformShortName='MTI1'))],
+            links=dict(data=[dict(mediaType='application/zip',href='https://api.eumetsat.int/'+str(i))]))) for i in range(16)]
+        with tempfile.TemporaryDirectory() as tmp:
+            backend=LocalObjects(Path(tmp));day=datetime(2025,7,1,tzinfo=timezone.utc)
+            def initial(url,*args,**kwargs):
+                if url.endswith('/3'):raise requests.ReadTimeout()
+                return b'PK'+url.encode(),'first_start','first_capture'
+            with patch('mardorf_collector.runtime.wp09_li_history_v1.response',side_effect=initial):
+                with self.assertRaises(requests.ReadTimeout):packed_products(features,day,backend,{},time.monotonic()+10)
+            self.assertFalse(backend.list_page(PREFIX+'/pieces/')['keys'])
+            self.assertEqual(len(backend.list_page(PREFIX+'/partialpieces/')['keys']),1)
+            with patch('mardorf_collector.runtime.wp09_li_history_v1.response',return_value=(b'PKmissing','second_start','second_capture')) as call:
+                records=packed_products(features,day,backend,{},time.monotonic()+10)
+                self.assertEqual(call.call_count,1);self.assertTrue(call.call_args.args[0].endswith('/3'))
+            self.assertEqual(len(records),16)
+            self.assertTrue(all(r['captured_utc']=='first_capture' for r in records if r['product_id']!='3'))
+            self.assertEqual(records[3]['captured_utc'],'second_capture')
+            with patch('mardorf_collector.runtime.wp09_li_history_v1.response') as call:
+                self.assertEqual(packed_products(features,day,backend,{},time.monotonic()+10),records);call.assert_not_called()
+
 if __name__=='__main__':unittest.main()

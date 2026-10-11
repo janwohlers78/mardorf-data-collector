@@ -136,6 +136,34 @@ def packed_products(features,day,backend,headers,deadline):
             if [r['product_id'] for r in old['records']]!=[f['id'] for f in group]:raise ValueError('LI_history_piece_identity')
             for ref in old['packs']:backend.get_bytes(ObjectRef.parse(ref))
             records.extend(old['records']);continue
+        # Partial receipts live outside the complete-piece prefix. Otherwise
+        # lookup() would mistake intentionally growing subsets for conflicting
+        # complete versions. Keep every successful original across failures.
+        partial_key=PREFIX+'/partialpieces/'+day.strftime('%Y-%m-%d')+'/'+signature
+        page=backend.list_page(partial_key+'/',limit=10)
+        if page['cursor']:raise ValueError('LI_history_partial_receipt_budget')
+        retained={};expected={f['id']:f['properties']['date'].split('/') for f in group}
+        checked_packs={}
+        for name in page['keys']:
+            meta=backend.head(name)
+            partial=json.loads(backend.get_bytes(ObjectRef(name,meta['sha256'],meta['bytes'])))
+            for record in partial['records']:
+                ident=record['product_id']
+                if ident not in expected or [record['native_start_utc'],record['native_end_utc']]!=expected[ident]:
+                    raise ValueError('LI_history_partial_identity')
+                original=record['original'];ref=ObjectRef.parse(original['pack'])
+                if ref.sha256 not in checked_packs:
+                    checked_packs[ref.sha256]=backend.get_bytes(ref)
+                packed=checked_packs[ref.sha256];start=original['offset'];size=original['bytes']
+                if type(start) is not int or start<0 or start+size>len(packed):raise ValueError('LI_history_partial_interval')
+                raw=packed[start:start+size]
+                if hashlib.sha256(raw).hexdigest()!=original['sha256'] or original['sha256']!=record['source_sha256'] or size!=record['source_bytes']:
+                    raise ValueError('LI_history_partial_original_integrity')
+                if ident in retained:
+                    previous=retained[ident]
+                    if previous['source_sha256']!=record['source_sha256']:raise ValueError('LI_history_conflicting_original_versions')
+                    if record['captured_utc']>=previous['captured_utc']:continue
+                retained[ident]=record
         def fetch(f):
             prop=f['properties'];a,b=prop['date'].split('/')
             if (prop['parentIdentifier']!=COLLECTION or prop['productInformation']['productType']!='MTILI2LFL'
@@ -149,7 +177,12 @@ def packed_products(features,day,backend,headers,deadline):
                 native_start_utc=a,native_end_utc=b,status='valid',source_sha256=hashlib.sha256(raw).hexdigest(),
                 source_bytes=len(raw),started_utc=started,captured_utc=captured,available_utc=captured,
                 url=links[0],all_original_fields_retained=True)
-        with ThreadPoolExecutor(max_workers=4) as executor:captured=list(executor.map(fetch,group))
+        captured=[];failures=[]
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            submitted=[(f,executor.submit(fetch,f)) for f in group if f['id'] not in retained]
+            for feature,future in submitted:
+                try:captured.append(future.result())
+                except Exception as exc:failures.append((feature['id'],exc))
         buffer=bytearray();pending=[];packs=[];items=[]
         def flush():
             if not pending:return
@@ -163,6 +196,16 @@ def packed_products(features,day,backend,headers,deadline):
             if len(buffer)+len(raw)>32*1024**2:flush()
             pending.append((record,len(buffer)));buffer.extend(raw)
         flush()
+        retained.update({r['product_id']:r for r in items})
+        items=[retained[f['id']] for f in group if f['id'] in retained]
+        packs=list({r['original']['pack']['sha256']:r['original']['pack'] for r in items}.values())
+        if failures:
+            value=dict(artifact_version='wp09-li-history-partial-piece-v3',records=items,packs=packs,
+                failures=[dict(product_id=ident,exception_type=type(exc).__name__) for ident,exc in failures])
+            encoded=canonical(value)
+            ref=backend.put_bytes(partial_key+'/'+hashlib.sha256(encoded).hexdigest()+'.json',encoded)
+            if backend.get_bytes(ref)!=encoded:raise ValueError('LI_history_partial_piece_readback')
+            raise failures[0][1]
         value=dict(artifact_version='wp09-li-history-piece-v2',records=items,packs=packs)
         encoded=canonical(value);ref=backend.put_bytes(key+'/'+hashlib.sha256(encoded).hexdigest()+'.json',encoded)
         if backend.get_bytes(ref)!=encoded:raise ValueError('LI_history_piece_readback')
