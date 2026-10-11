@@ -12,6 +12,34 @@ class Backend(Backend):
         return None if raw is None else dict(bytes=len(raw),sha256=hashlib.sha256(raw).hexdigest())
 
 class HistoryTests(unittest.TestCase):
+    def test_cached_token_lifetime_is_renewed_and_secrets_never_enter_observations(self):
+        import time
+        from concurrent.futures import ThreadPoolExecutor
+        from unittest.mock import Mock
+        from mardorf_collector.runtime.wp09_li_history_v1 import OAuthHeaders,canonical
+        token=OAuthHeaders(dict(EUMETSAT_CONSUMER_KEY='test-key',EUMETSAT_CONSUMER_SECRET='test-secret'),time.monotonic()+30)
+        reply=lambda name,ttl:Mock(status_code=200,json=lambda:dict(access_token=name,expires_in=ttl))
+        with patch('mardorf_collector.runtime.wp09_li_history_v1.requests.post',side_effect=[reply('cached-short',1),reply('fresh-token',3600)]) as post,patch('mardorf_collector.runtime.wp09_li_history_v1.time.sleep'):
+            with ThreadPoolExecutor(max_workers=4)as pool:values=list(pool.map(lambda _:token.current(),range(16)))
+            self.assertEqual(post.call_count,2);self.assertTrue(all(v==({'Authorization':'Bearer fresh-token'},2)for v in values))
+        self.assertEqual([x['expires_in_seconds']for x in token.observations],[1,3600])
+        for secret in ['test-key','test-secret','cached-short','fresh-token']:self.assertNotIn(secret,canonical(token.observations).decode())
+        token.invalidate(1);self.assertGreater(token.expires,time.monotonic())
+        token.invalidate(2);self.assertEqual(token.expires,0)
+
+    def test_401_refreshes_only_the_actual_oauth_generation_with_bounded_retries(self):
+        import time
+        from unittest.mock import Mock
+        from mardorf_collector.runtime.wp09_li_history_v1 import OAuthHeaders,response,ProviderHTTPFailure
+        token=OAuthHeaders({},time.monotonic()+30);token.generation=7;token.expires=time.monotonic()+3600
+        error=ProviderHTTPFailure(401);error.generation=7
+        with patch('mardorf_collector.runtime.wp09_li_history_v1.response_attempt',side_effect=[error,(b'ok','a','b')])as get:
+            self.assertEqual(response('https://api.eumetsat.int/p',token,time.monotonic()+30)[0],b'ok');self.assertEqual(get.call_count,2)
+        self.assertEqual(token.expires,0)
+        with patch('mardorf_collector.runtime.wp09_li_history_v1.response_attempt',side_effect=error)as get:
+            with self.assertRaises(ProviderHTTPFailure):response('https://api.eumetsat.int/p',token,time.monotonic()+30)
+            self.assertEqual(get.call_count,3)
+
     def test_completed_days_and_bounded_ranges(self):
         now=datetime(2026,10,11,tzinfo=timezone.utc)
         self.assertEqual(len(days('2024-07-04','2024-07-20',now)),16)
