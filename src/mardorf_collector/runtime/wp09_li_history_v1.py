@@ -29,6 +29,46 @@ class ProviderHTTPFailure(ValueError):
         super().__init__('LI_history_provider_HTTP_failure_'+str(status))
 
 
+class OAuthHeaders:
+    """Respect the server's cached-token lifetime, without retaining secrets.
+
+    A new client-credentials request can return an already cached token with
+    little remaining lifetime. Serialize renewal within this job; only safe
+    lifetime observations may enter the immutable research result.
+    """
+    def __init__(self,environ,deadline):
+        self.environ=environ;self.deadline=deadline;self.lock=threading.Lock()
+        self.token=None;self.expires=0.;self.generation=0;self.observations=[]
+
+    def current(self):
+        with self.lock:
+            if self.token is not None and time.monotonic()<self.expires-5:
+                return {'Authorization':'Bearer '+self.token},self.generation
+            for attempt in range(12):
+                if time.monotonic()>=self.deadline:raise ValueError('LI_history_time_budget')
+                started=time.monotonic();requested=datetime.now(timezone.utc)
+                r=requests.post('https://api.eumetsat.int/token',data={'grant_type':'client_credentials','validity_period':3600},
+                    auth=(self.environ.get('EUMETSAT_CONSUMER_KEY'),self.environ.get('EUMETSAT_CONSUMER_SECRET')),
+                    timeout=(5,20),allow_redirects=False)
+                if r.status_code!=200:raise ValueError('LI_history_authentication_failed')
+                value=r.json();token=value.get('access_token');lifetime=value.get('expires_in')
+                if not isinstance(token,str) or not token or type(lifetime) not in (int,float) or not 0<lifetime<=86400:
+                    raise ValueError('LI_history_invalid_token_lifetime')
+                self.observations.append(dict(requested_at_utc=requested.isoformat(),expires_in_seconds=lifetime,
+                    expires_at_utc=(requested+timedelta(seconds=lifetime)).isoformat()))
+                self.token=token;self.expires=started+lifetime;self.generation+=1
+                if time.monotonic()<self.expires-5:
+                    return {'Authorization':'Bearer '+self.token},self.generation
+                if time.monotonic()+.5>=self.deadline:raise ValueError('LI_history_time_budget')
+                time.sleep(.5)
+            raise ValueError('LI_history_token_refresh_retry_budget')
+
+    def invalidate(self,generation):
+        with self.lock:
+            # An older in-flight request must not invalidate a newer token.
+            if generation==self.generation:self.expires=0.
+
+
 def days(start,end,now=None):
     a=datetime.fromisoformat(start).replace(tzinfo=timezone.utc)
     b=datetime.fromisoformat(end).replace(tzinfo=timezone.utc)
@@ -68,14 +108,17 @@ def response_attempt(url,headers,deadline,*,params=None,maximum=32*1024**2,backe
     if time.monotonic()>=deadline:raise ValueError('LI_history_time_budget')
     started=datetime.now(timezone.utc).isoformat();body=bytearray()
     status=None;complete=False
+    request_headers,generation=headers.current() if isinstance(headers,OAuthHeaders) else (headers,None)
+    if time.monotonic()>=deadline:raise ValueError('LI_history_time_budget')
     try:
-        with (client or requests).get(url,headers=headers,params=params,stream=True,allow_redirects=False,timeout=(5,45)) as r:
+        with (client or requests).get(url,headers=request_headers,params=params,stream=True,allow_redirects=False,timeout=(5,45)) as r:
             status=r.status_code
             for chunk in r.iter_content(65536):
                 if len(body)+len(chunk)>maximum or time.monotonic()>deadline:raise ValueError('LI_history_response_budget')
                 body.extend(chunk)
             complete=True;raw=bytes(body)
-            if r.status_code!=200:raise ProviderHTTPFailure(r.status_code)
+            if r.status_code!=200:
+                error=ProviderHTTPFailure(r.status_code);error.generation=generation;raise error
     except Exception:
         if backend is not None:
             save(backend,dict(status='FAILED_OR_PARTIAL_RESPONSE',http_status=status,
@@ -94,6 +137,8 @@ def response(url,headers,deadline,*,params=None,maximum=32*1024**2,backend=None,
         except (requests.Timeout,requests.ConnectionError):
             if attempt==2 or time.monotonic()>=deadline:raise
         except ProviderHTTPFailure as exc:
+            if exc.status==401 and isinstance(headers,OAuthHeaders) and attempt<2 and time.monotonic()<deadline:
+                headers.invalidate(getattr(exc,'generation',None));continue
             if exc.status not in (429,500,502,503,504) or attempt==2 or time.monotonic()+2>=deadline:raise
             time.sleep(2)
     raise AssertionError('unreachable')
@@ -265,11 +310,7 @@ def run(start,end,backend,*,environ=None,maximum_seconds=1450):
         event_id=env.get('GITHUB_RUN_ID'),registered_at_utc=datetime.now(timezone.utc).isoformat(),
         maximum_seconds=maximum_seconds,workers=4,forecast_publication=False,scientific_status='NOT_READY')
     registration_ref=save(backend,registration);deadline=time.monotonic()+maximum_seconds
-    response_token=requests.post('https://api.eumetsat.int/token',data={'grant_type':'client_credentials'},
-        auth=(env.get('EUMETSAT_CONSUMER_KEY'),env.get('EUMETSAT_CONSUMER_SECRET')),timeout=(5,20),allow_redirects=False)
-    if response_token.status_code!=200:raise ValueError('LI_history_authentication_failed')
-    token=response_token.json()['access_token'];headers={'Authorization':'Bearer '+token}
-    if not isinstance(token,str) or not token:raise ValueError('LI_history_invalid_token')
+    headers=OAuthHeaders(env,deadline)
     references=[];failure=None
     for day in requested:
         try:
@@ -280,6 +321,7 @@ def run(start,end,backend,*,environ=None,maximum_seconds=1450):
             failure=str(exc) if isinstance(exc,(ObjectError,ValueError)) and (str(exc).startswith('LI_history_') or isinstance(exc,ObjectError)) else type(exc).__name__;break
     result=dict(artifact_version='wp09-li-history-result-v1',registration=registration_ref,days=references,
         requested_days=len(requested),completed_days=len(references),status='COMPLETE' if failure is None else 'OPEN',
+        authentication_lifetime_observations=headers.observations,
         failure_type=failure,detector_coverage=False,scientific_status='NOT_READY',forecast_publication=False)
     ref=save(backend,result)
     print('WP09_LI_HISTORY_BEGIN');print(json.dumps(dict(status=result['status'],result=ref,completed_days=len(references),
