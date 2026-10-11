@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "source_id": "DWD_KONRAD3D",
+  "index_url": "https://opendata.dwd.de/weather/radar/konrad3d/",
+  "maximum_index_bytes": 1048576,
+  "maximum_original_bytes": 8388608,
+  "maximum_cells": 2048,
+  "maximum_age_seconds": 1200,
+  "target_coordinate": {"latitude": 52.47371, "longitude": 9.37979},
+  "context_radius_km": 50,
+  "local_polygon_radius_km": 10,
+  "rate_unit": "strokes/5min",
+  "local_flash_truth": false,
+  "negative_coverage": false
+}
