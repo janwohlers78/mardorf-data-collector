@@ -33,8 +33,15 @@ def days(start,end,now=None):
 
 
 def lookup(backend,key):
-    meta=backend.head(key)
-    return None if meta is None else json.loads(backend.get_bytes(ObjectRef(key,meta['sha256'],meta['bytes'])))
+    page=backend.list_page(key+'/',limit=10)
+    if page['cursor']:raise ValueError('LI_history_conflicting_index_budget')
+    values=[]
+    for name in page['keys']:
+        meta=backend.head(name);values.append(json.loads(backend.get_bytes(ObjectRef(name,meta['sha256'],meta['bytes']))))
+    if not values:return None
+    if any(v.get('original')!=values[0].get('original') or v.get('product_id')!=values[0].get('product_id') for v in values):
+        raise ValueError('LI_history_conflicting_original_versions')
+    return min(values,key=lambda v:v.get('captured_utc',''))
 
 
 def save(backend,value):
@@ -88,7 +95,7 @@ def product(f,backend,headers,deadline):
         original=save(backend,raw),url=links[0],all_original_fields_retained=True)
     encoded=canonical(value)
     try:
-        ref=backend.put_bytes(key,encoded)
+        ref=backend.put_bytes(key+'/'+hashlib.sha256(encoded).hexdigest()+'.json',encoded)
         if backend.get_bytes(ref)!=encoded:raise ValueError('LI_history_index_readback')
     except ObjectError:
         other=lookup(backend,key)
@@ -122,7 +129,8 @@ def capture_day(day,backend,headers,deadline):
         catalog=dict(original=catalog_ref,started_utc=started,captured_utc=captured,params=params),
         status='ORIGINALS_COMPLETE_QC_PENDING',detector_coverage=False,optimizer_calls=0,
         all_original_fields_retained=True,provider_product_count=total)
-    ref=backend.put_bytes(key,canonical(value))
+    encoded=canonical(value)
+    ref=backend.put_bytes(key+'/'+hashlib.sha256(encoded).hexdigest()+'.json',encoded)
     if backend.get_bytes(ref)!=canonical(value):raise ValueError('LI_history_day_readback')
     return value
 
@@ -146,7 +154,7 @@ def run(start,end,backend,*,environ=None,maximum_seconds=1450):
             references.append(dict(day=value['day_utc'],receipt=save(backend,value)))
             print(json.dumps(dict(completed_days=len(references),requested_days=len(requested))),flush=True)
         except Exception as exc:
-            failure=str(exc) if isinstance(exc,ValueError) and str(exc).startswith('LI_history_') else type(exc).__name__;break
+            failure=str(exc) if isinstance(exc,(ObjectError,ValueError)) and (str(exc).startswith('LI_history_') or isinstance(exc,ObjectError)) else type(exc).__name__;break
     result=dict(artifact_version='wp09-li-history-result-v1',registration=registration_ref,days=references,
         requested_days=len(requested),completed_days=len(references),status='COMPLETE' if failure is None else 'OPEN',
         failure_type=failure,detector_coverage=False,scientific_status='NOT_READY',forecast_publication=False)
