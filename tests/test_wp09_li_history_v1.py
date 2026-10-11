@@ -58,4 +58,22 @@ class HistoryTests(unittest.TestCase):
             with self.assertRaises(ValueError):response('https://api.eumetsat.int/path',{},time.monotonic()+10)
             self.assertEqual(call.call_count,1)
 
+    def test_packs_preserve_each_whole_zip_hash_and_resume_without_network(self):
+        import time,tempfile
+        from pathlib import Path
+        from mardorf_collector.storage.objects import LocalObjects,ObjectRef
+        from mardorf_collector.runtime.wp09_li_history_v1 import packed_products
+        feature=lambda i:dict(id=str(i),properties=dict(date='2025-07-01T00:00:00Z/2025-07-01T00:10:00Z',parentIdentifier='EO:EUM:DAT:0691',productInformation=dict(productType='MTILI2LFL'),acquisitionInformation=[dict(platform=dict(platformShortName='MTI1'))],links=dict(data=[dict(mediaType='application/zip',href='https://api.eumetsat.int/'+str(i))])))
+        features=[feature(i) for i in range(17)]
+        with tempfile.TemporaryDirectory() as tmp:
+            backend=LocalObjects(Path(tmp));day=datetime(2025,7,1,tzinfo=timezone.utc)
+            with patch('mardorf_collector.runtime.wp09_li_history_v1.response',return_value=(b'PKwhole_native_fields','a','b')) as call:
+                records=packed_products(features,day,backend,{},time.monotonic()+10)
+                self.assertEqual(call.call_count,17)
+            for record in records:
+                r=record['original'];pack=backend.get_bytes(ObjectRef.parse(r['pack']));raw=pack[r['offset']:r['offset']+r['bytes']]
+                self.assertEqual(raw,b'PKwhole_native_fields');self.assertEqual(hashlib.sha256(raw).hexdigest(),r['sha256'])
+            with patch('mardorf_collector.runtime.wp09_li_history_v1.response') as call:
+                self.assertEqual(packed_products(features,day,backend,{},time.monotonic()+10),records);call.assert_not_called()
+
 if __name__=='__main__':unittest.main()
