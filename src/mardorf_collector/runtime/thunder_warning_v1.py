@@ -72,13 +72,18 @@ def recent_li(*, root=ROOT, environ=None, now=None):
     profile = json.loads((Path(root)/'config/wp09_eumetsat_lfl_v2.json').read_bytes())
     profile.update(artifact_version='wp09-LFL-warning-capture-profile-v1', maximum_products=8,
                    maximum_seconds=60, maximum_total_bytes=32*1024**2)
+    from .li_output_shadow_v1 import profile as li_profile
+    extra=li_profile(root,now);minutes=40
+    if extra:
+        minutes=extra['capture_window_minutes']
+        profile.update(artifact_version='wp09-LFL-warning-and-output-label-capture-v2',maximum_products=extra['maximum_products'])
     with tempfile.TemporaryDirectory(prefix='li-warning-profile-') as directory:
         path = Path(directory)/'config'; path.mkdir()
         (path/'wp09_eumetsat_lfl_v2.json').write_bytes(canonical(profile))
-        receipt, originals = li_capture((now-timedelta(minutes=40)).isoformat(), now.isoformat(), root=directory, environ=environ)
+        receipt, originals = li_capture((now-timedelta(minutes=minutes)).isoformat(), now.isoformat(), root=directory, environ=environ)
     receipt['warning_capture_profile'] = profile
     count = receipt.get('catalog_total_results')
-    if count is not None and (type(count) is not int or count > 8):
+    if count is not None and (type(count) is not int or count > profile['maximum_products']):
         receipt.update(status='BLOCKED', blocker='warning_catalog_product_budget_incomplete')
     return receipt, originals
 
@@ -122,9 +127,11 @@ def capture_all(*, root=ROOT, environ=None):
     return receipts, originals
 
 
-def publish(result, receipts, originals, runtime, *, capsule_ref, provenance, event_id, commit):
+def publish(result, receipts, originals, runtime, *, capsule_ref, provenance, event_id, commit,li_profile=None,previous=None):
     """Native failed/partial responses included; no old slot can retract new one."""
     stored_receipts = {}
+    archived_li_ref=None
+    li_cache={}
     for source, receipt in receipts.items():
         if set(originals[source]) != {r['quantity'] for r in receipt['records']}: raise ValueError('warning_original_inventory')
         records = []
@@ -136,6 +143,28 @@ def publish(result, receipts, originals, runtime, *, capsule_ref, provenance, ev
         raw = canonical(dict(receipt, records=records))
         ref = put(runtime.backend, PREFIX+'/receipts/'+sha256(raw).hexdigest()+'.json', raw)
         stored_receipts[source] = ref.json()
+        if li_profile and source=='li' and 'requested_end_utc' in receipt:
+            from .li_output_shadow_v1 import warning_view
+            archived_li_ref=ref.json()
+            li_cache={r['source_sha256']:originals[source][r['quantity']]for r in receipt['records']}
+            li_cache[ref.sha256]=raw
+            view,_=warning_view(dict(receipt,records=records),originals[source])
+            body=canonical(view);view_ref=put(runtime.backend,PREFIX+'/receipts/'+sha256(body).hexdigest()+'.json',body)
+            stored_receipts[source]=view_ref.json()
+            result['source_archive_receipts']={'li':archived_li_ref}
+            result['warning_consumer_view_minutes']=40
+    label_files={}
+    if li_profile:
+        from .li_output_shadow_v1 import generate as label_generate
+        prior=(previous or {}).get('li_output_shadow')
+        try:
+            result['li_output_shadow'],label_files=label_generate(runtime,li_profile,archived_li_ref or stored_receipts['li'],prior,
+                put=lambda key,body:put(runtime.backend,key,body),warning_engine_sha256=provenance['engine_sha256'],original_cache=li_cache)
+        except Exception as exc:
+            # Label failure cannot retract the independent frozen warning.
+            result['li_output_shadow']=dict(status='BLOCKED',failure_type=type(exc).__name__,
+                recent_receipts=((prior or {}).get('recent_receipts',[])+[dict(receipt=archived_li_ref or stored_receipts['li'],received_at_utc=result['issued_at_utc'])])[-12:],
+                physical_ground_release=False)
     result.update(source_receipts=stored_receipts, capsule=capsule_ref, provenance=provenance,
                   event_id=event_id, producer_commit=commit)
     raw = canonical(result); ref = put(runtime.backend, PREFIX+'/results/'+sha256(raw).hexdigest()+'.json', raw)
@@ -151,7 +180,7 @@ def publish(result, receipts, originals, runtime, *, capsule_ref, provenance, ev
             if old['slot_utc'] >= result['slot_utc']: return {}
         return changes
     path = 'reports/thunder_warning/v1/slots/'+result['slot_utc'].replace(':', '')+'.json'
-    outcome = runtime.publish({path: raw, LATEST: raw}, metadata=metadata, merge=merge,
+    outcome = runtime.publish({path: raw, LATEST: raw,**label_files}, metadata=metadata, merge=merge,
         extra_refs=lambda _: {POINTER: pointer})
     return dict(outcome, report=ref.json(), generated_at_utc=result['issued_at_utc'],
                 slot_utc=result['slot_utc'], event_id=event_id,
@@ -181,10 +210,15 @@ def main(*, environ=None, root=ROOT, runtime_factory=load_runtime, capture_fn=ca
             # If processing crossed a slot boundary, its actual output belongs
             # to the new slot. Source availability is still checked as received.
             slot = datetime.fromtimestamp(int(issue.timestamp())//1800*1800, timezone.utc)
-            result = module.generate(receipts, originals, policy, aux,
+            from .li_output_shadow_v1 import profile as output_profile,warning_view
+            li_profile=output_profile(root,issue)
+            warning_receipts=dict(receipts);warning_originals=dict(originals)
+            if li_profile and 'requested_end_utc' in receipts['li']:
+                warning_receipts['li'],warning_originals['li']=warning_view(receipts['li'],originals['li'])
+            result = module.generate(warning_receipts, warning_originals, policy, aux,
                 issued_at_utc=issue.isoformat(), slot_utc=slot.isoformat(), previous=prior)
             outcome = publish(result, receipts, originals, runtime, capsule_ref=control['capsule'], provenance=provenance,
-                event_id=env['GITHUB_RUN_ID'], commit=env['GITHUB_SHA'])
+                event_id=env['GITHUB_RUN_ID'], commit=env['GITHUB_SHA'],li_profile=li_profile,previous=prior)
         outcome['elapsed_seconds'] = time.monotonic()-began
     except Exception as exc:
         # No private code, raw weather, URL, response, token or traceback in
