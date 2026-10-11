@@ -35,8 +35,12 @@ def load(backend,ref,directory):
     names={'li_shadow/__init__.py','li_shadow/li_observations_v1.py','li_shadow/thunder_warning_v1.py','li_shadow/policy.json'}
     with zipfile.ZipFile(io.BytesIO(raw))as z:
         entries=z.infolist()
-        if len(entries)!=4 or {e.filename for e in entries}!=names or sum(e.file_size for e in entries)>16*1024**2:
+        actual={e.filename for e in entries}
+        successor=names|{'li_shadow/li_native_support_v2.py'}
+        if (actual not in (names,successor) or len(entries)!=len(actual)
+                or sum(e.file_size for e in entries)>16*1024**2):
             raise ValueError('LI_label_capsule_members')
+        names=actual
         for e in entries:
             p=Path(directory)/e.filename;p.parent.mkdir(exist_ok=True);p.write_bytes(z.read(e))
     package=Path(directory)/'li_shadow';policy=json.loads((package/'policy.json').read_bytes())
@@ -44,7 +48,7 @@ def load(backend,ref,directory):
         if name not in names or name.endswith('policy.json') or sha256((Path(directory)/name).read_bytes()).hexdigest()!=h:
             raise ValueError('LI_label_capsule_source')
     if set(policy['source_sha256'])!=names-{'li_shadow/policy.json'}:raise ValueError('LI_label_capsule_inventory')
-    spec=importlib.util.spec_from_file_location('private_li_output_shadow',package/'__init__.py',submodule_search_locations=[str(package)])
+    spec=importlib.util.spec_from_file_location('private_li_output_shadow_'+ref.sha256,package/'__init__.py',submodule_search_locations=[str(package)])
     module=importlib.util.module_from_spec(spec);sys.modules[spec.name]=module;spec.loader.exec_module(module)
     return module,policy
 

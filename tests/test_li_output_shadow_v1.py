@@ -57,4 +57,19 @@ class LabelCarrierTests(unittest.TestCase):
         self.assertEqual(r['li_output_shadow']['status'],'BLOCKED');self.assertNotIn('sentinel',json.dumps(r))
         rt.publish.assert_called_once();self.assertEqual(len(r['li_output_shadow']['recent_receipts']),1)
 
+    def test_hash_distinct_successor_capsules_never_reuse_old_imported_code(self):
+        backend=Backend()
+        def capsule(value):
+            members={'li_shadow/__init__.py':b'from .li_native_support_v2 import VALUE\n',
+                'li_shadow/li_native_support_v2.py':('VALUE='+str(value)+'\n').encode(),
+                'li_shadow/li_observations_v1.py':b'', 'li_shadow/thunder_warning_v1.py':b''}
+            members['li_shadow/policy.json']=json.dumps({'source_sha256':{k:hashlib.sha256(v).hexdigest()for k,v in members.items()}}).encode()
+            b=io.BytesIO()
+            with zipfile.ZipFile(b,'w')as z:
+                for name,raw in members.items():z.writestr(name,raw)
+            return backend.put_bytes(PREFIX+'/label-capsules/'+hashlib.sha256(b.getvalue()).hexdigest(),b.getvalue()).json()
+        for value in(1,2):
+            with tempfile.TemporaryDirectory()as directory:
+                module,_=load(backend,capsule(value),directory);self.assertEqual(module.VALUE,value)
+
 if __name__=='__main__':unittest.main()
