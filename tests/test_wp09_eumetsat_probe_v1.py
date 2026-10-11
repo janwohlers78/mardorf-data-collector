@@ -54,9 +54,22 @@ class ProbeTests(unittest.TestCase):
         stored = json.loads(next(iter(changes.values())))
         self.assertEqual(runtime.backend.get_bytes(SimpleNamespace(**stored['records'][0]['original'])), originals['LFL_test'])
         pointer = runtime.publish.call_args.kwargs['extra_refs'](None)[POINTER]
-        self.assertFalse(pointer['bundle_ready']); self.assertFalse(pointer['detector_coverage'])
-        self.assertFalse(pointer['routine_activation']); self.assertNotIn('records', pointer)
+        self.assertFalse(pointer['bundle_ready']); self.assertNotIn('records', pointer)
+        self.assertFalse(result['detector_coverage']); self.assertFalse(result['routine_activation'])
         self.assertEqual(pointer['metadata']['event_id'], '123')
+        # Exercise the real strict Git-head document validation, before any
+        # upload. Sorting places the probe document before the canonical head.
+        from mardorf_collector.storage.head import GitHubHead
+        head = GitHubHead('fixture/repository', 'fixture_token', branch='main',
+                         path='config/cloud_refs/z_head_v1.json', bootstrap=pointer['snapshot'])
+        def call(method, path, **kwargs):
+            if method == 'GET': return {'tree': {'sha': 'b'*40}}
+            if method == 'POST' and path == '/git/blobs':
+                raise RuntimeError('document_validated_before_upload')
+            raise AssertionError('unexpected_route')
+        head.call = call
+        with self.assertRaisesRegex(RuntimeError, '^document_validated_before_upload$'):
+            head.advance('a'*40, pointer['snapshot'], metadata={}, extra_refs={POINTER: pointer})
 
     def test_bad_original_or_readback_never_publishes_cas(self):
         for bad_bytes, corrupt in [(True, False), (False, True)]:

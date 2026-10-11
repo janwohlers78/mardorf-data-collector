@@ -56,8 +56,8 @@ def publish(receipt, originals, runtime, *, event_id=None):
         metadata['event_id'] = event_id
     pointer = dict(schema_version=1, artifact_version='wp09-li-lfl-ingress-control-v2',
                    generated_at_utc=receipt['captured_utc'], snapshot=ref.json(), metadata=metadata,
-                   readback_verified=True, access_status=receipt['status'],
-                   bundle_ready=False, detector_coverage=False, routine_activation=False)
+                   readback_verified=True, kind='wp09_li_lfl', receipt_sha256=ref.sha256,
+                   bundle_ready=False)
     path = 'data/inbox/wp09_li_lfl/'+receipt['captured_utc'].replace(':', '')+'.json'
     runtime.publish({path: stored}, metadata=metadata, extra_refs=lambda _: {POINTER: pointer})
     return dict(status=receipt['status'], blocker=receipt['blocker'], snapshot=ref.json(),
