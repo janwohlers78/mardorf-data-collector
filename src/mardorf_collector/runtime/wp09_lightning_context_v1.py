@@ -25,15 +25,15 @@ def capture(*, root=ROOT, get=requests.get, now=None):
         try:
             with get(url, timeout=(5, 12), stream=True, allow_redirects=False) as response:
                 status = response.status_code
-                response.raise_for_status()
-                if status != 200:
-                    raise ValueError('lightning_HTTP_not_200')
                 for chunk in response.iter_content(65536):
                     if time.monotonic()>deadline:
                         raise ValueError('lightning_capture_time_budget')
                     if len(raw)+len(chunk) > maximum:
                         raise ValueError('lightning_original_budget')
                     raw += chunk
+                response.raise_for_status()
+                if status != 200:
+                    raise ValueError('lightning_HTTP_not_200')
         except (requests.RequestException, ValueError) as exc:
             reason = str(exc) if isinstance(exc, ValueError) else type(exc).__name__
         captured = datetime.now(timezone.utc).isoformat()

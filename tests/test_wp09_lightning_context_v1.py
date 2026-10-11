@@ -18,6 +18,12 @@ class Response:
 
 
 class LightningCaptureTests(unittest.TestCase):
+    def test_failed_http_original_is_retained_and_cannot_be_a_zero_label(self):
+        response=Response(b'provider unavailable');response.status_code=503
+        r,o=capture(get=lambda *a,**kw:response)
+        self.assertEqual(r['records'][0]['status'],'invalid')
+        self.assertEqual(r['records'][0]['http_status'],503)
+        self.assertEqual(o['index'],b'provider unavailable')
     def test_latest_causal_original_two_requests_all_fields_retained(self):
         calls=[]
         def get(url,**kwargs):calls.append((url,kwargs));return Response(INDEX if len(calls)==1 else XML)
