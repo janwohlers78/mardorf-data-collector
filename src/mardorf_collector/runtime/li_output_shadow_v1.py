@@ -48,6 +48,8 @@ def load(backend,ref,directory):
         if name not in names or name.endswith('policy.json') or sha256((Path(directory)/name).read_bytes()).hexdigest()!=h:
             raise ValueError('LI_label_capsule_source')
     if set(policy['source_sha256'])!=names-{'li_shadow/policy.json'}:raise ValueError('LI_label_capsule_inventory')
+    if policy['warning_engine_sha256']!=policy['source_sha256']['li_shadow/thunder_warning_v1.py']:
+        raise ValueError('LI_label_capsule_decoder_claim')
     spec=importlib.util.spec_from_file_location('private_li_output_shadow_'+ref.sha256,package/'__init__.py',submodule_search_locations=[str(package)])
     module=importlib.util.module_from_spec(spec);sys.modules[spec.name]=module;spec.loader.exec_module(module)
     return module,policy
@@ -69,6 +71,10 @@ def generate(runtime,p,receipt_ref,previous,*,put,warning_engine_sha256,original
             cached=(original_cache or {}).get(ref['sha256'])
             return cached if cached is not None else runtime.backend.get_bytes(ObjectRef.parse(ref))
         packet=module.generate(read,receipt_ref,previous,policy['spatial_support'],as_of_utc=now)
+        packet.update(artifact_version='wp09-LI-output-hour-label-packet-v3',source_binding=dict(
+            capsule=p['capsule'],native_decoder_sha256=policy['source_sha256']['li_shadow/thunder_warning_v1.py'],
+            assembler_code_sha256=policy['source_sha256']['li_shadow/li_observations_v1.py'],
+            native_support_code_sha256=policy['source_sha256'].get('li_shadow/li_native_support_v2.py')))
     raw=canonical(packet);ref=put(PREFIX+'/label-packets/'+sha256(raw).hexdigest()+'.json',raw)
     available=datetime.now(timezone.utc).isoformat();files={};days={}
     for row in packet['assembly']['labels']:
