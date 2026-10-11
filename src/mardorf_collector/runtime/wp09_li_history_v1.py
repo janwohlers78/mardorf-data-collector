@@ -21,6 +21,7 @@ from .wp09_eumetsat_lfl_v2 import ROOT
 PREFIX='weather/archive/janwohlers78/mardorf-kitevorhersage/wp09-li-history/v1'
 COLLECTION='EO:EUM:DAT:0691'
 SEARCH='https://api.eumetsat.int/data/search-products/1.0.0/os'
+MAXIMUM_CATALOG_PRODUCTS=800
 
 
 class ProviderHTTPFailure(ValueError):
@@ -282,19 +283,31 @@ def capture_day(day,backend,headers,deadline):
         return previous
     end=day+timedelta(days=1)
     params=dict(pi=COLLECTION,format='json',c=200,dtstart=(day-timedelta(minutes=20)).isoformat(),dtend=(end+timedelta(minutes=20)).isoformat())
-    raw,started,captured=response(SEARCH,headers,deadline,params=params,maximum=4*1024**2,backend=backend)
-    catalog=json.loads(raw);features=catalog['features'];total=int(catalog['totalResults'])
-    catalog_ref=save(backend,raw)
-    if total!=len(features) or total>200 or len({x['id'] for x in features})!=len(features):
-        raise ValueError('LI_history_incomplete_or_duplicate_catalog_page')
-    # Reject catalogues whose worst-case bounded downloads exceed the day cap.
-    # This bound is checked before any product download.
-    if total*32*1024**2>5*1024**3:raise ValueError('LI_history_day_byte_budget')
+    features=[];pages=[];total=None
+    for offset in range(0,MAXIMUM_CATALOG_PRODUCTS,200):
+        page_params=dict(params,**({'si':offset}if offset else {}))
+        raw,started,captured=response(SEARCH,headers,deadline,params=page_params,maximum=4*1024**2,backend=backend)
+        catalog_ref=save(backend,raw);catalog=json.loads(raw)
+        pages.append(dict(original=catalog_ref,started_utc=started,captured_utc=captured,params=page_params))
+        count=catalog['totalResults'];items=catalog['features']
+        if type(count)is not int or not 0<=count<=MAXIMUM_CATALOG_PRODUCTS:
+            raise ValueError('LI_history_catalog_product_budget')
+        if total is None:total=count
+        if (count!=total or catalog.get('startIndex',offset)!=offset
+                or len(items)!=min(200,max(0,total-offset))):
+            raise ValueError('LI_history_incomplete_or_duplicate_catalog_page')
+        features.extend(items)
+        if len({x['id']for x in features})!=len(features):
+            raise ValueError('LI_history_incomplete_or_duplicate_catalog_page')
+        if len(features)==total:break
+    if len(features)!=total:raise ValueError('LI_history_incomplete_or_duplicate_catalog_page')
+    # At most four retained catalogue pages and 800 whole bounded ZIPs.
+    # Reprocessing versions are retained too, never dropped to fit page one.
     records=packed_products(sorted(features,key=lambda f:f['id']),day,backend,headers,deadline)
     if sum(x['source_bytes'] for x in records)>5*1024**3:raise ValueError('LI_history_day_byte_budget')
     value=dict(artifact_version='wp09-li-history-day-v2',day_utc=day.strftime('%Y-%m-%d'),
         requested_start_utc=day.isoformat(),requested_end_utc=end.isoformat(),boundary_guard_seconds=1200,records=records,
-        catalog=dict(original=catalog_ref,started_utc=started,captured_utc=captured,params=params),
+        catalog=dict(**pages[0],pages=pages,maximum_products=MAXIMUM_CATALOG_PRODUCTS),
         status='ORIGINALS_COMPLETE_QC_PENDING',detector_coverage=False,optimizer_calls=0,
         all_original_fields_retained=True,provider_product_count=total)
     encoded=canonical(value)

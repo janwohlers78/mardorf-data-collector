@@ -57,6 +57,28 @@ class HistoryTests(unittest.TestCase):
         backend=Backend();backend.corrupt=True
         with self.assertRaises(ValueError):save(backend,b'original')
 
+    def test_all_catalog_pages_and_reprocessing_versions_retained(self):
+        backend=Backend();features=[dict(id=str(i))for i in range(275)]
+        pages=[json.dumps(dict(totalResults=275,startIndex=offset,features=features[offset:offset+200])).encode()for offset in (0,200)]
+        with patch('mardorf_collector.runtime.wp09_li_history_v1.response',side_effect=[(raw,'a','b')for raw in pages])as request,patch('mardorf_collector.runtime.wp09_li_history_v1.packed_products',return_value=[])as capture:
+            day=capture_day(datetime(2024,12,4,tzinfo=timezone.utc),backend,{},1)
+        self.assertEqual(day['provider_product_count'],275)
+        self.assertEqual(len(day['catalog']['pages']),2)
+        self.assertEqual(request.call_args_list[1].kwargs['params']['si'],200)
+        self.assertEqual(len(capture.call_args.args[0]),275)
+        self.assertTrue(all(p['original']['sha256']==hashlib.sha256(raw).hexdigest()for p,raw in zip(day['catalog']['pages'],pages)))
+
+    def test_duplicate_page_catalog_drift_and_product_budget_fail_before_download(self):
+        first=[dict(id=str(i))for i in range(200)]
+        for second in [dict(totalResults=275,startIndex=200,features=first[:75]),dict(totalResults=276,startIndex=200,features=[dict(id=str(i))for i in range(200,275)]),dict(totalResults=275,startIndex=0,features=[dict(id=str(i))for i in range(200,275)])]:
+            pages=[dict(totalResults=275,startIndex=0,features=first),second]
+            with patch('mardorf_collector.runtime.wp09_li_history_v1.response',side_effect=[(json.dumps(p).encode(),'a','b')for p in pages]),patch('mardorf_collector.runtime.wp09_li_history_v1.packed_products')as capture:
+                with self.assertRaisesRegex(ValueError,'incomplete'):capture_day(datetime(2024,12,4,tzinfo=timezone.utc),Backend(),{},1)
+                capture.assert_not_called()
+        with patch('mardorf_collector.runtime.wp09_li_history_v1.response',return_value=(json.dumps(dict(totalResults=801,features=[])).encode(),'a','b')),patch('mardorf_collector.runtime.wp09_li_history_v1.packed_products')as capture:
+            with self.assertRaisesRegex(ValueError,'product_budget'):capture_day(datetime(2024,12,4,tzinfo=timezone.utc),Backend(),{},1)
+            capture.assert_not_called()
+
     def test_resume_reads_hash_bound_day_without_provider(self):
         backend=Backend();key=PREFIX+'/days/2025-07-01.json'
         v=dict(status='ORIGINALS_COMPLETE_QC_PENDING',day_utc='2025-07-01');raw=json.dumps(v).encode();backend.data[key+'/'+hashlib.sha256(raw).hexdigest()+'.json']=raw
