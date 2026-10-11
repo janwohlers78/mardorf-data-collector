@@ -39,9 +39,9 @@ class HistoryTests(unittest.TestCase):
     def test_real_immutable_backend_accepts_digest_bound_day_index(self):
         import tempfile
         from pathlib import Path
-        from mardorf_collector.storage.objects import Objects
+        from mardorf_collector.storage.objects import LocalObjects
         with tempfile.TemporaryDirectory() as tmp:
-            backend=Objects(root=Path(tmp))
+            backend=LocalObjects(Path(tmp))
             catalog=json.dumps(dict(totalResults=0,features=[])).encode()
             with patch('mardorf_collector.runtime.wp09_li_history_v1.response',return_value=(catalog,'a','b')):
                 value=capture_day(datetime(2025,7,1,tzinfo=timezone.utc),backend,{},1)
