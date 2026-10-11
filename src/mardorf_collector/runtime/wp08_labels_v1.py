@@ -41,7 +41,7 @@ def capture(*,root=ROOT,get=requests.get):
         binding_sha256=hashlib.sha256(path.read_bytes()).hexdigest(),records=records,provider_owner='public_collector',all_original_fields_retained=True),originals
 
 def publication(receipt,originals,backend,*,domain='wp08',collection='labels'):
-    if (domain,collection) not in (('wp08','labels'),('wp09','events')):raise ValueError('unregistered_native_collection')
+    if (domain,collection) not in (('wp08','labels'),('wp09','events'),('wp09','lightning_context')):raise ValueError('unregistered_native_collection')
     prefix=f'weather/archive/janwohlers78/mardorf-kitevorhersage/{domain}-{collection}/v1';value=dict(receipt,records=[])
     for r in receipt['records']:
         raw=originals[r['quantity']]
