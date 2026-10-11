@@ -86,7 +86,7 @@ def capture(*,now=None,get=requests.get,run=None,timeout=(8,35)):
     return receipt,body
 
 
-def publish(receipt,body,runtime,*,companion=None,label_companion=None,event_companion=None,lightning_companion=None,force_daily=False):
+def publish(receipt,body,runtime,*,companion=None,label_companion=None,event_companion=None,lightning_companion=None,multisite_companion=None,force_daily=False):
     backend=runtime.backend
     source=backend.put_bytes(PREFIX+'/originals/'+receipt['source_sha256'],body)
     if backend.get_bytes(source)!=body:raise ValueError('API_original_readback')
@@ -125,12 +125,22 @@ def publish(receipt,body,runtime,*,companion=None,label_companion=None,event_com
         from .wp09_lightning_context_v1 import publication as lightning_publication
         paths,lightning_pointer=lightning_publication(*lightning_companion,backend)
         companion_paths.update(paths)
+    multisite_pointer=None
+    if multisite_companion is not None:
+        from ..providers.multisite_nwp_v1 import publication as multisite_publication
+        paths,multisite_pointer=multisite_publication(*multisite_companion,backend)
+        companion_paths.update(paths)
     profiles=[('data/inbox/wp06_api/latest.json',path,raw,pointer,POINTER)]
     if companion is not None:
         stamp=companion[0]['captured_utc'].replace(':','')
         profiles.append(('data/inbox/wp07_api/latest.json','data/inbox/wp07_api/'+stamp+'.json',
             companion_paths['data/inbox/wp07_api/'+stamp+'.json'],companion_pointer,
             'config/cloud_refs/wp07_api_ingress_v1.json'))
+    if multisite_companion is not None:
+        from ..providers.multisite_nwp_v1 import CONTROL
+        stamped=next(k for k in companion_paths if k.startswith('data/inbox/wp17_multisite/') and not k.endswith('latest.json'))
+        profiles.append(('data/inbox/wp17_multisite/latest.json',stamped,
+            companion_paths[stamped],multisite_pointer,CONTROL))
     def selected(reader,latest,new_raw):
         old=reader.read(latest,required=False)
         return promote_receipt(json.loads(old) if old else None,json.loads(new_raw),force_daily=force_daily)
@@ -213,7 +223,7 @@ def latest_capture(*,now=None,get=requests.get,current_cycles=False):
 
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--registered-daily-00',action='store_true');p.add_argument('--capture-only',type=Path);p.add_argument('--gate',action='store_true');p.add_argument('--with-wp07',action='store_true');p.add_argument('--with-wp08-labels',action='store_true');p.add_argument('--with-wp09-events',action='store_true');a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--registered-daily-00',action='store_true');p.add_argument('--capture-only',type=Path);p.add_argument('--gate',action='store_true');p.add_argument('--with-wp07',action='store_true');p.add_argument('--with-wp08-labels',action='store_true');p.add_argument('--with-wp09-events',action='store_true');p.add_argument('--with-wp17',action='store_true');a=p.parse_args()
     if a.gate:
         print('true' if datetime.now(ZoneInfo('Europe/Berlin')).hour==7 else 'false');return
     now=datetime.now(timezone.utc)
@@ -223,6 +233,10 @@ def main():
         from .wp07_single_run_v1 import capture as companion_capture
         companion=(companion_capture(receipt['request']['params']['run']) if a.registered_daily_00 else
             latest_profile_capture(lambda run:companion_capture(run,timeout=(5,15)),now=now))
+    multisite_companion=None
+    if a.with_wp17 and companion is not None:
+        from ..providers.multisite_nwp_v1 import capture as multisite_capture
+        multisite_companion=multisite_capture(companion[0]['request']['params']['run'])
     label_companion=None
     if a.with_wp08_labels:
         from .wp08_labels_v1 import capture as label_capture
@@ -240,6 +254,8 @@ def main():
         (a.capture_only/'receipt.json').write_bytes(canonical(receipt));(a.capture_only/'response.body').write_bytes(body)
         if companion:
             (a.capture_only/'wp07-receipt.json').write_bytes(canonical(companion[0]));(a.capture_only/'wp07-response.body').write_bytes(companion[1])
+        if multisite_companion:
+            (a.capture_only/'wp17-receipt.json').write_bytes(canonical(multisite_companion[0]));(a.capture_only/'wp17-response.body').write_bytes(multisite_companion[1])
         if label_companion:
             (a.capture_only/'wp08-label-receipt.json').write_bytes(canonical(label_companion[0]))
             for name,raw in label_companion[1].items():(a.capture_only/('wp08-'+name+'.zip')).write_bytes(raw)
@@ -251,7 +267,7 @@ def main():
             for name,raw in lightning_companion[1].items():(a.capture_only/('lightning-'+name+'.original')).write_bytes(raw)
         print(json.dumps({k:receipt[k] for k in ('status','http_status','reason','source_bytes','source_sha256')}));return
     root=Path(__file__).resolve().parents[3]
-    result=publish(receipt,body,load_runtime(root,environ=environment(root)),companion=companion,label_companion=label_companion,event_companion=event_companion,lightning_companion=lightning_companion,force_daily=a.registered_daily_00)
+    result=publish(receipt,body,load_runtime(root,environ=environment(root)),companion=companion,label_companion=label_companion,event_companion=event_companion,lightning_companion=lightning_companion,multisite_companion=multisite_companion,force_daily=a.registered_daily_00)
     print(json.dumps(result))
 
 

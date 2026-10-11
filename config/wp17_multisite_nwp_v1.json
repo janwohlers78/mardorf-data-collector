@@ -1,0 +1,27 @@
+{
+  "artifact_version": "wp17-multisite-nwp-binding-v1",
+  "endpoint": "https://single-runs-api.open-meteo.com/v1/forecast",
+  "sites": [
+    {"site_id":"steinhude-svg-v1","latitude":52.47371,"longitude":9.37979,"purpose":"weather_and_SVG_opportunity"},
+    {"site_id":"volmerdingsen-roesnet-v1","latitude":52.25169,"longitude":8.78164,"purpose":"local_weather_only"}
+  ],
+  "params": {
+    "models":"ecmwf_ifs","forecast_hours":121,"timezone":"GMT","wind_speed_unit":"ms",
+    "hourly":"wind_speed_10m,wind_gusts_10m,wind_direction_10m,temperature_2m,relative_humidity_2m,pressure_msl,cloud_cover,shortwave_radiation,precipitation,rain,showers,weather_code,cape,boundary_layer_height"
+  },
+  "generation_boundary_utc":"2026-05-13T00:00:00Z",
+  "generation_before":"49r1_hindcast",
+  "generation_after":"50r1",
+  "generation_evidence":"documented_API_product_era_not_payload_embedded",
+  "historical_start":"2024-03-14",
+  "max_history_days":1000,
+  "workers":4,
+  "min_request_interval_seconds":1.0,
+  "request_attempts":1,
+  "timeout_seconds":25,
+  "max_response_bytes":1048576,
+  "routine_max_additional_requests":1,
+  "raw_field_exclusions":[],
+  "scientific_status":"NOT_READY",
+  "native_admission":false
+}
