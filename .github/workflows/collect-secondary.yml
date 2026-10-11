@@ -157,7 +157,7 @@ jobs:
             --etnw-integrity work/etnw_integrity.json
 
       - name: Retain Volmerdingsen observations in the shared secondary batch
-        if: !cancelled() && steps.storage_gate.outcome == 'success' && inputs.cloud_canary != true && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || steps.due.outputs.due == 'true')
+        if: ${{ !cancelled() && steps.storage_gate.outcome == 'success' && inputs.cloud_canary != true && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || steps.due.outputs.due == 'true') }}
         continue-on-error: true
         env:
           PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}

@@ -71,11 +71,11 @@
         },
         {
           "before": "            --etnw-integrity work/etnw_integrity.json\n",
-          "after": "            --etnw-integrity work/etnw_integrity.json\n\n      - name: Retain Volmerdingsen observations in the shared secondary batch\n        if: !cancelled() && steps.storage_gate.outcome == 'success' && inputs.cloud_canary != true && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || steps.due.outputs.due == 'true')\n        continue-on-error: true\n        env:\n          PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}\n          B2_APPLICATION_KEY_ID: ${{ secrets.B2_APPLICATION_KEY_ID }}\n          B2_APPLICATION_KEY: ${{ secrets.B2_APPLICATION_KEY }}\n          B2_ENDPOINT_URL: ${{ vars.B2_ENDPOINT_URL }}\n          B2_REGION: ${{ vars.B2_REGION }}\n          B2_BUCKET: ${{ vars.B2_BUCKET }}\n        run: PYTHONPATH=src python -m mardorf_collector.providers.volmerdingsen_v1 --mode recent --publish-control\n",
+          "after": "            --etnw-integrity work/etnw_integrity.json\n\n      - name: Retain Volmerdingsen observations in the shared secondary batch\n        if: ${{ !cancelled() && steps.storage_gate.outcome == 'success' && inputs.cloud_canary != true && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.watchdog != true) || steps.due.outputs.due == 'true') }}\n        continue-on-error: true\n        env:\n          PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}\n          B2_APPLICATION_KEY_ID: ${{ secrets.B2_APPLICATION_KEY_ID }}\n          B2_APPLICATION_KEY: ${{ secrets.B2_APPLICATION_KEY }}\n          B2_ENDPOINT_URL: ${{ vars.B2_ENDPOINT_URL }}\n          B2_REGION: ${{ vars.B2_REGION }}\n          B2_BUCKET: ${{ vars.B2_BUCKET }}\n        run: PYTHONPATH=src python -m mardorf_collector.providers.volmerdingsen_v1 --mode recent --publish-control\n",
           "count": 1
         }
       ],
-      "current_sha256": "8d311e84e8a51f4f4d379508219eaeed2336bd953457c3b509549233a9be2e98"
+      "current_sha256": "42cb275fc42577ec0507791637b30208965318460fce0022649305a4ed89a7e5"
     }
   ],
   "current_validator_sha256": "7255072dcb96aa1c20fa7905eb6c5d256a82144e26e541751250c5181f6c069c",

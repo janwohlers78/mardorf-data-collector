@@ -65,7 +65,7 @@ class VolmerdingsenCollectorTests(unittest.TestCase):
         self.assertIn('volmerdingsen_v1 --mode recent --publish-control',workflow)
         self.assertIn('continue-on-error: true',workflow)
         self.assertIn('timeout-minutes: 6',workflow)
-        self.assertIn('if: !cancelled() && steps.storage_gate.outcome',workflow)
+        self.assertIn('if: ${{ !cancelled() && steps.storage_gate.outcome',workflow)
 
 
 if __name__=='__main__':unittest.main()
