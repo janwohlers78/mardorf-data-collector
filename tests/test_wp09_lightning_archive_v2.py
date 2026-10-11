@@ -55,6 +55,27 @@ class ArchiveTests(unittest.TestCase):
             r,_=capture(get=self.source,now=now)
         self.assertEqual(r['archive_v2']['attempted_history_slots'],0)
         self.assertIn('history_time_or_aggregate_budget',r['archive_v2']['missing_by_epoch'].values())
+    def test_parallel_original_readbacks_keep_order_and_fail_before_receipt(self):
+        import hashlib,threading,time
+        from types import SimpleNamespace
+        from mardorf_collector.runtime.wp09_lightning_context_v1 import publication
+        class Backend:
+            def __init__(self):self.data={};self.active=0;self.maximum=0;self.lock=threading.Lock();self.corrupt=False
+            def put_bytes(self,key,body):
+                with self.lock:self.active+=1;self.maximum=max(self.maximum,self.active)
+                time.sleep(.01)
+                with self.lock:self.data[key]=body;self.active-=1
+                value=dict(schema_version=1,key=key,sha256=hashlib.sha256(body).hexdigest(),bytes=len(body))
+                return SimpleNamespace(**value,json=lambda:value)
+            def get_bytes(self,ref):return b'wrong' if self.corrupt else self.data[ref.key]
+        r,o=capture(get=self.source,now=datetime(2026,10,11,1,15,tzinfo=timezone.utc))
+        backend=Backend();paths,_=publication(r,o,backend)
+        stored=json.loads(paths['data/inbox/wp09_lightning_context/latest.json'])
+        self.assertEqual([x['quantity'] for x in stored['records']],[x['quantity'] for x in r['records']])
+        self.assertGreater(backend.maximum,1);self.assertLessEqual(backend.maximum,4)
+        broken=Backend();broken.corrupt=True
+        with self.assertRaises(ValueError):publication(r,o,broken)
+        self.assertFalse(any('/receipts/' in k for k in broken.data))
 
 
 if __name__=='__main__':unittest.main()
