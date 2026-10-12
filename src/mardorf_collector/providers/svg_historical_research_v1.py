@@ -32,6 +32,31 @@ def sha(raw):
     return hashlib.sha256(raw).hexdigest()
 
 
+def metadata_probe(key, secret, *, session=S):
+    """Two exact SVG metadata requests; no historical data, fitting or controls."""
+    records=[]; originals=[]
+    for kind, path in [('station','/stations/42374'),('sensor','/sensors/133268')]:
+        record=dict(kind=kind,request_path=path,station_id=42374,sensor_lsid=133268,
+                    started_at_utc=datetime.now(timezone.utc).isoformat())
+        try:
+            response=session.get(BASE+path,params={'api-key':key},
+                headers={'X-Api-Secret':secret},timeout=(10,45))
+            raw=response.content
+            record.update(http_status=response.status_code,source_response_sha256=sha(raw),
+                source_response_bytes=len(raw),retrieved_at_utc=datetime.now(timezone.utc).isoformat())
+            if any(value and value.encode() in raw for value in (key,secret)):
+                record.update(status='quarantined_sensitive_response',source_body_persisted=False)
+            elif len(raw)>1024*1024:
+                record.update(status='source_byte_budget_exceeded',source_body_persisted=False)
+            else:
+                originals.append((kind,gzip.compress(raw,mtime=0)))
+                record['status']='captured' if response.status_code==200 else 'provider_error'
+        except Exception as exc:
+            record.update(status='transport_error',error_type=type(exc).__name__,http_status=None)
+        records.append(record)
+    return records,originals
+
+
 def days(start, end, probe_days=''):
     if probe_days:
         result = sorted(set(date.fromisoformat(x.strip()) for x in probe_days.split(',') if x.strip()))
@@ -153,8 +178,11 @@ def main(argv=None):
     parser.add_argument('--end-exclusive',type=date.fromisoformat,required=True)
     parser.add_argument('--probe-days',default='')
     parser.add_argument('--block-probe',action='store_true')
+    parser.add_argument('--metadata-probe',action='store_true')
     parser.add_argument('--output',type=Path,default=Path('work/svg-history-research'))
     args=parser.parse_args(argv)
+    if args.metadata_probe and (args.block_probe or args.probe_days):
+        raise ValueError('Metadata probe cannot acquire historical windows')
     selected=days(args.start,args.end_exclusive,args.probe_days)
     if args.block_probe and (len(selected)!=1 or selected[0]!=args.start):
         raise ValueError('Window probe requires one explicit UTC start day')
@@ -169,6 +197,20 @@ def main(argv=None):
         if not env.get(k):env[k]=v
     backend=B2Objects(resolve_b2_bucket(b2_settings(env)))
     prefix=settings['archive_prefix']+'/research/wp06-svg-history-v1'
+    if args.metadata_probe:
+        prefix=settings['archive_prefix']+'/research/svg-channel-metadata-v1'
+        records,originals=metadata_probe(key,secret)
+        for kind,body in originals:
+            ref=publish(backend,prefix,args.output,kind+'.json.gz',body)
+            next(r for r in records if r['kind']==kind)['raw_object']=ref
+        result=dict(artifact_version='svg-channel-metadata-probe-v1',records=records,
+            workflow_run_id=os.getenv('GITHUB_RUN_ID'),code_commit=os.getenv('GITHUB_SHA'),
+            maximum_logical_requests=2,source_field_exclusions=[],forecast_calls=0,
+            production_head_updated=False,git_weather_bytes_written=0,scientific_release=False)
+        ref=publish(backend,prefix,args.output,'metadata-probe.json',canonical(result))
+        print('SVG_CHANNEL_METADATA_PROBE='+json.dumps(dict(result=ref,
+            statuses=[{'kind':r['kind'],'status':r['status'],'http_status':r['http_status']} for r in records])),flush=True)
+        return int(any(r['status']!='captured' for r in records))
     registration=dict(artifact_version='svg-history-research-registration-v1',
         registered_at_utc=datetime.now(timezone.utc).isoformat(),station_id=STATION_ID,
         days=[d.isoformat() for d in selected],max_days=190,probe_max_days=12,

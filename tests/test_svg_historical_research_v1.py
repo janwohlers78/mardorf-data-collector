@@ -21,6 +21,33 @@ class Session:
 
 
 class HistoricalSourceTests(unittest.TestCase):
+    def test_metadata_probe_only_requests_exact_station_and_sensor(self):
+        session=Session({'sensors':[{'lsid':133268}]})
+        records,originals=research.metadata_probe('dummy-key','dummy-secret',session=session)
+        self.assertEqual([c[0] for c in session.calls],[research.BASE+'/stations/42374',research.BASE+'/sensors/133268'])
+        self.assertTrue(all(r['status']=='captured' for r in records))
+        self.assertEqual(len(originals),2)
+        self.assertNotIn('dummy-key',json.dumps(records));self.assertNotIn('dummy-secret',json.dumps(records))
+
+    def test_metadata_probe_retains_forbidden_without_leaking_credentials(self):
+        records,originals=research.metadata_probe('dummy-key','dummy-secret',session=Session({'error':'forbidden'},403))
+        self.assertTrue(all(r['status']=='provider_error' for r in records));self.assertEqual(len(originals),2)
+        records,originals=research.metadata_probe('dummy-key','dummy-secret',session=Session({'echo':'dummy-secret'},403))
+        self.assertFalse(originals);self.assertTrue(all(r['status']=='quarantined_sensitive_response' for r in records))
+
+    def test_metadata_cli_preserves_history_default_and_has_no_production_writes(self):
+        records,raw=research.metadata_probe('dummy-key','dummy-secret',session=Session({'sensors':[]}))
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary);backend=LocalObjects(root/'objects');output=root/'output'
+            with patch.dict(research.os.environ,{'WEATHERLINK_API_KEY':'dummy-key','WEATHERLINK_API_SECRET':'dummy-secret'},clear=True), \
+                 patch.object(research,'metadata_probe',return_value=(records,raw)),patch.object(research,'capture') as history, \
+                 patch.object(research,'b2_settings',return_value={}),patch.object(research,'resolve_b2_bucket',return_value={}), \
+                 patch.object(research,'B2Objects',return_value=backend),redirect_stdout(StringIO()):
+                self.assertEqual(research.main(['--start','2026-10-11','--end-exclusive','2026-10-12','--metadata-probe','--output',str(output)]),0)
+                history.assert_not_called()
+            result=json.loads((output/'metadata-probe.json').read_bytes())
+            self.assertFalse(result['production_head_updated']);self.assertEqual(result['maximum_logical_requests'],2)
+
     def payload(self):
         return dict(station_id=42374,sensors=[dict(sensor_type=48,data_structure_type=4,data=[
             dict(ts=1672531200,arch_int=300,wind_speed_avg=2.,wind_speed_hi=4.,

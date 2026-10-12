@@ -19,6 +19,10 @@ on:
         description: Test 1/2/7/31 day API windows only; no training admission
         type: boolean
         default: false
+      metadata_probe:
+        description: Two bounded SVG station/sensor metadata requests only; no historical acquisition
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -53,7 +57,9 @@ jobs:
           END_DAY: ${{ inputs.end_exclusive }}
           PROBE_DAYS: ${{ inputs.probe_days }}
           BLOCK_PROBE: ${{ inputs.block_probe }}
+          METADATA_PROBE: ${{ inputs.metadata_probe }}
         run: |
           args=(--start "$START_DAY" --end-exclusive "$END_DAY" --probe-days "$PROBE_DAYS")
           if [ "$BLOCK_PROBE" = 'true' ]; then args+=(--block-probe); fi
+          if [ "$METADATA_PROBE" = 'true' ]; then args+=(--metadata-probe); fi
           PYTHONPATH=src python -m mardorf_collector.providers.svg_historical_research_v1 "${args[@]}"
