@@ -40,6 +40,16 @@ class FakeS3:
     def list_objects_v2(self,**kw):return {'Contents':[{'Key':k} for k in sorted(self.objects) if k.startswith(kw['Prefix'])][:kw['MaxKeys']],'IsTruncated':False}
 
 
+class VersionedS3(FakeS3):
+    def __init__(self):super().__init__();self.version=0;self.get_calls=0
+    def put_object(self,**kw):
+        super().put_object(**kw);self.version+=1
+        self.objects[kw['Key']]['VersionId']='version-'+str(self.version)
+        return {'VersionId':'version-'+str(self.version)}
+    def get_object(self,**kw):
+        self.get_calls+=1;return super().get_object(**kw)
+
+
 class ObjectTests(unittest.TestCase):
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup);self.root=Path(self.tmp.name)
@@ -137,5 +147,94 @@ class ObjectTests(unittest.TestCase):
         self.assertIsNone(backend.head('blobs/'+'a'*64))
         self.assertEqual(backend.metrics['failed_requests'],0)
         with self.assertRaisesRegex(ObjectError,'Explicit'):B2Objects(self.settings)
+
+    def test_new_upload_is_read_once_and_is_not_counted_as_reused(self):
+        self.s3=VersionedS3();backend=B2Objects(self.settings,client=self.s3)
+        body=b'actual bytes';key='blobs/'+hashlib.sha256(body).hexdigest()
+        backend.put_bytes(key,body)
+        self.assertEqual(self.s3.get_calls,1)
+        self.assertEqual(backend.metrics['get_bytes'],len(body))
+        self.assertEqual(backend.metrics['reused_bytes'],0)
+        for _ in range(3):backend.put_bytes(key,body)
+        self.assertEqual(self.s3.get_calls,1)
+        self.assertEqual(backend.metrics['get_bytes'],len(body))
+        self.assertEqual(backend.metrics['reused_bytes'],3*len(body))
+        self.assertEqual(backend.metrics['verified_version_reused_bytes'],3*len(body))
+
+    def test_changed_version_with_forged_metadata_is_fully_read_and_rejected(self):
+        self.s3=VersionedS3();backend=B2Objects(self.settings,client=self.s3);body=b'original'
+        key='blobs/'+hashlib.sha256(body).hexdigest();backend.put_bytes(key,body)
+        self.s3.put_object(Key=key,Body=b'CORRUPT!',Metadata={'sha256':hashlib.sha256(body).hexdigest()},ServerSideEncryption='AES256')
+        with self.assertRaises(ObjectError):backend.put_bytes(key,body)
+        self.assertEqual(self.s3.get_calls,2)
+        self.assertEqual(self.s3.objects[key]['body'],b'CORRUPT!')
+
+    def test_absent_or_null_version_and_new_instance_never_reuse_a_proof(self):
+        body=b'original';key='blobs/'+hashlib.sha256(body).hexdigest()
+        for version in (None,'null',''):
+            with self.subTest(version=version):
+                s3=VersionedS3();backend=B2Objects(self.settings,client=s3);backend.put_bytes(key,body)
+                if version is None:s3.objects[key].pop('VersionId')
+                else:s3.objects[key]['VersionId']=version
+                backend.put_bytes(key,body);backend.put_bytes(key,body)
+                self.assertEqual(s3.get_calls,3)
+        s3=VersionedS3();first=B2Objects(self.settings,client=s3);first.put_bytes(key,body)
+        second=B2Objects(self.settings,client=s3);second.put_bytes(key,body)
+        self.assertEqual(s3.get_calls,2)
+
+    def test_verified_get_can_be_reused_but_a_range_or_failed_get_cannot(self):
+        s3=VersionedS3();body=b'original';key='blobs/'+hashlib.sha256(body).hexdigest()
+        s3.put_object(Key=key,Body=body,Metadata={'sha256':hashlib.sha256(body).hexdigest()},ServerSideEncryption='AES256')
+        backend=B2Objects(self.settings,client=s3);ref=ObjectRef(key,hashlib.sha256(body).hexdigest(),len(body))
+        backend.get_range(ref,0,2);backend.put_bytes(key,body)
+        self.assertEqual(s3.get_calls,2)
+        backend.get_file(ref,self.root/'verified');backend.put_bytes(key,body)
+        self.assertEqual(s3.get_calls,3)
+        s3.read_corrupt=True
+        with self.assertRaises(ObjectError):backend.get_file(ref,self.root/'bad')
+        with self.assertRaises(ObjectError):backend.put_bytes(key,body)
+        self.assertEqual(s3.get_calls,5)
+
+    def test_corrupt_new_upload_readback_cannot_seed_a_version_proof(self):
+        s3=VersionedS3();s3.read_corrupt=True;backend=B2Objects(self.settings,client=s3)
+        body=b'original';key='blobs/'+hashlib.sha256(body).hexdigest()
+        for _ in range(2):
+            with self.assertRaises(ObjectError):backend.put_bytes(key,body)
+        self.assertEqual(s3.get_calls,2)
+        self.assertEqual(backend.metrics['verified_version_reused_bytes'],0)
+
+    def test_get_proof_binds_its_own_version_not_the_earlier_head(self):
+        s3=VersionedS3();backend=B2Objects(self.settings,client=s3);body=b'original'
+        key='blobs/'+hashlib.sha256(body).hexdigest();s3.put_object(Key=key,Body=body,Metadata={'sha256':hashlib.sha256(body).hexdigest()},ServerSideEncryption='AES256')
+        original=s3.get_object
+        def race(**kw):
+            s3.objects[key]['VersionId']='version-after-head'
+            return original(**kw)
+        s3.get_object=race;backend.put_bytes(key,body)
+        backend.put_bytes(key,body)
+        self.assertEqual(s3.get_calls,1)
+        s3.objects[key]['VersionId']='version-1';s3.objects[key]['body']=b'CORRUPT!'
+        with self.assertRaises(ObjectError):backend.put_bytes(key,body)
+
+    def test_local_head_hash_avoids_second_full_copy_on_reuse(self):
+        backend=LocalObjects(self.root/'disk');body=b'original';key='blobs/'+hashlib.sha256(body).hexdigest()
+        backend.put_bytes(key,body)
+        with patch.object(backend,'get_file',side_effect=AssertionError('redundant local copy')):
+            backend.put_bytes(key,body)
+        (backend.root/key).write_bytes(b'CORRUPT!')
+        with self.assertRaises(ObjectError):backend.put_bytes(key,body)
+
+    def test_close_failure_cannot_leave_a_successful_version_proof(self):
+        s3=VersionedS3();backend=B2Objects(self.settings,client=s3);body=b'original'
+        key='blobs/'+hashlib.sha256(body).hexdigest();backend.put_bytes(key,body)
+        class BrokenClose(io.BytesIO):
+            def close(self):super().close();raise RuntimeError('private SDK context')
+        original=s3.get_object
+        def broken(**kw):return original(**kw)|{'Body':BrokenClose(body)}
+        s3.get_object=broken
+        with self.assertRaisesRegex(ObjectError,'Download stream close failed'):
+            backend.get_file(ObjectRef(key,hashlib.sha256(body).hexdigest(),len(body)),self.root/'close-failed')
+        s3.get_object=original;s3.read_corrupt=True
+        with self.assertRaises(ObjectError):backend.put_bytes(key,body)
 
 if __name__=='__main__':unittest.main()
