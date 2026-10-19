@@ -42,6 +42,22 @@ werden.
    ersetzen sie nicht. Diese Regel erteilt selbst keine Zugriffsberechtigung
    auf fremde Systeme.
 
+3. **Root-Freigabelink immer im Chat und zusätzlich per E-Mail.**
+   Am 19.10.2026 erneut ausdrücklich vom Betreiber beauftragt: Jeden neuen,
+   noch handlungsfähigen Root-Freigabelink sofort sowohl im Chat als auch über
+   die verbundene Outlook-E-Mail-Anbindung an die im privaten zentralen
+   Admin-Runbook hinterlegte Betreiberadresse senden. Diese Anweisung ist die
+   ausdrückliche, fortgeltende Beauftragung für diese Freigabe-E-Mails; dafür
+   nicht nochmals um eine Versandfreigabe bitten. Betreff mit `[Codex]`,
+   vollständiger identischer Link und verständliche deutsche Beschreibung des
+   konkreten Schritts. Annahme durch die Mail-API und passende Kopie unter
+   „Gesendet“ prüfen; sie beweisen keinen Empfang oder Geräte-Push.
+   Versandfehler offen melden, den Chat-Link trotzdem bereitstellen und vor
+   unklaren Wiederholungen die gesendeten Nachrichten prüfen. Keine neue
+   Root-Freigabe nur für einen erneuten Mailversand erzeugen. Bereits bestätigte
+   oder abgelaufene Anträge nicht als noch zu genehmigen darstellen. Keine
+   Serverprotokolle, Zugangsdaten oder Schlüssel in diese E-Mails aufnehmen.
+
 Diese Regeln ergänzen die bestehende unabhängige Passkey-Freigabe; gewöhnliche
 Befehle innerhalb eines bereits genehmigten Schritts benötigen dadurch keine
 erneute Einzelbestätigung, solange keiner der genannten Zusatzfälle vorliegt.
