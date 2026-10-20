@@ -1,6 +1,6 @@
 # Codex instructions for mardorf-data-collector
 
-## Projektübergreifende Betreiberregeln für Root-Freigaben — 19.10.2026
+## Projektübergreifende Betreiberregeln für Root-Freigaben — 20.10.2026
 
 Diese ausdrücklich vom Betreiber festgelegten Regeln gelten für alle seine
 Aufgaben, Projekte, Chats und zukünftigen Maßnahmen. Sie sind dauerhaft
@@ -11,19 +11,21 @@ laden. Die Ablage in Git aktiviert keine kontoweite Chat-Erinnerung: In einem
 unabhängigen Chat muss diese Anweisung tatsächlich eingebunden oder gelesen
 werden.
 
-1. **Verständliche deutsche Begründung direkt auf der Freigabeseite.**
-   Jede neue Anforderung von Root-Rechten für den Netcup-Server muss auf der
-   Freigabeseite eine ausführliche Zusammenfassung und Begründung in klarer
-   deutscher Sprache enthalten. Auch ohne technische Vorkenntnisse muss
-   verständlich sein, welches konkrete Ziel verfolgt wird, welche Dienste,
-   Dateien oder Einstellungen geändert werden, wozu Root benötigt wird und
-   warum normale Benutzerrechte hierfür nicht ausreichen. Auswirkungen,
-   gegebenenfalls eine kurze Betriebsunterbrechung und die vorgesehene
-   Wiederherstellung sind verständlich zu erklären. Keine abgekürzte
-   Kurzfassung, keine alleinige Befehlsliste oder Sammlung technischer Kürzel.
-   Beim aktuellen OAuth-MCP-Verfahren gehört diese vollständige Erklärung in
-   das Feld `intent`, das die Freigabeseite anzeigt. Eine Erklärung nur im Chat
-   ersetzt den Text auf der Seite nicht. Bereits signierte Anträge dürfen
+1. **Jede Aktion mit Root-Rechten als eigener Stichpunkt auf der Freigabeseite.**
+   Jede neue Root-Freigabe muss eine übersichtliche Liste der geplanten Aktionen
+   enthalten. Jede Aktion, für die Root-Rechte benötigt werden, erhält einen
+   eigenen kurzen, prägnanten Stichpunkt. Konkret benennen, was an welchem
+   Dienst, welcher Datei oder welcher Einstellung ausgeführt werden soll.
+   Unterschiedliche Root-Aktionen nicht in einem Sammelpunkt zusammenfassen.
+   Natürliches, korrektes und auch für Laien verständliches Deutsch verwenden;
+   keine reine Befehlsliste oder Sammlung technischer Kürzel.
+   Nur wenn es für das Verständnis nötig ist, einen kurzen Kontextsatz oder
+   eine knappe Erläuterung ergänzen. Erforderliche Neustarts und Maßnahmen zur
+   Wiederherstellung ebenfalls als eigene Aktionen aufführen.
+   Beim OAuth-MCP-Verfahren steht diese Aktionsliste im Feld `intent`, das
+   direkt auf der Freigabeseite angezeigt wird. Eine Erklärung nur im Chat
+   ersetzt sie nicht. Diese Vorgabe vom 20.10.2026 ersetzt die bisherige Pflicht
+   zur ausführlichen Fließtextbegründung. Bereits signierte Anträge dürfen
    nicht nachträglich umgeschrieben oder in ihrem Umfang erweitert werden.
 
 2. **Zusätzliche ausdrückliche Freigabe für die genannten Eingriffe in
