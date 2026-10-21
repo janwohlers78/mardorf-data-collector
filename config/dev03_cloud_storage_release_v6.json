@@ -1,0 +1,17 @@
+{
+  "schema_version": 6,
+  "artifact_version": "dev03-cloud-object-transport-v6",
+  "predecessor": "config/dev03_cloud_storage_release_v5.json",
+  "predecessor_sha256": "dadcf40d69b7618671e1af82d3baadaf6964e00210a9785dd2f0a905568a2707",
+  "artifact_sha256": {
+    "src/mardorf_collector/storage/__init__.py": "e0e54006b9540036e9517a391654df71c8e9d06d33b5e00e5598fe0aa12dbe1d",
+    "src/mardorf_collector/storage/objects.py": "e38c8e5fcb3fc6e344bdfacb5e7b79353339323f4b159dcddfe57c56f83d85df",
+    "src/mardorf_collector/storage/archive.py": "4e39571ceabc7c2b25eb610529d29906b4b2ce0e4d486b32a4df15e595a9703d",
+    "src/mardorf_collector/storage/workspace.py": "b892cc93d379f92e4cdb52b434b4089ae3d6553fd35c9972d1efc477fccff49d",
+    "src/mardorf_collector/storage/head.py": "221156d7c57686b62493831cc5faf55d98238c6af5f23adeca69a93c1a207fa9",
+    "src/mardorf_collector/storage/configuration.py": "08d0d1c65ffa720d1cea89f3b09f154189712f24441ea7f65b9322bc236cb782",
+    "src/mardorf_collector/storage/runtime.py": "ad1dae2931e4538efbe234ca60ef536e3cb5977abe0ac14e625bb7944dc53b03",
+    "src/mardorf_collector/storage/delivery.py": "af8265ed2b46a09cb7970f6b0b853b788f5085fcba3b042488016124716b9278"
+  },
+  "scope": "Reuse complete-byte SHA256 proofs only for identical non-null provider VersionId in the same transport instance; initial/new/unversioned/changed objects retain full readback. Correct reused_bytes for new uploads. No science or scheduler changes."
+}
