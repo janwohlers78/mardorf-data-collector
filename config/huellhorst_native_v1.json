@@ -1,0 +1,34 @@
+{
+  "artifact_version": "huellhorst-native-binding-v1",
+  "site_id": "huellhorst-32609-v1",
+  "geometry_id": "huellhorst-rathaus-20261030-v1",
+  "latitude": 52.27194125,
+  "longitude": 8.67268261063196,
+  "ground_height_m": 129.800003,
+  "ground_vertical_crs": "EPSG:7837 DHHN2016",
+  "barometer_height_m": null,
+  "native_grid_margin_degrees": 0.5,
+  "forecast_horizon_hours": 120,
+  "poll_interval_seconds": 3600,
+  "reserve_bytes": 8589934592,
+  "raw_field_exclusions": [],
+  "sources": [
+    {
+      "name": "GEFS",
+      "source_id": "gefs-dynamical-packets-v0.2.0",
+      "url": "https://dynamical-noaa-gefs.s3.us-west-2.amazonaws.com/noaa-gefs-forecast-35-day/v0.2.0.icechunk",
+      "dataset_version": "0.2.0",
+      "members": 31
+    },
+    {
+      "name": "GFS",
+      "source_id": "gfs-dynamical-packets-v0.2.7",
+      "url": "https://dynamical-noaa-gfs.s3.us-west-2.amazonaws.com/noaa-gfs-forecast/v0.2.7.icechunk",
+      "dataset_version": "0.2.7",
+      "members": 1
+    }
+  ],
+  "operational_generation_qualified": false,
+  "scientific_release": false,
+  "frozen_R1_geometry_replaced": false
+}
