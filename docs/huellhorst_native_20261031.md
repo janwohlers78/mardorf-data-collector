@@ -48,7 +48,7 @@ actual output filesystem. The complete materialized native field peak is
 checked again before decoding/writing. Low space defers new work; no data fields
 are dropped to fit. All original data/receipts are preserved.
 
-Nine isolated tests exercise future/stale clocks, native members and grid
+Eleven isolated tests exercise future/stale clocks, native members and grid
 identity, all-field/missing-value retention, source/snapshot revisions, immutable
 byte verification, reserve rejection before directory creation, full publication
 readback, hourly cadence and independent source failure. They pass using the
@@ -68,3 +68,11 @@ and receipts were packed and published through the existing OVH research
 broker, then fully GET/readback-verified by size andSHA256. This was one
 separate acquisition check, not scheduler activation or generation qualification.
 Detailed object/runtime/job bindings stay in the private weather evidence.
+
+Final integration checks additionally enforce the existing registered logical
+archive prefix, independent runtime/writer/producer revisions, and per-attempt
+freshness even when an immutable earlier receipt is reused. Captured clocks in
+that earlier receipt are preserved. Raw data in `/dev/shm` is not treated as
+durable: session cleanup removed unarchived temporary successors, so final
+probe/staging uses a separate `/tmp` tmpfs and requires verified OVH publication.
+The already verified first raw-input capsule remains retained.

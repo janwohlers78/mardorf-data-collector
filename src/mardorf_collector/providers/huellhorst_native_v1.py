@@ -16,7 +16,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[3]
 CONFIG = 'config/huellhorst_native_v1.json'
-PREFIX = 'weather/archive/huellhorst-rathaus/native-v1'
+PREFIX = 'weather/archive/janwohlers78/mardorf-kitevorhersage/huellhorst-native/v1'
 
 
 def canonical(value):
@@ -118,6 +118,10 @@ def capture(source, directory, writer, *, current=None, root=ROOT, opener=opened
     b = binding(root)
     if source not in b['sources']:
         raise ValueError('native_source_not_registered')
+    writer_file = Path(inspect.getsourcefile(writer))
+    writer_binding = dict(file=str(writer_file), sha256=file_digest(writer_file),
+                          function_source_sha256=digest(inspect.getsource(writer).encode()))
+    producer = digest(Path(__file__).read_bytes())
     out = output_directory(directory, root)
     began = datetime.now(timezone.utc).isoformat()
     ds, snapshot, session = opener(source)
@@ -135,7 +139,8 @@ def capture(source, directory, writer, *, current=None, root=ROOT, opener=opened
             snapshot_id=snapshot, initialization=str(initialization.astype('datetime64[s]')),
             variables=sorted(selected.data_vars),
             lead_hours=(selected.lead_time.values/__import__('numpy').timedelta64(1, 'h')).tolist(),
-            source_binding_sha256=digest(canonical(b)))
+            source_binding_sha256=digest(canonical(b)), producer_sha256=producer,
+            writer_binding=writer_binding, runtime_binding=runtime_binding)
         key = digest(canonical(identity))
         path = out/(key+'.nc')
         receipt_path = out/(key+'.json')
@@ -169,10 +174,8 @@ def capture(source, directory, writer, *, current=None, root=ROOT, opener=opened
             barometer_height_m=None, raw_field_exclusions=[],
             operational_generation_qualified=False, scientific_release=False,
             frozen_R1_geometry_replaced=False, production_changed=False,
-            producer_sha256=digest(Path(__file__).read_bytes()))
-        writer_file = Path(inspect.getsourcefile(writer))
-        receipt.update(writer_binding=dict(file=str(writer_file), sha256=file_digest(writer_file),
-                                          function_source_sha256=digest(inspect.getsource(writer).encode())),
+            producer_sha256=producer)
+        receipt.update(writer_binding=writer_binding,
                        runtime_binding=runtime_binding, runtime_bound=runtime_binding is not None)
         initialized = datetime.fromisoformat(identity['initialization']).replace(tzinfo=timezone.utc)
         age = (current.astimezone(timezone.utc)-initialized).total_seconds()/3600
@@ -207,6 +210,13 @@ def publish(receipt, path, backend):
     return saved, reference
 
 
+def freshness(identity, current):
+    initialized = datetime.fromisoformat(identity['initialization']).replace(tzinfo=timezone.utc)
+    age = (current.astimezone(timezone.utc)-initialized).total_seconds()/3600
+    return dict(current_source_age_hours=age,
+                current_asof_within_native_validity=0 <= age <= max(identity['lead_hours']))
+
+
 def tick(directory, writer, backend, *, current=None, root=ROOT, opener=opened_native, runtime_binding=None):
     """Called by an existing scheduler; one source failure does not hide another."""
     current = current or datetime.now(timezone.utc)
@@ -224,12 +234,14 @@ def tick(directory, writer, backend, *, current=None, root=ROOT, opener=opened_n
                     current=current, root=root, opener=opener, runtime_binding=runtime_binding)
                 committed = out/(path.stem+'-committed.json')
                 if committed.exists():
-                    rows.append(dict(source=source['name'], status='ALREADY_COMMITTED', identity=receipt['identity']))
+                    rows.append(dict(source=source['name'], status='ALREADY_COMMITTED', identity=receipt['identity'],
+                                     **freshness(receipt['identity'],current)))
                     continue
                 saved, reference = publish(receipt, path, backend)
                 with committed.open('xb') as f:
                     f.write(canonical(dict(status='COMMITTED', receipt=reference.json(), identity=receipt['identity'])));f.flush();os.fsync(f.fileno())
-                rows.append(dict(source=source['name'], status='COMMITTED', receipt=reference.json(), identity=receipt['identity']))
+                rows.append(dict(source=source['name'], status='COMMITTED', receipt=reference.json(), identity=receipt['identity'],
+                                 **freshness(receipt['identity'],current)))
             except Exception as exc:
                 rows.append(dict(source=source['name'], status='FAILED', reason=type(exc).__name__+':'+str(exc)))
         result = dict(artifact_version='huellhorst-native-tick-v1', attempted_utc=current.isoformat(),

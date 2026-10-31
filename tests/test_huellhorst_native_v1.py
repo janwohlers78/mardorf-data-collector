@@ -18,6 +18,8 @@ class Backend:
     def __init__(self):
         self.values={};self.corrupt=False
     def put_bytes(self,key,raw):
+        if not key.startswith('weather/archive/janwohlers78/mardorf-kitevorhersage/'):
+            raise ValueError('unregistered_logical_output')
         self.values[key]=raw
         return SimpleNamespace(key=key,json=lambda:dict(key=key,sha256=h.digest(raw),bytes=len(raw)))
     def get_bytes(self,ref):
@@ -126,6 +128,23 @@ class Tests(unittest.TestCase):
         self.assertEqual(h.tick(self.out,self.writer,backend,current=self.current,opener=opener)['status'],'NOT_DUE')
         r2=h.tick(self.out,self.writer,backend,current=self.current+timedelta(hours=1),opener=opener)
         self.assertEqual(r2['sources'][1]['status'],'ALREADY_COMMITTED')
+
+    def test_cached_old_receipt_keeps_old_clocks_but_current_attempt_marks_stale(self):
+        def opener(source):
+            ds=self.dataset().isel(init_time=[0])
+            if source['name']=='GFS':ds=ds.isel(ensemble_member=[0])
+            return ds,'fixed-old-snapshot',object()
+        backend=Backend()
+        first=h.tick(self.out,self.writer,backend,current=self.current,opener=opener)
+        self.assertTrue(first['sources'][0]['current_asof_within_native_validity'])
+        later=h.tick(self.out,self.writer,backend,current=self.current+timedelta(days=10),opener=opener)
+        self.assertEqual(later['sources'][0]['status'],'ALREADY_COMMITTED')
+        self.assertFalse(later['sources'][0]['current_asof_within_native_validity'])
+
+    def test_runtime_change_is_new_revision_and_preserves_original(self):
+        a,p=h.capture(self.source,self.out,self.writer,current=self.current,opener=self.opener,runtime_binding={'sha256':'old-runtime'})
+        b,q=h.capture(self.source,self.out,self.writer,current=self.current,opener=self.opener,runtime_binding={'sha256':'new-runtime'})
+        self.assertNotEqual(p,q);self.assertTrue(p.exists())
 
 
 if __name__=='__main__':unittest.main()
