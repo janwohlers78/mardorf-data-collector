@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 import re
 import tempfile
+import threading
 import time
 from urllib.parse import urlsplit
 
@@ -108,7 +109,8 @@ class Objects:
         self.metrics = {'get_bytes':0, 'put_bytes':0, 'requests':0,
                         'reused_bytes':0, 'range_bytes':0, 'failed_requests':0,
                         'multipart_aborts':0,'provider_retry_attempts':0,
-                        'byte_accounting_complete':True,'put_attempted_bytes':0}
+                        'byte_accounting_complete':True,'put_attempted_bytes':0,
+                        'verified_version_reused_bytes':0}
 
     def _bound(self, ref):
         if not isinstance(ref, ObjectRef) or ref.bytes > self.max_object_bytes:
@@ -127,15 +129,20 @@ class Objects:
             dest=Path(directory)/'object'; self.get_file(ref,dest)
             return dest.read_bytes()
 
-    def _verified_existing(self, ref):
+    def _content_already_verified(self, ref, metadata):
+        return False
+
+    def _verified_existing(self, ref, *, reused=True):
         metadata=self.head(ref.key)
         if metadata is None: return False
         if metadata['bytes'] != ref.bytes or metadata['sha256'] != ref.sha256:
             raise ObjectError('Immutable object conflict')
-        # User metadata alone is not proof of content, even on replay.
-        with tempfile.TemporaryDirectory() as directory:
-            self.get_file(ref,Path(directory)/'verify')
-        self.metrics['reused_bytes'] += ref.bytes
+        # User metadata alone is not proof. Only a byte-verified immutable
+        # provider version (or a local HEAD that hashes bytes) can avoid GET.
+        if not self._content_already_verified(ref,metadata):
+            with tempfile.TemporaryDirectory() as directory:
+                self.get_file(ref,Path(directory)/'verify')
+        if reused:self.metrics['reused_bytes'] += ref.bytes
         return True
 
 
@@ -154,6 +161,9 @@ class LocalObjects(Objects):
         if not p.exists(): return None
         digest,size=path_digest(p,self.max_object_bytes)
         return {'sha256':digest,'bytes':size,'encryption':'local_not_asserted'}
+
+    def _content_already_verified(self, ref, metadata):
+        return True  # Local HEAD computed SHA256 from the actual complete file.
 
     def put_file(self,key,source):
         digest,size=path_digest(source,self.max_object_bytes)
@@ -259,6 +269,21 @@ class B2Objects(Objects):
             client.meta.events.register_last('before-call.s3.PutObject',no_expect)
             client.meta.events.register_last('before-call.s3.UploadPart',no_expect)
         self.client=client
+        # Metadata-only facts, scoped to this transport instance/bucket. Never
+        # persist them or infer content identity from ETags/user SHA metadata.
+        self._verified_versions={}
+        self._verified_versions_lock=threading.RLock()
+
+    @staticmethod
+    def _version(value):
+        return value if isinstance(value,str) and value and value!='null' else None
+
+    def _content_already_verified(self, ref, metadata):
+        version=self._version(metadata.get('version_id'))
+        with self._verified_versions_lock:
+            proven=version is not None and self._verified_versions.get(ref.key)==(ref.sha256,ref.bytes,version)
+        if proven:self.metrics['verified_version_reused_bytes']+=ref.bytes
+        return proven
 
     def _call(self,method,**kwargs):
         self.metrics['requests']+=1
@@ -281,13 +306,18 @@ class B2Objects(Objects):
 
     def head(self,key):
         r=self._call('head_object',Key=safe_key(key))
-        if r is None:return None
+        if r is None:
+            with self._verified_versions_lock:self._verified_versions.pop(key,None)
+            return None
         if r.get('ServerSideEncryption')!='AES256':raise ObjectError('Object encryption mismatch')
         size=r.get('ContentLength');positive(size,'remote object size',allow_zero=True)
         digest=r.get('Metadata',{}).get('sha256')
         if not isinstance(digest,str) or not re.fullmatch(r'[0-9a-f]{64}',digest):
             raise ObjectError('Remote object hash metadata missing')
-        return {'bytes':size,'sha256':digest,'encryption':'AES256'}
+        result={'bytes':size,'sha256':digest,'encryption':'AES256'}
+        version=self._version(r.get('VersionId'))
+        if version is not None:result['version_id']=version
+        return result
 
     def put_file(self,key,source):
         digest,size=path_digest(source,self.max_object_bytes)
@@ -330,13 +360,14 @@ class B2Objects(Objects):
                     # Never mask the original exception; only abort this own upload.
                     try:self._call('abort_multipart_upload',Key=key,UploadId=upload_id);self.metrics['multipart_aborts']+=1
                     except ObjectError:pass
-        if not self._verified_existing(ref):raise ObjectError('Completed upload not visible')
+        if not self._verified_existing(ref,reused=False):raise ObjectError('Completed upload not visible')
         return ref
 
     def get_file(self,ref,dest):
         self._bound(ref);dest=Path(dest)
         if dest.exists() or dest.is_symlink() or any(p.is_symlink() for p in dest.parents) or '..' in dest.parts:
             raise ObjectError('Download destination must be new and nonsymlink')
+        with self._verified_versions_lock:self._verified_versions.pop(ref.key,None)
         response=self._call('get_object',Key=ref.key);body=response.get('Body')
         if body is None:raise ObjectError('Download body missing')
         size=0;sha=hashlib.sha256();created=False
@@ -361,6 +392,10 @@ class B2Objects(Objects):
             except Exception:
                 if created and dest.exists():dest.unlink()
                 raise ObjectError('Download stream close failed') from None
+        version=self._version(response.get('VersionId'))
+        if version is not None:
+            with self._verified_versions_lock:
+                self._verified_versions[ref.key]=(ref.sha256,ref.bytes,version)
 
     def get_range(self,ref,start,end):
         self._bound(ref)
