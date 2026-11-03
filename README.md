@@ -7,7 +7,23 @@ traffic-light thresholds, historical private datasets, or user-facing reports**.
 It only retrieves source observations/model data and transfers versioned bundles
 to the private repository.
 
-## Schedules
+## Current operating status (19 October 2026)
+
+GitHub Actions and the external workflow triggers are disabled. All B2 reads and
+writes are retired. The active weather collector runs on Netcup and publishes
+verified originals and an immutable feed to OVH; deployment profiles and the
+canonical operational handoff are maintained in the private project.
+
+For the deployed server, acquisition lives in `src/mardorf_collector/runtime/`:
+`wp06_single_run_v1.py`, `wp07_single_run_v1.py`, `wp08_labels_v1.py`,
+`wp09_events_v1.py`, and `wp09_lightning_context_v1.py`; WeatherLink extraction
+uses `providers` and `wp13`. Private `mardorf_shadow.collect` supplies transport
+and publication. Extend these interfaces instead of copying a separate pipeline.
+
+The following GitHub schedules, credentials and Git-transfer descriptions are
+historical. They do not authorize restarting automation or B2 access.
+
+## Historical schedules
 
 - The external cron-job.org trigger is the primary heartbeat and calls `.github/workflows/collector-watchdog.yml` every 20 minutes. The watchdog first checks the verified private success timestamps itself and dispatches only collectors that are actually due. It also suppresses duplicate dispatch while the corresponding collector is queued or running.
 - Freshness thresholds remain SVG 40 minutes, models 150 minutes and the atomic secondary batch 240 minutes. Each dispatched child workflow repeats its own freshness check before provider access, so the router and collector are independently fail-safe.
