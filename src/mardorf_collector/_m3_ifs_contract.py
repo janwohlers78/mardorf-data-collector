@@ -40,68 +40,60 @@ def forecast_times(header):
 
 
 def field_contract(header):
-    name = header.get('shortName')
-    if name not in FIELDS:
-        raise QualificationError('unsupported_covariate')
-    unit, level, level_type = FIELDS[name]
-    if header.get('units') != unit or str(header.get('level')) != level:
-        raise QualificationError('native_unit_or_height_changed')
-    if level_type is not None and header.get('typeOfLevel') != level_type:
-        raise QualificationError('native_level_type_changed')
-    if name == 'msl' and header.get('typeOfLevel') not in ('surface', 'meanSea'):
-        raise QualificationError('mean_sea_pressure_reference_changed')
-    return name, forecast_times(header)
+  …1751 tokens truncated…es>self.limits['metadata_coordinate_payload_budget_bytes']:raise ValueError('metadata coordinate payload budget exhausted')
+
+    def failed(self,ticket):
+        if ticket[0]=='weather':self.pending-=ticket[1]
+
+    def receipt(self):
+        if self.pending:raise ValueError('uncompleted store reads')
+        return dict(weather_payload_bytes_received=self.weather_bytes,metadata_coordinate_payload_bytes_received=self.metadata_bytes,weather_requests=self.weather_requests,metadata_requests=self.metadata_requests,denied_requests=self.denied,all_weather_reads_bounded_ranges=True,full_shards_read=False,physical_wire_bytes_or_retries_measured=False)
 
 
-def bilinear(latitude, longitude, values, missing, *, target_latitude, target_longitude):
-    """Interpolate only four finite native bracketing cells, never extrapolate."""
-    n = len(values)
-    if not n or any(len(a) != n for a in (latitude, longitude, missing)):
-        raise QualificationError('native_coordinate_grain_mismatch')
-    if not all(math.isfinite(float(x)) for x in (target_latitude, target_longitude)):
-        raise QualificationError('invalid_target_coordinate')
-    cells = {}
-    for y, x, value, absent in zip(latitude, longitude, values, missing):
-        y, x, value = float(y), float(x), float(value)
-        if not math.isfinite(y) or not math.isfinite(x) or not -90 <= y <= 90 or not -180 <= x <= 180:
-            raise QualificationError('invalid_native_geography')
-        if (y, x) in cells:
-            raise QualificationError('duplicate_native_cell')
-        cells[y, x] = None if absent or not math.isfinite(value) else value
-    ys, xs = sorted({p[0] for p in cells}), sorted({p[1] for p in cells})
-    if not ys[0] <= target_latitude <= ys[-1] or not xs[0] <= target_longitude <= xs[-1]:
-        raise QualificationError('target_outside_native_bbox')
-    ly = max(y for y in ys if y <= target_latitude); hy = min(y for y in ys if y >= target_latitude)
-    lx = max(x for x in xs if x <= target_longitude); hx = min(x for x in xs if x >= target_longitude)
-    needed = {(ly, lx), (ly, hx), (hy, lx), (hy, hx)}
-    if any(cells.get(p) is None for p in needed):
-        raise QualificationError('missing_native_interpolation_neighbour')
-    fy = 0.0 if hy == ly else (target_latitude - ly) / (hy - ly)
-    fx = 0.0 if hx == lx else (target_longitude - lx) / (hx - lx)
-    result = (1-fy)*((1-fx)*cells[ly,lx]+fx*cells[ly,hx]) + fy*((1-fx)*cells[hy,lx]+fx*cells[hy,hx])
-    return result, sorted(needed)
+def profile_cost(metadata,init_index,lead_indices,lat_indices,lon_indices):
+    """Count actual inner chunks and exact outer shard keys from native metadata."""
+    import itertools,math
+    if metadata['zarr_format']!=3 or metadata['data_type']!='float32' or metadata['dimension_names']!=['init_time','ensemble_member','lead_time','latitude','longitude']:raise ValueError('native u/v layout')
+    outer=metadata['chunk_grid']['configuration']['chunk_shape'];codecs=metadata['codecs']
+    if len(codecs)!=1 or codecs[0]['name']!='sharding_indexed':raise ValueError('qualified native sharding codec')
+    cfg=codecs[0]['configuration'];inner=cfg['chunk_shape']
+    if cfg['index_location']!='end' or metadata['chunk_key_encoding']!={'name':'default','configuration':{'separator':'/'}}:raise ValueError('qualified shard index/key layout')
+    if cfg['codecs']!=[{'name':'bytes','configuration':{'endian':'little'}},{'name':'blosc','configuration':{'cname':'zstd','clevel':3,'shuffle':'shuffle','typesize':4,'blocksize':0}}]:raise ValueError('qualified lossless inner codecs')
+    if cfg['index_codecs']!=[{'name':'bytes','configuration':{'endian':'little'}},{'name':'crc32c'}]:raise ValueError('qualified shard index codecs')
+    if len(outer)!=5 or len(inner)!=5 or len(metadata['shape'])!=5 or any(type(x) is not int or x<=0 for x in outer+inner) or any(o%i for o,i in zip(outer,inner)):raise ValueError('exact regular shard/inner shapes')
+    selection=[[init_index],list(range(31)),lead_indices,lat_indices,lon_indices]
+    if any(any(type(x) is not int or not 0<=x<metadata['shape'][i] for x in values) for i,values in enumerate(selection)):raise ValueError('native selection coordinates')
+    inner_coordinates=[sorted({v//c for v in values}) for values,c in zip(selection,inner)]
+    outer_coordinates=[sorted({v//c for v in values}) for values,c in zip(selection,outer)]
+    return dict(inner_chunks=math.prod(map(len,inner_coordinates)),inner_decoded_bytes=math.prod(inner)*4,outer_logical_bytes=math.prod(outer)*4,index_bytes=math.prod(o//i for o,i in zip(outer,inner))*16+4,outer_key_suffixes=['c/'+'/'.join(map(str,key)) for key in itertools.product(*outer_coordinates)])
 
 
-def feature_record(headers, point_values, *, source_id, artifact_sha256, generation, target):
-    """Bind scalar/vector point features without relabelling their operator."""
-    if set(point_values) != set(FIELDS) or set(headers) != set(FIELDS):
-        raise QualificationError('incomplete_native_feature_set')
-    times = []
-    for name, header in headers.items():
-        actual, timing = field_contract(header)
-        if actual != name:
-            raise QualificationError('field_identity_mismatch')
-        times.append(timing)
-    if any(t != times[0] for t in times) or not all(math.isfinite(float(v)) for v in point_values.values()):
-        raise QualificationError('mixed_validity_or_nonfinite_feature')
-    run, lead, valid = times[0]
-    return dict(source_id=source_id, artifact_sha256=artifact_sha256, generation=generation,
-        target=target, initialization_utc=run.isoformat(), lead_hours=lead,
-        valid_utc=valid.isoformat(), native_operator='instantaneous_forecast_covariate',
-        not_hourly_measurement_mean=True, historical_publication_latency_qualified=False,
-        wind_u_ms=float(point_values['10u']), wind_v_ms=float(point_values['10v']),
-        wind_speed_ms=math.hypot(point_values['10u'], point_values['10v']),
-        temperature_c=float(point_values['2t'])-273.15,
-        pressure_model_surface_hpa=float(point_values['sp'])/100,
-        pressure_msl_hpa=float(point_values['msl'])/100,
-        model_surface_not_target_barometer=True, scientific_release=False)
+def bounded_store(store,budget,WrapperStore):
+    class RangedOnly(WrapperStore):
+        async def get(self,key,prototype,byte_range=None):
+            ticket=budget.before(key,byte_range)
+            try:value=await self._store.get(key,prototype=prototype,byte_range=byte_range)
+            except BaseException:budget.failed(ticket);raise
+            budget.after(ticket,0 if value is None else len(value));return value
+        async def get_partial_values(self,prototype,key_ranges):
+            return [await self.get(key,prototype,request) for key,request in key_ranges]
+        async def _get_many(self,requests):
+            for key,prototype,request in requests:yield key,await self.get(key,prototype,request)
+        async def get_ranges(self,key,byte_ranges,*,prototype,max_concurrency=None,max_gap_bytes=None,max_coalesced_bytes=None):
+            # Deliberately no coalescing: every exact range passes the existing guard.
+            for index,request in enumerate(byte_ranges):
+                value=await self.get(key,prototype,request)
+                if value is None:raise ExceptionGroup('guarded range key absent',[FileNotFoundError(str(key))])
+                yield [(index,value)]
+        @property
+        def _supports_sync_io(self):return False
+        def get_sync(self,*args,**kwargs):raise PermissionError('synchronous source reads disabled')
+        def get_ranges_sync(self,*args,**kwargs):raise PermissionError('synchronous source ranges disabled')
+        async def set(self,*args,**kwargs):raise PermissionError('readonly native source')
+        async def delete(self,*args,**kwargs):raise PermissionError('readonly native source')
+        async def clear(self,*args,**kwargs):raise PermissionError('readonly native source')
+        async def set_if_not_exists(self,*args,**kwargs):raise PermissionError('readonly native source')
+        async def set_partial_values(self,*args,**kwargs):raise PermissionError('readonly native source')
+    result=RangedOnly(store)
+    if not result.read_only:raise ValueError('actual readonly source store required')
+    return result
