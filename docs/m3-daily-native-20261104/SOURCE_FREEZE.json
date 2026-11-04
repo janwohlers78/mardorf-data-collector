@@ -1,0 +1,41 @@
+{
+  "files": {
+    "HELPER_BINDING.json": {
+      "bytes": 380,
+      "sha256": "88fe857d341fd4f975fc93fadf5e84d8f6a067e76cea602b790b7d384c311d9b"
+    },
+    "INTERFACE.md": {
+      "bytes": 5245,
+      "sha256": "192b8c92bd81a8d1921f143c8be6ed36b8583bdc11ff105e78c1cdefd6a48013"
+    },
+    "_m3_coordinate_guard.py": {
+      "bytes": 5773,
+      "sha256": "c7314a5904d7cd6ed283597205320911da5e06e0afbdfc510d43f852b81ca9d5"
+    },
+    "_m3_ifs_contract.py": {
+      "bytes": 5716,
+      "sha256": "e3eb84842b8f8a0747f682a6c515a75b69b7ec1ca9d6e043da50a07465d2a42a"
+    },
+    "_m3_native_range.py": {
+      "bytes": 7793,
+      "sha256": "edb371abdb52103611e65d2f931d268f7a1c8e97c5a6f4be0f58172dcd99b0b0"
+    },
+    "m3_daily_native.py": {
+      "bytes": 28679,
+      "sha256": "b63b547f22759767023c565a82b1bba93de71825df4232c35871f221f897efed"
+    },
+    "test_m3_daily_native.py": {
+      "bytes": 21148,
+      "sha256": "24a84bcc9051a3cebd517f5bee93a0961d442e8ce7db5d8ee99b81b91f2853cd"
+    }
+  },
+  "fits": false,
+  "host_jobs_started": false,
+  "live_sources_read": false,
+  "local_mock_tests_passed": 20,
+  "runtime_peak_measured": false,
+  "schema": "m3-daily-native-collector-source-freeze-v1",
+  "scientific_release": false,
+  "truth_reads": false,
+  "working_RAM_design_bytes": 268435456
+}
