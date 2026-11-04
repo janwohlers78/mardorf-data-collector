@@ -1,0 +1,6 @@
+{
+  "range_policy_original_sha256": "4f34e4e9118e66f7dea83f274d28282aa93e4627963927d1bc874c94b65e79f0",
+  "bounded_store_original_definition_sha256": "85be67fc06a41eb333f07c921b825250de69f5535ee3d40004db617d7f01a158",
+  "ifs_contract_original_sha256": "e3eb84842b8f8a0747f682a6c515a75b69b7ec1ca9d6e043da50a07465d2a42a",
+  "no_private_model_or_server_paths_in_public_code": true
+}
