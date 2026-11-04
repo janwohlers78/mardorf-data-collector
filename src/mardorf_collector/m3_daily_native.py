@@ -19,9 +19,11 @@ import urllib.request
 try:
     from ._m3_native_range import Budget, profile_cost, bounded_store
     from ._m3_ifs_contract import bilinear, feature_record, FIELDS
+    from ._m3_coordinate_guard import coordinate_bounded_store
 except ImportError:
     from _m3_native_range import Budget, profile_cost, bounded_store
     from _m3_ifs_contract import bilinear, feature_record, FIELDS
+    from _m3_coordinate_guard import coordinate_bounded_store
 
 TARGET = {'id': 'awekas-40749-esch-public-chart-local-v1',
           'latitude': 52.269502777777774, 'longitude': 8.673894444444445}
@@ -211,6 +213,7 @@ def gefs_day(day, publisher):
     import numpy as np
     import xarray as xr
     import zarr
+    from zarr.abc.store import RangeByteRequest
     requested = initialization(day); started = now()
     repository = icechunk.Repository.open(icechunk.http_storage(GEFS_URL))
     observed = repository.readonly_session(branch='main'); snapshot = str(observed.snapshot_id)
@@ -221,7 +224,9 @@ def gefs_day(day, publisher):
         'max_metadata_requests': 128, 'metadata_coordinate_payload_budget_bytes': 4 * 1024**2,
         'max_weather_requests': 8, 'range_payload_max_bytes': 2224128,
         'suffix_index_max_bytes': 65536, 'received_weather_payload_budget_bytes': 8 * 1024**2}}
-    budget = Budget(policy); store = bounded_store(session.store, budget, zarr.storage.WrapperStore)
+    budget = Budget(policy)
+    coordinate_store = coordinate_bounded_store(session.store,zarr.storage.WrapperStore,RangeByteRequest)
+    store = bounded_store(coordinate_store, budget, zarr.storage.WrapperStore)
     with xr.open_zarr(store=store, chunks=None, decode_timedelta=True) as dataset:
         proof = gefs_metadata(dataset, store, zarr, requested)
         budget.allowed = set(proof['allowed_weather_keys'].values())
@@ -249,6 +254,8 @@ def gefs_day(day, publisher):
             result[~np.isfinite(cells).all(axis=(-2, -1))] = np.nan
             point[field] = result[0].T
     access = budget.receipt()
+    access['coordinate_conservative_peak_bytes_admitted']=dict(coordinate_store.approved)
+    access['all_metadata_coordinate_reads_bounded_before_transfer']=True
     proof.update(source_id=GEFS_SOURCE, source_url=GEFS_URL, snapshot_id=snapshot,
         dataset_version='0.2.0', initialization_utc=requested.isoformat(),
         request_started_utc=started, retrieved_utc=retrieved, access=access,
@@ -454,6 +461,7 @@ def collect(output, init_day, publish_bytes=None, publish_file=None, *,
     result = {'schema': 'm3-daily-native-capture-result-v1', 'initialization_utc': requested.isoformat(),
         'actual_completed_utc': now(), 'input': input_ref, 'plan': plan_ref, 'GEFS_proof': gefs_proof,
         'attempts': attempts, 'expected_cases': 17, 'captured_native_pairs': len(records),
+        'raw_ifs_records': [{'target': TARGET, 'ifs': row} for row in ifs.values() if row.get('source_id')],
         'status': 'CAPTURE_COMPLETE_PENDING_EXTERNAL_ADMISSION' if len(records) == 17 else 'PARTIAL_PENDING_EXTERNAL_ADMISSION',
         'artifacts': dict(publisher.refs),
         'independent_input_admission': False, 'source_generation_transfer_qualified': False,
